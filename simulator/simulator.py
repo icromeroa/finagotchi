@@ -6,6 +6,7 @@ import keyboard
 import scipy.io.wavfile as wav
 import sounddevice as sd
 import speech_recognition as sr
+import uuid
 
 API_URL = "http://127.0.0.1:5000/api/v1/finagotchi/telemetry"
 DEVICE_ID = "FINAGOTCHI-PC-SIMULATOR-01"
@@ -34,9 +35,7 @@ def capturar_y_transcribir_voz():
     def callback(indata, frames, time_info, status):
         audio_data.append(indata.copy())
 
-    with sd.InputStream(
-        samplerate=SAMPLE_RATE, channels=1, dtype="int16", callback=callback
-    ):
+    with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16", callback=callback):
         while keyboard.is_pressed("space"):
             time.sleep(0.05)
 
@@ -55,9 +54,7 @@ def capturar_y_transcribir_voz():
     try:
         with sr.AudioFile(wav_bytes) as source:
             audio = recognizer.record(source)
-            transcripcion = recognizer.recognize_google(
-                audio, language="es-CO"
-            )
+            transcripcion = recognizer.recognize_google(audio, language="es-CO")
             print(f'📝 [VOZ TRANSCRIBA]: "{transcripcion}"')
     except sr.UnknownValueError:
         print("⚠️ No se pudo reconocer el audio.")
@@ -69,20 +66,23 @@ def capturar_y_transcribir_voz():
     return transcripcion, duration
 
 
+
 def build_payload():
     global secuencia
     secuencia += 1
     raw_text, duration = capturar_y_transcribir_voz()
 
-    # Formato UTC según Guía Estándar (RFC 3339)
     timestamp_utc = (
         datetime.now(timezone.utc)
         .isoformat(timespec="seconds")
         .replace("+00:00", "Z")
     )
 
+    # Usar UUID o Marca de tiempo para garantizar un ID único siempre
+    unique_id = f"{DEVICE_ID}-{int(time.time())}-{secuencia:04d}"
+
     return {
-        "message_id": f"{DEVICE_ID}-{secuencia:06d}",
+        "message_id": unique_id,
         "device_id": DEVICE_ID,
         "timestamp": timestamp_utc,
         "sequence": secuencia,
@@ -109,37 +109,40 @@ def send_telemetry():
         data = response.json()
 
         print("✅ ¡RESPUESTA RECIBIDA CON ÉXITO DEL BACKEND!")
+        
+        # Caso 1: Consulta de balance general
         if data.get("tipo") == "consulta_balance":
             print("📊 --- BALANCE GENERAL DIARIO ---")
-            print(f"   ├─ 📥 Ingresos: ${data.get('total_ingresos', 0.0):,.1f}")
-            print(f"   ├─ 💸 Gastos:   ${data.get('total_gastos', 0.0):,.1f}")
-            print(f"   ├─ 💰 Neto:     ${data.get('balance_neto', 0.0):,.1f}")
+            print(f"   ├─ 📥 Ingresos Totales: ${data.get('total_ingresos', 0.0):,.1f}")
+            print(f"   ├─ 💸 Gastos Totales:   ${data.get('total_gastos', 0.0):,.1f}")
+            print(f"   ├─ 💰 Neto del Día:     ${data.get('balance_neto', 0.0):,.1f}")
             print(
-                f"   └─ 🐶 Mascotas: Salud={data.get('salud')}% |"
-                f" Ánimo={data.get('animo').upper()}\n"
+                f"   └─ 🐶 Estado Mascotas: Salud={data.get('salud')}% |"
+                f" Ánimo={data.get('animo')}\n"
             )
+        # Caso 2: Registro de transacción (Gasto / Ingreso)
         else:
             tipo = data.get("transaction_type", "expense")
             etiqueta = "📥 INGRESO" if tipo == "income" else "💸 GASTO"
             print(
                 f"   ├─ {etiqueta} REGISTRADO: Monto=${data.get('monto', 0.0):,.1f}"
-                f" | Cat={data.get('category')}"
+                f" | Categoria={data.get('category')}"
             )
             print(
-                f"   └─ 🐶 Mascotas: Salud={data.get('salud')}% |"
-                f" Ánimo={data.get('animo').upper()}"
+                f"   └─ 🐶 Estado Mascotas: Salud={data.get('salud')}% |"
+                f" Ánimo={data.get('animo')}"
             )
 
         if data.get("alerta_activa"):
             print(
-                "   ⚠️ ¡ALERTA CRÍTICA ACTIVADA! (Presupuesto diario superado o"
+                "   ⚠️ ¡ALERTA FINANCIERA ACTIVADA! (Presupuesto diario superado o"
                 " Salud < 20%)\n"
             )
 
     except requests.exceptions.Timeout:
-        print("❌ ERROR: Tiempo de espera agotado (Timeout) al conectar con el Backend.")
+        print("❌ ERROR: Tiempo de espera agotado al conectar con el Backend.")
     except requests.exceptions.ConnectionError:
-        print("❌ ERROR: Servidor Backend no encontrado. Verifica que `server.py` esté activo.")
+        print("❌ ERROR: No se conectó al servidor. Revisa que `server.py` esté corriendo.")
     except requests.exceptions.HTTPError as err:
         print(f"❌ ERROR HTTP {err.response.status_code}: {err.response.text}")
 
