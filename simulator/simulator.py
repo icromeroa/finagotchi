@@ -14,7 +14,6 @@ secuencia = 0
 
 
 def capturar_y_transcribir_voz():
-    """Captura audio mientras la tecla ESPACIO esté presionada y lo transcribe con Google Speech."""
     print("\n------------------------------------------------")
     print("  🕹️ SIMULADOR DE HARDWARE FINAGOTCHI (PC)")
     print("------------------------------------------------")
@@ -58,7 +57,7 @@ def capturar_y_transcribir_voz():
             )
             print(f'📝 [VOZ TRANSCRIBIDA]: "{transcripcion}"')
     except Exception as e:
-        print(f"⚠️ Error al transcribir o audio no reconocido: {e}")
+        print(f"⚠️ Error al transcribir: {e}")
         transcripcion = "Sin transcripción"
 
     return transcripcion, duration
@@ -88,8 +87,6 @@ def send_telemetry():
         },
     }
 
-    print(f"\n[SIMULADOR] 📡 Enviando POST a {API_URL}...")
-
     try:
         response = requests.post(
             API_URL,
@@ -100,12 +97,13 @@ def send_telemetry():
 
         if response.status_code in [200, 201]:
             data = response.json()
-            print("✅ ¡RESPUESTA RECIBIDA CON ÉXITO DEL BACKEND!")
+            print("\n✅ ¡RESPUESTA RECIBIDA CON ÉXITO DEL BACKEND!")
             tipo = data.get("tipo")
 
             if tipo == "cierre_dia":
                 print(
-                    "🔒 --- CIERRE DEFINITIVO DEL DÍA (RESET DE CONTADORES) ---"
+                    "🔒 --- CIERRE DE JORNADA (LA SALUD SE MANTIENE PARA EL"
+                    " SIGUIENTE DÍA) ---"
                 )
                 print(
                     f"   ├─ 📥 Ingresos Cierre:"
@@ -120,57 +118,46 @@ def send_telemetry():
                     f" ${data.get('balance_neto', 0.0):,.1f}"
                 )
                 print(
-                    "   └─ 🐶 La mascota reinicia estado a Salud=100% |"
-                    " Ánimo=FELIZ para el nuevo día.\n"
-                )
-
-            elif tipo == "consulta_estado":
-                print("📊 --- ESTADO PARCIAL DEL DÍA (""¿CÓMO VOY?"") ---")
-                print(
-                    f"   ├─ 📥 Ingresos del día:"
-                    f" ${data.get('total_ingresos', 0.0):,.1f}"
-                )
-                print(
-                    f"   ├─ 💸 Gastos del día:  "
-                    f" ${data.get('total_gastos', 0.0):,.1f}"
-                )
-                print(
-                    f"   ├─ 💰 Neto actual:     "
-                    f" ${data.get('balance_neto', 0.0):,.1f}"
-                )
-                print(
-                    f"   └─ 🐶 Mascota: Salud={data.get('salud')}% |"
-                    f" Ánimo={data.get('animo')}\n"
+                    f"   └─ 🐶 FinaGotchi inicia el nuevo día con Salud="
+                    f"{data.get('salud_heredada')}% | Ánimo={data.get('animo')}\n"
                 )
 
             else:
-                tipo_tx = data.get("transaction_type", "expense")
-                etiqueta = "📥 INGRESO" if tipo_tx == "income" else "💸 GASTO"
+                if tipo == "consulta_estado":
+                    print("📊 --- ESTADO PARCIAL DE LA JORNADA ---")
+                else:
+                    tipo_tx = data.get("transaction_type", "expense")
+                    etiqueta = "📥 INGRESO" if tipo_tx == "income" else "💸 GASTO"
+                    print(
+                        f"   ├─ {etiqueta} REGISTRADO:"
+                        f" Monto=${data.get('monto', 0.0):,.1f} |"
+                        f" Categoria={data.get('category')}"
+                    )
+
                 print(
-                    f"   ├─ {etiqueta} REGISTRADO:"
-                    f" Monto=${data.get('monto', 0.0):,.1f} |"
-                    f" Categoria={data.get('category')}"
-                )
-                print(
-                    f"   ├─ 📊 Acumulados: Gastos=${data.get('gastos_acumulados', 0.0):,.1f}"
-                    f" | Neto=${data.get('balance_neto', 0.0):,.1f}"
+                    f"   ├─ 📊 Balance Neto: ${data.get('balance_neto', 0.0):,.1f}"
                 )
                 print(
                     f"   └─ 🐶 Estado Mascota: Salud={data.get('salud')}% |"
                     f" Ánimo={data.get('animo')}"
                 )
 
-            if data.get("alerta_activa") and tipo != "cierre_dia":
-                print(
-                    "   ⚠️ ¡ALERTA FINANCIERA ACTIVADA! (Presupuesto superado"
-                    " o Salud < 20%)\n"
-                )
+                # Mostrar Presupuestos por Categoría
+                categorias = data.get("categorias", {})
+                if categorias:
+                    print("\n   🏷️  [PRESUPUESTOS POR CATEGORÍA]:")
+                    for cat, info in categorias.items():
+                        alerta = " ⚠️ (EXCEDIDO)" if info["superado"] else ""
+                        print(
+                            f"      • {cat.capitalize():<14}: Gastado"
+                            f" ${info['gastado']:,.0f} / Limite"
+                            f" ${info['limite']:,.0f} (Disponible:"
+                            f" ${info['restante']:,.0f}){alerta}"
+                        )
+                print()
 
         else:
-            print(
-                f"❌ ERROR EN SERVIDOR: Código HTTP {response.status_code} -"
-                f" {response.text}"
-            )
+            print(f"❌ ERROR EN SERVIDOR: {response.status_code}")
 
     except Exception as e:
         print(f"❌ ERROR DE CONEXIÓN: {e}")
