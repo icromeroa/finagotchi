@@ -1,0 +1,25 @@
+{
+  "device_id": "FINAGOTCHI-PC-SIMULATOR-01",
+  "interval_seconds": 15,
+  "scenario": "normal",
+  "seed": 42,
+  "http_url": "http://127.0.0.1:5000/api/v1/finagotchi/telemetry",
+  "http_retries": 3,
+  "max_messages": 0,
+  "transaction_probability": 0.75,
+  "expense_probability": 0.8,
+  "amount_min": 5000,
+  "amount_max": 40000,
+  "alert_amount_min": 30000,
+  "alert_amount_max": 50000,
+  "categories": [
+    "food",
+    "transport",
+    "entertainment",
+    "health",
+    "education",
+    "housing",
+    "salary",
+    "other"
+  ]
+}
