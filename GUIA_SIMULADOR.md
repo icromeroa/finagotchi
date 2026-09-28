@@ -54,7 +54,7 @@ Haz clic derecho sobre Windows PowerShell y selecciona **Ejecutar como administr
 
 ---
 
-## 🚀 Guía de Ejecución Paso a Paso
+## 🚀 Guía de Ejecución Paso a Paso WINDOWS
 
 Para probar el flujo completo necesitas tener dos terminales abiertas simultáneamente.
 
@@ -93,6 +93,46 @@ py simulator/simulator.py
 ```
 
 ---
+# 🍏 Guía de Ejecución de FinaGotchi en macOS
+
+Guía rápida para iniciar el servidor backend y el simulador IoT de voz de FinaGotchi en macOS.
+
+---
+
+## 📌 Requisitos Previos
+
+1. **Python 3.10+**: Verificar en la terminal con `python3 --version`.
+2. **Permisos de macOS** (*Ajustes del Sistema > Privacidad y seguridad*):
+   * **Micrófono**: Permitir acceso a la **Terminal** o **VS Code**.
+   * **Accesibilidad**: Agregar la **Terminal** o **VS Code** para permitir la captura global de teclado.
+
+---
+
+## 📦 1. Instalación de Dependencias
+
+Abre la Terminal y ejecuta:
+
+```bash
+python3 -m pip install flask requests keyboard SpeechRecognition sounddevice scipy numpy 
+```
+## Trminal 1: Servidor Backend (server.py)
+Escucha las peticiones HTTP y gestiona la base de datos local SQLite.
+
+```Bash
+cd "/ruta/a/tu/proyecto/finagotchi"
+python3 backend/server.py
+```
+## Trminal 2: Simulador IoT (simulador.py)
+Captura eventos de teclado, procesa notas de voz y envía la telemetría.
+
+⚠️ Importante: Se requiere sudo para que la librería keyboard capture la tecla [ESPACIO] globalmente.
+
+```Bash
+cd "/ruta/a/tu/proyecto/finagotchi"
+sudo python3 simulator/simulador.py
+```
+(Ingresa tu contraseña de administrador de Mac cuando la solicite).
+
 
 ## 🎙️ Interacción y Comandos de Voz
 
