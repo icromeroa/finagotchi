@@ -1,68 +1,34 @@
+import os
 import re
 import sqlite3
+import sys
 from datetime import datetime, timezone
 from flask import Flask, jsonify, request
 
+# 1. Asegurar la importación modular de la carpeta 'database'
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+from database.init_db import DB_PATH, init_sqlite
+
 app = Flask(__name__)
-DB_NAME = "finagotchi.db"
 
 # Regla de Negocio: Presupuesto diario máximo de gastos (en COP)
 PRESUPUESTO_DIARIO = 30000.0
 
 
-def init_sqlite():
-    """Inicializa la base de datos SQLite creando las tablas si no existen."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS transacciones (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            message_id TEXT UNIQUE,
-            device_id TEXT,
-            timestamp TEXT,
-            transaction_type TEXT,
-            amount REAL,
-            category TEXT,
-            raw_text TEXT
-        )
-    """
-    )
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS estado_mascota (
-            id INTEGER PRIMARY KEY,
-            salud INTEGER,
-            animo TEXT
-        )
-    """
-    )
-    cursor.execute("SELECT COUNT(*) FROM estado_mascota")
-    if cursor.fetchone()[0] == 0:
-        cursor.execute(
-            "INSERT INTO estado_mascota (id, salud, animo) VALUES (1, 100, 'FELIZ')"
-        )
-    conn.commit()
-    conn.close()
-
-
 def calcular_estado_mascota(total_ingresos, total_gastos):
-    """Calcula la salud y el ánimo de la mascota según las finanzas acumuladas del día."""
+    """Calcula la salud y el ánimo de FinaGotchi según la ejecución presupuestal del día activo."""
     neto = total_ingresos - total_gastos
     salud = 100
 
-    # 1. Si los gastos superan el presupuesto diario, penalizar proporcionalmente
     if total_gastos > PRESUPUESTO_DIARIO:
         exceso = total_gastos - PRESUPUESTO_DIARIO
-        # Resta 10% de salud por cada $5.000 COP sobrepasados
         penalizacion = int((exceso / 5000.0) * 10)
         salud = max(0, 100 - penalizacion)
-
-    # 2. Si hay saldo neto negativo sin haber registrado ingresos
-    elif neto < 0 and total_ingresos == 0:
+    elif neto < 0 and total_ingresos == 0 and total_gastos > 0:
         salud = max(20, 100 - int((total_gastos / PRESUPUESTO_DIARIO) * 50))
 
-    # 3. Definir estado de ánimo según la salud resultante
     if salud <= 20:
         animo = "ALERTA / CRÍTICO"
     elif salud <= 50:
@@ -76,211 +42,322 @@ def calcular_estado_mascota(total_ingresos, total_gastos):
 
 
 def procesar_nlp_backend(texto: str) -> dict:
-    """
-    Inferencia de texto: detecta tipo de movimiento, monto y categoría 
-    dinámicamente según las palabras clave de la frase.
-    """
+    """Extrae intenciones, montos grandes corregidos y categorías dinámicas."""
     texto_lower = texto.lower()
 
-    # 1. Detectar si es una consulta de balance general
-    if any(p in texto_lower for p in ["cómo me fue", "como me fue", "balance", "resumen", "cuánto me queda", "cuanto me queda"]):
+    # 1. Distinguir Cierre de Día vs Consulta Intermedia
+    if any(
+        p in texto_lower
+        for p in [
+            "cómo me fue",
+            "como me fue",
+            "cerrar día",
+            "cerrar dia",
+            "terminar día",
+        ]
+    ):
         return {
-            "transaction_type": "consulta_balance",
+            "transaction_type": "cierre_dia",
             "amount": 0.0,
-            "category": "consultas"
+            "category": "consultas",
         }
 
-    # 2. Extraer el primer número mencionado en el texto (Monto)
-    numeros = re.findall(r'\d+', texto_lower.replace('.', '').replace(',', ''))
+    if any(
+        p in texto_lower
+        for p in [
+            "cómo voy",
+            "como voy",
+            "cómo me está yendo",
+            "como me esta yendo",
+            "resumen",
+            "balance",
+        ]
+    ):
+        return {
+            "transaction_type": "consulta_estado",
+            "amount": 0.0,
+            "category": "consultas",
+        }
+
+    # 2. LIMPIEZA DE MONTOS GRANDES (Atiende "50 000", "50.000", "$45,000")
+    # Unifica dígitos separados por espacio (ej: "50 000" -> "50000")
+    texto_limpio = re.sub(r"(\d+)\s+(\d+)", r"\1\2", texto_lower)
+    # Remueve signos pesos, puntos y comas de miles
+    texto_limpio = (
+        texto_limpio.replace(".", "").replace(",", "").replace("$", "")
+    )
+
+    numeros = re.findall(r"\d+", texto_limpio)
     monto = float(numeros[0]) if numeros else 10000.0
 
-    # Soporte para expresiones como "45 mil" o "45k"
-    if monto < 100 and any(kw in texto_lower for kw in ["mil", "k"]):
+    # Soporte para expresiones abreviadas como "50 mil" o "50k"
+    if monto < 1000 and any(kw in texto_lower for kw in ["mil", "k"]):
         monto = monto * 1000.0
 
-    # 3. Clasificar tipo de transacción (Ingreso vs Gasto)
-    palabras_ingreso = ["pagaron", "ingresó", "ingreso", "recibí", "recibi", "gané", "gane", "cobré", "sueldo", "salario"]
+    # 3. Determinación de Tipo (Ingreso vs Gasto)
+    palabras_ingreso = [
+        "pagaron",
+        "ingresó",
+        "ingreso",
+        "recibí",
+        "recibi",
+        "gané",
+        "gane",
+        "cobré",
+        "sueldo",
+        "salario",
+    ]
     es_ingreso = any(p in texto_lower for p in palabras_ingreso)
     tipo_transaccion = "income" if es_ingreso else "expense"
 
-    # 4. DETECCIÓN DINÁMICA DE CATEGORÍA BASADA EN LA FRASE
-    
-    # Diccionario de reglas por palabras clave
+    # 4. Categorización Dinámica
     reglas_categoria = {
         "food": [
-            "almuerzo", "desayuno", "cena", "comida", "restaurante", "café", "cafe", 
-            "helado", "hamburguesa", "pizza", "empanada", "pan", "mercado", "supermercado"
+            "almuerzo",
+            "desayuno",
+            "cena",
+            "comida",
+            "restaurante",
+            "café",
+            "cafe",
+            "empanada",
         ],
         "transport": [
-            "transporte", "pasaje", "bus", "transmilenio", "uber", "taxi", "didi", 
-            "cabify", "gasolina", "peaje", "moto", "carro"
+            "transporte",
+            "pasaje",
+            "bus",
+            "transmilenio",
+            "uber",
+            "taxi",
+            "viaje",
+            "gasolina",
         ],
         "entertainment": [
-            "cine", "película", "salida", "fiesta", "bar", "cerveza", "juego", 
-            "videojuego", "concierto", "evento", "ocio"
+            "cine",
+            "fiesta",
+            "bar",
+            "cerveza",
+            "juego",
+            "salida",
+            "concierto",
         ],
-        "health": [
-            "farmacia", "drogueria", "droguería", "remedio", "medicina", "médico", 
-            "medico", "doctor", "cita medica", "salud"
-        ],
-        "education": [
-            "libro", "fotocopia", "universidad", "pensión", "pension", "curso", 
-            "matrícula", "matricula", "útiles", "utiles"
-        ],
+        "health": ["farmacia", "drogueria", "medicina", "medico", "salud"],
         "housing": [
-            "arriendo", "alquiler", "servicios", "luz", "agua", "gas", "internet", "wifi"
+            "arriendo",
+            "alquiler",
+            "servicios",
+            "luz",
+            "agua",
+            "gas",
+            "internet",
         ],
-        "salary": [
-            "sueldo", "salario", "pago", "quincena", "mesada", "honorarios", "trabajo"
-        ]
+        "salary": ["sueldo", "salario", "trabajo", "pago", "quincena"],
     }
 
-    # Buscar coincidencia en la frase
-    categoria_detectada = None
+    cat_detectada = None
     for cat, palabras in reglas_categoria.items():
-        if any(palabra in texto_lower for palabra in palabras):
-            categoria_detectada = cat
+        if any(w in texto_lower for w in palabras):
+            cat_detectada = cat
             break
 
-    # Si no coincide con ninguna palabra clave, asigna la categoría general
-    if not categoria_detectada:
-        categoria_detectada = "salary" if es_ingreso else "other"
+    if not cat_detectada:
+        cat_detectada = "salary" if es_ingreso else "other"
 
     return {
         "transaction_type": tipo_transaccion,
         "amount": monto,
-        "category": categoria_detectada
+        "category": cat_detectada,
     }
 
 
+# ==========================================
+# 📍 ENDPOINT DE TELEMETRÍA (Ruta Principal)
+# ==========================================
 @app.post("/api/v1/finagotchi/telemetry")
 def receive_telemetry():
     data = request.get_json(silent=True)
     if not data:
-        return jsonify({"status": "error", "message": "Body JSON requerido"}), 400
+        return (
+            jsonify({"status": "error", "message": "Payload JSON requerido"}),
+            400,
+        )
 
-    # Validar sobre IoT de telemetría
-    required_fields = ["message_id", "device_id", "timestamp", "sequence", "measurements"]
-    if not all(field in data for field in required_fields):
-        return jsonify({"status": "error", "message": "Contrato JSON incompleto"}), 400
+    # Validar campos obligatorios de la envolvente de telemetría
+    for required_field in ["message_id", "device_id", "timestamp"]:
+        if required_field not in data:
+            return (
+                jsonify({
+                    "status": "error",
+                    "message": f"Campo requerido omitido: {required_field}",
+                }),
+                400,
+            )
 
-    measurements = data["measurements"]
+    measurements = data.get("measurements", {})
     raw_text = measurements.get("raw_voice_text", "")
     message_id = data["message_id"]
     device_id = data["device_id"]
     timestamp = data["timestamp"]
 
-    # Procesar comando de voz
-    nlp_result = procesar_nlp_backend(raw_text)
-    tipo = nlp_result["transaction_type"]
-    monto = nlp_result["amount"]
-    categoria = nlp_result["category"]
+    nlp = procesar_nlp_backend(raw_text)
+    tipo = nlp["transaction_type"]
+    monto = nlp["amount"]
+    categoria = nlp["category"]
 
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Si la voz no contiene nada o falló la grabación
-    if raw_text == "Sin transcripción":
-        cursor.execute("SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'income'")
+    # --- CASO A: CONSULTA PARCIAL ("¿Cómo voy?") ---
+    if tipo == "consulta_estado":
+        cursor.execute(
+            "SELECT SUM(amount) FROM transacciones WHERE transaction_type ="
+            " 'income' AND cerrado = 0"
+        )
         total_ingresos = cursor.fetchone()[0] or 0.0
-        cursor.execute("SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'expense'")
+
+        cursor.execute(
+            "SELECT SUM(amount) FROM transacciones WHERE transaction_type ="
+            " 'expense' AND cerrado = 0"
+        )
         total_gastos = cursor.fetchone()[0] or 0.0
-        salud, animo, balance_neto = calcular_estado_mascota(total_ingresos, total_gastos)
+
+        salud, animo, neto = calcular_estado_mascota(
+            total_ingresos, total_gastos
+        )
         conn.close()
-        return jsonify({
-            "status": "warning",
-            "tipo": "desconocido",
-            "total_ingresos": total_ingresos,
-            "total_gastos": total_gastos,
-            "balance_neto": balance_neto,
-            "salud": salud,
-            "animo": animo,
-            "alerta_activa": salud < 20 or total_gastos > PRESUPUESTO_DIARIO
-        }), 200
 
-    # 1. Si es una consulta de balance
-    if tipo == "consulta_balance":
-        cursor.execute("SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'income'")
+        return (
+            jsonify({
+                "status": "success",
+                "tipo": "consulta_estado",
+                "total_ingresos": total_ingresos,
+                "total_gastos": total_gastos,
+                "balance_neto": neto,
+                "salud": salud,
+                "animo": animo,
+                "alerta_activa": salud < 20
+                or total_gastos > PRESUPUESTO_DIARIO,
+            }),
+            200,
+        )
+
+    # --- CASO B: CIERRE DEFINITIVO DEL DÍA ("¿Cómo me fue el día de hoy?") ---
+    if tipo == "cierre_dia":
+        cursor.execute(
+            "SELECT SUM(amount) FROM transacciones WHERE transaction_type ="
+            " 'income' AND cerrado = 0"
+        )
         total_ingresos = cursor.fetchone()[0] or 0.0
 
-        cursor.execute("SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'expense'")
+        cursor.execute(
+            "SELECT SUM(amount) FROM transacciones WHERE transaction_type ="
+            " 'expense' AND cerrado = 0"
+        )
         total_gastos = cursor.fetchone()[0] or 0.0
 
-        salud, animo, balance_neto = calcular_estado_mascota(total_ingresos, total_gastos)
+        salud, animo, neto = calcular_estado_mascota(
+            total_ingresos, total_gastos
+        )
 
-        # Actualizar estado de la mascota en BD
-        cursor.execute("UPDATE estado_mascota SET salud = ?, animo = ? WHERE id = 1", (salud, animo))
+        # Marca las transacciones activas como cerradas
+        cursor.execute("UPDATE transacciones SET cerrado = 1 WHERE cerrado = 0")
+        cursor.execute(
+            "UPDATE estado_mascota SET salud = 100, animo = 'FELIZ' WHERE id ="
+            " 1"
+        )
         conn.commit()
         conn.close()
 
-        return jsonify({
-            "status": "success",
-            "tipo": "consulta_balance",
-            "total_ingresos": total_ingresos,
-            "total_gastos": total_gastos,
-            "balance_neto": balance_neto,
-            "salud": salud,
-            "animo": animo,
-            "alerta_activa": salud < 20 or total_gastos > PRESUPUESTO_DIARIO,
-        }), 200
+        return (
+            jsonify({
+                "status": "success",
+                "tipo": "cierre_dia",
+                "total_ingresos": total_ingresos,
+                "total_gastos": total_gastos,
+                "balance_neto": neto,
+                "salud": salud,
+                "animo": animo,
+                "alerta_activa": salud < 20
+                or total_gastos > PRESUPUESTO_DIARIO,
+            }),
+            200,
+        )
 
-    # 2. Si es una nueva transacción (Ingreso o Gasto)
+    # --- CASO C: REGISTRO DE NUEVA TRANSACCIÓN (Gasto o Ingreso) ---
     try:
         cursor.execute(
             """
-            INSERT INTO transacciones (message_id, device_id, timestamp, transaction_type, amount, category, raw_text)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO transacciones (message_id, device_id, timestamp, transaction_type, amount, category, raw_text, cerrado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0)
             """,
             (message_id, device_id, timestamp, tipo, monto, categoria, raw_text),
         )
         conn.commit()
     except sqlite3.IntegrityError:
         conn.close()
-        return jsonify({"status": "error", "message": "message_id duplicado"}), 409
+        return (
+            jsonify({
+                "status": "error",
+                "message": "Conflict: message_id duplicado",
+            }),
+            409,
+        )
 
-    # Recalcular acumulados del día tras la transacción guardada
-    cursor.execute("SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'income'")
+    # Calcular acumulados de transacciones no cerradas (cerrado = 0)
+    cursor.execute(
+        "SELECT SUM(amount) FROM transacciones WHERE transaction_type ="
+        " 'income' AND cerrado = 0"
+    )
     total_ingresos = cursor.fetchone()[0] or 0.0
 
-    cursor.execute("SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'expense'")
+    cursor.execute(
+        "SELECT SUM(amount) FROM transacciones WHERE transaction_type ="
+        " 'expense' AND cerrado = 0"
+    )
     total_gastos = cursor.fetchone()[0] or 0.0
 
-    # Recalcular salud y ánimo reales
-    salud, animo, balance_neto = calcular_estado_mascota(total_ingresos, total_gastos)
+    salud, animo, neto = calcular_estado_mascota(total_ingresos, total_gastos)
 
-    # Si fue un ingreso directo, recuperar un bono de salud extra
-    if tipo == "income":
-        salud = min(100, salud + 15)
-        if salud > 50:
-            animo = "FELIZ"
-
-    # Actualizar estado en BD
-    cursor.execute("UPDATE estado_mascota SET salud = ?, animo = ? WHERE id = 1", (salud, animo))
+    cursor.execute(
+        "UPDATE estado_mascota SET salud = ?, animo = ? WHERE id = 1",
+        (salud, animo),
+    )
     conn.commit()
     conn.close()
 
-    alerta_activa = (total_gastos > PRESUPUESTO_DIARIO) or (salud < 20)
+    return (
+        jsonify({
+            "status": "success",
+            "message_id": message_id,
+            "monto": monto,
+            "transaction_type": tipo,
+            "category": categoria,
+            "salud": salud,
+            "animo": animo,
+            "alerta_activa": total_gastos > PRESUPUESTO_DIARIO or salud < 20,
+            "gastos_acumulados": total_gastos,
+            "ingresos_acumulados": total_ingresos,
+            "balance_neto": neto,
+        }),
+        201,
+    )
 
+
+# Ruta raíz para verificar que el servidor esté encendido
+@app.get("/")
+def index():
     return jsonify({
-        "status": "success",
-        "message_id": message_id,
-        "monto": monto,
-        "transaction_type": tipo,
-        "category": categoria,
-        "salud": salud,
-        "animo": animo,
-        "alerta_activa": alerta_activa,
-        "gastos_acumulados": total_gastos,
-        "ingresos_acumulados": total_ingresos,
-        "balance_neto": balance_neto,
-    }), 201
+        "status": "online",
+        "service": "Finagotchi Backend API",
+        "endpoints": ["POST /api/v1/finagotchi/telemetry"],
+    })
 
 
 if __name__ == "__main__":
-    init_sqlite()
+    init_sqlite()  # Verifica y crea la base de datos finagotchi.db
     print("=========================================================")
     print("🚀 SERVIDOR BACKEND FINAGOTCHI INICIADO")
-    print("👉 Límite Presupuesto Diario: $30,000 COP")
-    print("👉 Base de Datos: SQLite (finagotchi.db)")
+    print("👉 Endpoint activo: POST /api/v1/finagotchi/telemetry")
+    print("👉 Presupuesto diario máximo: $30,000 COP")
     print("=========================================================\n")
     app.run(debug=True, port=5000)

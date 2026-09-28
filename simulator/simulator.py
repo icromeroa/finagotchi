@@ -1,12 +1,11 @@
 import io
 import time
-import requests
-from datetime import datetime, timezone
 import keyboard
+import requests
 import scipy.io.wavfile as wav
 import sounddevice as sd
 import speech_recognition as sr
-import uuid
+from datetime import datetime, timezone
 
 API_URL = "http://127.0.0.1:5000/api/v1/finagotchi/telemetry"
 DEVICE_ID = "FINAGOTCHI-PC-SIMULATOR-01"
@@ -14,12 +13,8 @@ SAMPLE_RATE = 16000
 secuencia = 0
 
 
-def import_numpy_and_concat(data):
-    import numpy as np
-    return np.concatenate(data, axis=0)
-
-
 def capturar_y_transcribir_voz():
+    """Captura audio mientras la tecla ESPACIO esté presionada y lo transcribe con Google Speech."""
     print("\n------------------------------------------------")
     print("  🕹️ SIMULADOR DE HARDWARE FINAGOTCHI (PC)")
     print("------------------------------------------------")
@@ -35,7 +30,9 @@ def capturar_y_transcribir_voz():
     def callback(indata, frames, time_info, status):
         audio_data.append(indata.copy())
 
-    with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16", callback=callback):
+    with sd.InputStream(
+        samplerate=SAMPLE_RATE, channels=1, dtype="int16", callback=callback
+    ):
         while keyboard.is_pressed("space"):
             time.sleep(0.05)
 
@@ -45,7 +42,9 @@ def capturar_y_transcribir_voz():
     if not audio_data:
         return "Sin transcripción", duration
 
-    audio_np = import_numpy_and_concat(audio_data)
+    import numpy as np
+
+    audio_np = np.concatenate(audio_data, axis=0)
     wav_bytes = io.BytesIO()
     wav.write(wav_bytes, SAMPLE_RATE, audio_np)
     wav_bytes.seek(0)
@@ -54,20 +53,18 @@ def capturar_y_transcribir_voz():
     try:
         with sr.AudioFile(wav_bytes) as source:
             audio = recognizer.record(source)
-            transcripcion = recognizer.recognize_google(audio, language="es-CO")
-            print(f'📝 [VOZ TRANSCRIBA]: "{transcripcion}"')
-    except sr.UnknownValueError:
-        print("⚠️ No se pudo reconocer el audio.")
-        transcripcion = "Sin transcripción"
+            transcripcion = recognizer.recognize_google(
+                audio, language="es-CO"
+            )
+            print(f'📝 [VOZ TRANSCRIBIDA]: "{transcripcion}"')
     except Exception as e:
-        print(f"⚠️ Error en procesamiento de audio: {e}")
+        print(f"⚠️ Error al transcribir o audio no reconocido: {e}")
         transcripcion = "Sin transcripción"
 
     return transcripcion, duration
 
 
-
-def build_payload():
+def send_telemetry():
     global secuencia
     secuencia += 1
     raw_text, duration = capturar_y_transcribir_voz()
@@ -77,11 +74,9 @@ def build_payload():
         .isoformat(timespec="seconds")
         .replace("+00:00", "Z")
     )
-
-    # Usar UUID o Marca de tiempo para garantizar un ID único siempre
     unique_id = f"{DEVICE_ID}-{int(time.time())}-{secuencia:04d}"
 
-    return {
+    payload = {
         "message_id": unique_id,
         "device_id": DEVICE_ID,
         "timestamp": timestamp_utc,
@@ -93,9 +88,6 @@ def build_payload():
         },
     }
 
-
-def send_telemetry():
-    payload = build_payload()
     print(f"\n[SIMULADOR] 📡 Enviando POST a {API_URL}...")
 
     try:
@@ -105,46 +97,83 @@ def send_telemetry():
             headers={"Content-Type": "application/json"},
             timeout=(3, 5),
         )
-        response.raise_for_status()
-        data = response.json()
 
-        print("✅ ¡RESPUESTA RECIBIDA CON ÉXITO DEL BACKEND!")
-        
-        # Caso 1: Consulta de balance general
-        if data.get("tipo") == "consulta_balance":
-            print("📊 --- BALANCE GENERAL DIARIO ---")
-            print(f"   ├─ 📥 Ingresos Totales: ${data.get('total_ingresos', 0.0):,.1f}")
-            print(f"   ├─ 💸 Gastos Totales:   ${data.get('total_gastos', 0.0):,.1f}")
-            print(f"   ├─ 💰 Neto del Día:     ${data.get('balance_neto', 0.0):,.1f}")
-            print(
-                f"   └─ 🐶 Estado Mascotas: Salud={data.get('salud')}% |"
-                f" Ánimo={data.get('animo')}\n"
-            )
-        # Caso 2: Registro de transacción (Gasto / Ingreso)
+        if response.status_code in [200, 201]:
+            data = response.json()
+            print("✅ ¡RESPUESTA RECIBIDA CON ÉXITO DEL BACKEND!")
+            tipo = data.get("tipo")
+
+            if tipo == "cierre_dia":
+                print(
+                    "🔒 --- CIERRE DEFINITIVO DEL DÍA (RESET DE CONTADORES) ---"
+                )
+                print(
+                    f"   ├─ 📥 Ingresos Cierre:"
+                    f" ${data.get('total_ingresos', 0.0):,.1f}"
+                )
+                print(
+                    f"   ├─ 💸 Gastos Cierre:  "
+                    f" ${data.get('total_gastos', 0.0):,.1f}"
+                )
+                print(
+                    f"   ├─ 💰 Neto Cierre:    "
+                    f" ${data.get('balance_neto', 0.0):,.1f}"
+                )
+                print(
+                    "   └─ 🐶 La mascota reinicia estado a Salud=100% |"
+                    " Ánimo=FELIZ para el nuevo día.\n"
+                )
+
+            elif tipo == "consulta_estado":
+                print("📊 --- ESTADO PARCIAL DEL DÍA (""¿CÓMO VOY?"") ---")
+                print(
+                    f"   ├─ 📥 Ingresos del día:"
+                    f" ${data.get('total_ingresos', 0.0):,.1f}"
+                )
+                print(
+                    f"   ├─ 💸 Gastos del día:  "
+                    f" ${data.get('total_gastos', 0.0):,.1f}"
+                )
+                print(
+                    f"   ├─ 💰 Neto actual:     "
+                    f" ${data.get('balance_neto', 0.0):,.1f}"
+                )
+                print(
+                    f"   └─ 🐶 Mascota: Salud={data.get('salud')}% |"
+                    f" Ánimo={data.get('animo')}\n"
+                )
+
+            else:
+                tipo_tx = data.get("transaction_type", "expense")
+                etiqueta = "📥 INGRESO" if tipo_tx == "income" else "💸 GASTO"
+                print(
+                    f"   ├─ {etiqueta} REGISTRADO:"
+                    f" Monto=${data.get('monto', 0.0):,.1f} |"
+                    f" Categoria={data.get('category')}"
+                )
+                print(
+                    f"   ├─ 📊 Acumulados: Gastos=${data.get('gastos_acumulados', 0.0):,.1f}"
+                    f" | Neto=${data.get('balance_neto', 0.0):,.1f}"
+                )
+                print(
+                    f"   └─ 🐶 Estado Mascota: Salud={data.get('salud')}% |"
+                    f" Ánimo={data.get('animo')}"
+                )
+
+            if data.get("alerta_activa") and tipo != "cierre_dia":
+                print(
+                    "   ⚠️ ¡ALERTA FINANCIERA ACTIVADA! (Presupuesto superado"
+                    " o Salud < 20%)\n"
+                )
+
         else:
-            tipo = data.get("transaction_type", "expense")
-            etiqueta = "📥 INGRESO" if tipo == "income" else "💸 GASTO"
             print(
-                f"   ├─ {etiqueta} REGISTRADO: Monto=${data.get('monto', 0.0):,.1f}"
-                f" | Categoria={data.get('category')}"
-            )
-            print(
-                f"   └─ 🐶 Estado Mascotas: Salud={data.get('salud')}% |"
-                f" Ánimo={data.get('animo')}"
+                f"❌ ERROR EN SERVIDOR: Código HTTP {response.status_code} -"
+                f" {response.text}"
             )
 
-        if data.get("alerta_activa"):
-            print(
-                "   ⚠️ ¡ALERTA FINANCIERA ACTIVADA! (Presupuesto diario superado o"
-                " Salud < 20%)\n"
-            )
-
-    except requests.exceptions.Timeout:
-        print("❌ ERROR: Tiempo de espera agotado al conectar con el Backend.")
-    except requests.exceptions.ConnectionError:
-        print("❌ ERROR: No se conectó al servidor. Revisa que `server.py` esté corriendo.")
-    except requests.exceptions.HTTPError as err:
-        print(f"❌ ERROR HTTP {err.response.status_code}: {err.response.text}")
+    except Exception as e:
+        print(f"❌ ERROR DE CONEXIÓN: {e}")
 
 
 if __name__ == "__main__":
