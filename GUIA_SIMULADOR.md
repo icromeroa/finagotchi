@@ -74,7 +74,7 @@ Ejecuta el servidor Flask:
 py backend/server.py
 ```
 
-Deberás ver el mensaje que confirma que el backend escucha en `http://127.0.0.1:5000`.
+Deberás ver el mensaje que confirma que el backend escucha en `http://127.0.0.1:8000`.
 
 ### Paso 2: Iniciar el Simulador de Hardware (`simulador.py`)
 
@@ -140,12 +140,12 @@ El simulador transcribirá el audio y enviará la telemetría vía HTTP POST al 
 
 ## 📂 Estructura de Datos (Contrato HTTP POST API)
 
-El simulador empaqueta el evento capturado y transmite la siguiente estructura JSON a `http://127.0.0.1:5000/api/v1/finagotchi/telemetry`:
+El simulador empaqueta el evento capturado y transmite la siguiente estructura JSON a `http://127.0.0.1:8000/api/v1/finagotchi/telemetry`:
 
 ```json
 {
   "device_info": {
-    "device_id": "FINAGOTCHI-PC-SIMULATOR-01",
+    "device_id": "FINAGOTCHI-PC-SIMULATOR-01", 
     "firmware_version": "v1.0-SIM",
     "battery_level_pct": 95,
     "timestamp": "2026-09-14 00:00:00"

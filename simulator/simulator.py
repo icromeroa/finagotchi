@@ -7,7 +7,7 @@ import sounddevice as sd
 import speech_recognition as sr
 from datetime import datetime, timezone
 
-API_URL = "http://127.0.0.1:5000/api/v1/finagotchi/telemetry"
+API_URL = "http://127.0.0.1:8000/api/v1/finagotchi/telemetry"
 DEVICE_ID = "FINAGOTCHI-PC-SIMULATOR-01"
 SAMPLE_RATE = 16000
 secuencia = 0

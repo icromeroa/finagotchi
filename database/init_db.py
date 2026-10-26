@@ -2,7 +2,9 @@ import os
 import sqlite3
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, "finagotchi.db")
+DB_PATH = os.environ.get(
+    "FINAGOTCHI_DB", os.path.join(BASE_DIR, "finagotchi.db")
+)
 
 
 def init_sqlite(db_path=DB_PATH):
@@ -21,18 +23,26 @@ def init_sqlite(db_path=DB_PATH):
             amount REAL,
             category TEXT,
             raw_text TEXT,
-            cerrado INTEGER DEFAULT 0
+            cerrado INTEGER DEFAULT 0,
+            sequence INTEGER,
+            received_at TEXT
         )
     """
     )
 
-    # Migración: Verificar si la columna 'cerrado' existe
+    # Migración: agrega columnas nuevas a bases de datos ya existentes
     cursor.execute("PRAGMA table_info(transacciones)")
     columnas = [columna[1] for columna in cursor.fetchall()]
-    if "cerrado" not in columnas:
-        cursor.execute(
-            "ALTER TABLE transacciones ADD COLUMN cerrado INTEGER DEFAULT 0"
-        )
+    migraciones = {
+        "cerrado": "INTEGER DEFAULT 0",
+        "sequence": "INTEGER",  # Guía 4: número de secuencia del simulador
+        "received_at": "TEXT",  # Guía 4: momento en que el backend recibió el dato
+    }
+    for nombre, tipo in migraciones.items():
+        if nombre not in columnas:
+            cursor.execute(
+                f"ALTER TABLE transacciones ADD COLUMN {nombre} {tipo}"
+            )
 
     # Tabla del Estado de la Mascota
     cursor.execute(

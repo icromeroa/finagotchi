@@ -9,8 +9,15 @@ sys.path.append(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
 from database.init_db import DB_PATH, init_sqlite
+from backend.openapi_spec import OPENAPI_SPEC
+from backend.queries import (
+    get_device_summary,
+    list_devices,
+    list_measurements,
+)
 
 app = Flask(__name__)
+app.json.sort_keys = False  # respeta el orden de las claves en las respuestas JSON
 
 
 def obtener_presupuestos_y_saldos(cursor):
@@ -214,7 +221,13 @@ def receive_telemetry():
     message_id = data.get("message_id")
     device_id = data.get("device_id")
     timestamp = data.get("timestamp")
+    sequence = data.get("sequence")
     raw_text = data.get("measurements", {}).get("raw_voice_text", "")
+    received_at = (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="seconds")
+        .replace("+00:00", "Z")
+    )
 
     nlp = procesar_nlp_backend(raw_text)
     tipo = nlp["transaction_type"]
@@ -304,10 +317,20 @@ def receive_telemetry():
     try:
         cursor.execute(
             """
-            INSERT INTO transacciones (message_id, device_id, timestamp, transaction_type, amount, category, raw_text, cerrado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+            INSERT INTO transacciones (message_id, device_id, timestamp, transaction_type, amount, category, raw_text, cerrado, sequence, received_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
             """,
-            (message_id, device_id, timestamp, tipo, monto, categoria, raw_text),
+            (
+                message_id,
+                device_id,
+                timestamp,
+                tipo,
+                monto,
+                categoria,
+                raw_text,
+                sequence,
+                received_at,
+            ),
         )
         conn.commit()
     except sqlite3.IntegrityError:
@@ -360,6 +383,103 @@ def receive_telemetry():
     )
 
 
+# ======================================================================
+# GUÍA 4 - API REST de consulta (GET)
+# ======================================================================
+MAX_LIMIT = 100
+
+
+def error_json(status, message):
+    return jsonify({"status": "error", "message": message}), status
+
+
+def parse_int_param(name, default, minimum, maximum=None):
+    """Lee un query param entero. Devuelve (valor, None) o (None, error 422)."""
+    raw = request.args.get(name)
+    if raw is None:
+        return default, None
+    try:
+        value = int(raw)
+    except ValueError:
+        return None, error_json(422, f"{name} debe ser un número entero")
+    if value < minimum or (maximum is not None and value > maximum):
+        rango = f"entre {minimum} y {maximum}" if maximum else f">= {minimum}"
+        return None, error_json(422, f"{name} debe estar {rango}")
+    return value, None
+
+
+@app.get("/health")
+def health():
+    return jsonify({"status": "ok"}), 200
+
+
+@app.get("/api/measurements")
+def get_measurements():
+    limit, err = parse_int_param("limit", 20, 1, MAX_LIMIT)
+    if err:
+        return err
+    offset, err = parse_int_param("offset", 0, 0)
+    if err:
+        return err
+    device_id = request.args.get("device_id") or None
+    return (
+        jsonify(
+            list_measurements(
+                DB_PATH, device_id=device_id, limit=limit, offset=offset
+            )
+        ),
+        200,
+    )
+
+
+@app.get("/api/devices")
+def get_devices():
+    return jsonify(list_devices(DB_PATH)), 200
+
+
+@app.get("/api/devices/<device_id>")
+def get_device(device_id):
+    device = get_device_summary(DB_PATH, device_id)
+    if device is None:
+        return error_json(404, "Dispositivo no encontrado")
+    return jsonify(device), 200
+
+
+@app.get("/openapi.json")
+def openapi_json():
+    return jsonify(OPENAPI_SPEC)
+
+
+@app.get("/docs")
+def swagger_ui():
+    return (
+        """<!doctype html><html><head><meta charset="utf-8">
+<title>FinaGotchi API - Swagger</title>
+<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css">
+</head><body><div id="swagger-ui"></div>
+<script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+<script>SwaggerUIBundle({url: "/openapi.json", dom_id: "#swagger-ui"});</script>
+</body></html>""",
+        200,
+        {"Content-Type": "text/html; charset=utf-8"},
+    )
+
+
+@app.errorhandler(404)
+def not_found(_e):
+    return error_json(404, "Ruta no encontrada")
+
+
+@app.errorhandler(405)
+def method_not_allowed(_e):
+    return error_json(405, "Método no permitido")
+
+
+@app.errorhandler(500)
+def internal_error(_e):
+    return error_json(500, "Error interno del servidor")
+
+
 if __name__ == "__main__":
     init_sqlite()
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=8000)
