@@ -188,6 +188,156 @@ def create_message(
     return payload
 
 
+def create_device_notification(
+    conn,
+    user_id,
+    device_id,
+    tipo,
+    titulo,
+    mensaje=None,
+    mensaje_id=None,
+    transaccion_id=None,
+    payload=None,
+):
+    if not device_id:
+        return None
+    device = conn.execute(
+        "SELECT usuario_id FROM dispositivos WHERE id = ?",
+        (device_id,),
+    ).fetchone()
+    if device is None or device["usuario_id"] != user_id:
+        return None
+    existing = conn.execute(
+        """
+        SELECT * FROM dispositivos_notificaciones
+        WHERE dispositivo_id = ? AND tipo = ?
+          AND COALESCE(mensaje_id, 0) = COALESCE(?, 0)
+          AND COALESCE(transaccion_id, 0) = COALESCE(?, 0)
+        ORDER BY id LIMIT 1
+        """,
+        (device_id, tipo, mensaje_id, transaccion_id),
+    ).fetchone()
+    if existing:
+        result = dict(existing)
+        result["duplicado"] = True
+        return result
+
+    cursor = conn.execute(
+        """
+        INSERT INTO dispositivos_notificaciones
+            (dispositivo_id, usuario_id, mensaje_id, transaccion_id, tipo,
+             titulo, mensaje, payload_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            device_id,
+            user_id,
+            mensaje_id,
+            transaccion_id,
+            tipo,
+            titulo,
+            mensaje,
+            json.dumps(payload, ensure_ascii=False) if payload is not None else None,
+        ),
+    )
+    row = conn.execute(
+        "SELECT * FROM dispositivos_notificaciones WHERE id = ?",
+        (cursor.lastrowid,),
+    ).fetchone()
+    result = dict(row)
+    result["duplicado"] = False
+    return result
+
+
+def device_notifications(conn, user_id, device_id, estado=None, after_id=0, limit=20):
+    try:
+        limit = max(1, min(int(limit or 20), 100))
+        after_id = max(0, int(after_id or 0))
+    except (TypeError, ValueError):
+        raise ValueError("Los parametros de paginacion no son validos")
+    if estado not in (None, "pendiente", "entregada", "leida"):
+        raise ValueError("El estado de notificacion no es valido")
+    clauses = ["usuario_id = ?", "dispositivo_id = ?"]
+    params = [user_id, device_id]
+    if estado:
+        clauses.append("estado = ?")
+        params.append(estado)
+    else:
+        clauses.append("estado IN ('pendiente','entregada')")
+    if after_id:
+        clauses.append("id > ?")
+        params.append(after_id)
+    rows = conn.execute(
+        f"""
+        SELECT id, dispositivo_id, mensaje_id, transaccion_id, tipo, titulo,
+               mensaje, payload_json, estado, creado_en, entregado_en, leido_en
+        FROM dispositivos_notificaciones
+        WHERE {' AND '.join(clauses)}
+        ORDER BY id
+        LIMIT ?
+        """,
+        (*params, limit),
+    ).fetchall()
+    return dict_rows(rows)
+
+
+def ack_device_notification(conn, user_id, device_id, notification_id, estado="leida"):
+    if estado not in ("entregada", "leida"):
+        raise ValueError("El acuse debe ser entregada o leida")
+    now = iso_utc()
+    row = conn.execute(
+        """
+        SELECT * FROM dispositivos_notificaciones
+        WHERE id = ? AND usuario_id = ? AND dispositivo_id = ?
+        """,
+        (notification_id, user_id, device_id),
+    ).fetchone()
+    if row is None:
+        return None
+    if estado == "entregada":
+        if row["estado"] == "pendiente":
+            conn.execute(
+                """
+                UPDATE dispositivos_notificaciones
+                SET estado = 'entregada', entregado_en = ?
+                WHERE id = ? AND usuario_id = ? AND dispositivo_id = ?
+                """,
+                (now, notification_id, user_id, device_id),
+            )
+    elif row["estado"] != "leida":
+        conn.execute(
+            """
+            UPDATE dispositivos_notificaciones
+            SET estado = 'leida',
+                entregado_en = COALESCE(entregado_en, ?),
+                leido_en = ?
+            WHERE id = ? AND usuario_id = ? AND dispositivo_id = ?
+            """,
+            (now, now, notification_id, user_id, device_id),
+        )
+    conn.commit()
+    updated = conn.execute(
+        "SELECT * FROM dispositivos_notificaciones WHERE id = ?",
+        (notification_id,),
+    ).fetchone()
+    return dict(updated)
+
+
+def ack_device_notifications(conn, user_id, device_id, notification_ids, estado="leida"):
+    if not isinstance(notification_ids, list) or not notification_ids:
+        raise ValueError("Debes enviar una lista de ids")
+    updated = 0
+    for notification_id in notification_ids:
+        try:
+            notification_id = int(notification_id)
+        except (TypeError, ValueError):
+            raise ValueError("Los ids de notificacion no son validos")
+        row = ack_device_notification(conn, user_id, device_id, notification_id, estado)
+        if row is not None:
+            updated += 1
+    return updated
+
+
 def confirm_message(conn, user_id, message_id):
     message = conn.execute(
         "SELECT * FROM mensajes_dispositivo WHERE usuario_id = ? AND id = ?",
@@ -220,10 +370,40 @@ def confirm_message(conn, user_id, message_id):
         """,
         (user_id, message_id),
     )
+    first_transaction = conn.execute(
+        """
+        SELECT id FROM transacciones
+        WHERE usuario_id = ? AND mensaje_id = ?
+        ORDER BY secuencia, id LIMIT 1
+        """,
+        (user_id, message_id),
+    ).fetchone()
+    notification = create_device_notification(
+        conn,
+        user_id,
+        message["device_id"],
+        "movimiento_registrado",
+        "Registro guardado",
+        "Se guardo el registro en FinaGotchi",
+        mensaje_id=message_id,
+        transaccion_id=first_transaction["id"] if first_transaction else None,
+        payload={
+            "message_id": message["message_id"],
+            "transacciones": len(pending),
+        },
+    )
     conn.commit()
     payload = message_payload(conn, user_id, message_id)
     payload["puntos_otorgados"] = len(pending)
     payload["health"] = health_projection(conn, user_id, local_date())
+    if notification:
+        payload["notificacion"] = {
+            "id": notification["id"],
+            "tipo": notification["tipo"],
+            "titulo": notification["titulo"],
+            "estado": notification["estado"],
+            "duplicado": notification["duplicado"],
+        }
     return payload
 
 
@@ -388,39 +568,9 @@ def update_transaction(conn, user_id, transaction_id, data):
             raise ValueError("La categoría no corresponde al tipo de movimiento")
         allowed["categoria_id"] = category["id"]
 
-    previous = dict(current)
-    version = conn.execute(
-        "SELECT COALESCE(MAX(version), 0) + 1 FROM transacciones_versiones WHERE transaccion_id = ?",
-        (transaction_id,),
-    ).fetchone()[0]
-    conn.execute(
-        """
-        INSERT INTO transacciones_versiones
-            (usuario_id, transaccion_id, version, tipo, monto, categoria_id,
-             cuenta_id, meta_id, concepto, fecha_hora, fecha_local, estado,
-             cambiado_por, cambiado_en)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'app', ?)
-        """,
-        (
-            user_id,
-            transaction_id,
-            version,
-            previous["tipo"],
-            previous["monto"],
-            previous["categoria_id"],
-            previous["cuenta_id"],
-            previous["meta_id"],
-            previous["concepto"],
-            previous["fecha_hora"],
-            previous["fecha_local"],
-            previous["estado"],
-            iso_utc(),
-        ),
-    )
-
     assignments = ", ".join(f"{column} = ?" for column in allowed)
     conn.execute(
-        f"UPDATE transacciones SET {assignments}, version = version + 1, actualizado_en = ? WHERE usuario_id = ? AND id = ?",
+        f"UPDATE transacciones SET {assignments}, actualizado_en = ? WHERE usuario_id = ? AND id = ?",
         (*allowed.values(), iso_utc(), user_id, transaction_id),
     )
     conn.commit()
@@ -450,10 +600,10 @@ def restore_transaction(conn, user_id, transaction_id):
     conn.execute(
         """
         UPDATE transacciones
-        SET is_deleted = 0, deleted_at = NULL, deleted_reason = NULL, eliminado_via = NULL
+        SET is_deleted = 0, deleted_at = NULL, eliminado_via = NULL, actualizado_en = ?
         WHERE usuario_id = ? AND id = ?
         """,
-        (user_id, transaction_id),
+        (iso_utc(), user_id, transaction_id),
     )
     conn.commit()
     return dict(transaction_row(conn, user_id, transaction_id))
@@ -571,7 +721,7 @@ def expected_goal_amount(goal, on_date):
         if end.day >= start.day:
             months += 1
         periods = max(0, months)
-    return min(int(goal["monto_objetivo"]), periods * int(goal["aporte_periodico"]))
+    return min(int(goal["monto_meta"]), periods * int(goal["aporte_periodico"]))
 
 
 def goal_health_rules(conn, user_id, date_value, persist=False):
@@ -599,7 +749,7 @@ def goal_health_rules(conn, user_id, date_value, persist=False):
         saved = int(saved or 0)
         expected = expected_goal_amount(goal, parsed_date)
         period = date_value[:7]
-        if saved >= int(goal["monto_objetivo"]):
+        if saved >= int(goal["monto_meta"]):
             exists = conn.execute(
                 """
                 SELECT 1 FROM metas_eventos
@@ -618,7 +768,7 @@ def goal_health_rules(conn, user_id, date_value, persist=False):
                             (usuario_id, meta_id, tipo, periodo_clave, salud_delta, detalle_json)
                         VALUES (?, ?, 'cumplida', ?, 5, ?)
                         """,
-                        (user_id, goal["id"], period, json.dumps({"monto_objetivo": goal["monto_objetivo"]})),
+                        (user_id, goal["id"], period, json.dumps({"monto_meta": goal["monto_meta"]})),
                     )
                     conn.execute(
                         "UPDATE metas SET estado = 'completada', completada_en = ? WHERE usuario_id = ? AND id = ?",
@@ -934,13 +1084,13 @@ def metrics_daily(conn, user_id, date_value):
 def categories_breakdown(conn, user_id, date_value):
     rows = conn.execute(
         """
-        SELECT COALESCE(c.nombre, 'Sin categoría') AS categoria, c.color_hex,
+        SELECT COALESCE(c.nombre, 'Sin categoría') AS categoria, c.icono,
                SUM(t.monto) AS total, COUNT(*) AS num_registros
         FROM transacciones t
         LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
         WHERE t.usuario_id = ? AND t.fecha_local = ? AND t.tipo = 'gasto'
           AND t.estado = 'confirmado' AND t.is_deleted = 0
-        GROUP BY t.categoria_id, c.nombre, c.color_hex
+        GROUP BY t.categoria_id, c.nombre, c.icono
         ORDER BY total DESC
         """,
         (user_id, date_value),
@@ -950,7 +1100,7 @@ def categories_breakdown(conn, user_id, date_value):
 
 def serialize_goal(conn, user_id, goal_id):
     row = conn.execute(
-        "SELECT * FROM v_metas_estado WHERE usuario_id = ? AND id = ?",
+        "SELECT * FROM v_metas_estado WHERE usuario_id = ? AND meta_id = ?",
         (user_id, goal_id),
     ).fetchone()
     return dict(row) if row else None

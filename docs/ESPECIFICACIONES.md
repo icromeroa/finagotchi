@@ -19,8 +19,8 @@ La aplicación se compone de:
 
 1. Backend HTTP en Python/Flask.
 2. Base de datos SQLite.
-3. Agente de lenguaje natural con proveedor intercambiable.
-4. Dispositivo físico ESP32/Arduino y simulador de PC.
+3. Agente IA con transcripción de audio, interpretación y clasificación por proveedor intercambiable.
+4. Dispositivo físico ESP32-S3 y simulador de PC.
 5. Aplicación frontend.
 6. Panel de notificaciones y bienestar.
 
@@ -51,9 +51,9 @@ Esta versión prioriza:
 |---|---|
 | Usuario | Registra movimientos, define presupuesto, metas y confirma lo que Nancy entendió. |
 | Nancy | Representa el estado emocional derivado de la salud financiera del usuario. No es una fuente de verdad. |
-| Dispositivo | Captura voz, muestra estados, almacena mensajes offline y ejecuta comandos. |
-| Backend | Valida, calcula, persiste y expone la información. |
-| Agente IA | Interpreta texto libre y propone una o varias transacciones. |
+| Dispositivo | Captura voz, envía audio, muestra estados y notificaciones, almacena mensajes offline y ejecuta comandos. |
+| Backend | Valida, calcula, persiste, notifica y expone la información. |
+| Agente IA | Transcribe audio, detecta la categoría e interpreta una o varias transacciones. |
 | Administrador técnico | Ejecuta migraciones, respaldos y tareas de mantenimiento. No existe panel administrativo en esta versión. |
 
 ---
@@ -120,6 +120,8 @@ Una transacción anulada conserva su vínculo con el mensaje para que un reinten
 - Después de guardar, existe una ventana de 10 segundos para deshacer.
 - El registro manual usa la misma validación que el registro por voz.
 - La confirmación del dispositivo solo se muestra cuando el backend confirma la persistencia.
+- Al confirmar un mensaje originado en un dispositivo, se crea una notificación `movimiento_registrado` en `dispositivos_notificaciones`.
+- El dispositivo consulta sus notificaciones por polling HTTP y confirma recepción con un acuse.
 
 ### 4.5 Fechas
 
@@ -288,19 +290,21 @@ Reglas:
 Pantallas: V07.1, V07.2.
 
 1. El usuario mantiene presionado para hablar.
-2. El dispositivo o la app captura audio.
-3. El texto se transcribe.
-4. El agente IA propone una o varias transacciones.
-5. La app muestra “¿Lo entendí bien?”.
+2. El dispositivo o la app captura audio y lo envía al backend.
+3. La IA del backend transcribe el audio.
+4. La IA detecta la categoría y propone una o varias transacciones.
+5. La app o el dispositivo muestra “¿Lo entendí bien?”.
 6. El usuario confirma, edita o descarta.
-7. Al guardar, se crea el movimiento y se actualiza el cupo.
-8. El usuario recibe una confirmación visual.
+7. Al guardar, se crea el movimiento, se actualiza el cupo y se encola una notificación para el dispositivo.
+8. El dispositivo recibe “Registro guardado” cuando el backend confirma la persistencia.
 9. Durante 10 segundos puede deshacer.
 10. El dispositivo muestra la animación de confirmación.
 
 Reglas:
 
-- La IA no guarda directamente sin confirmación.
+- El dispositivo no transcribe audio localmente; solo captura y envía.
+- La IA del backend hace transcripción y clasificación de categoría.
+- La confirmación humana es obligatoria: la IA propone y el usuario confirma antes de afectar el dinero.
 - Si no hay monto, no se asume `$10.000`.
 - Si hay varias transacciones, se muestran agrupadas.
 - La categoría sugerida muestra el impacto en Nancy.
@@ -730,10 +734,12 @@ La clave de periodo evita duplicados.
 
 El backend expone una interfaz de proveedor con estas operaciones:
 
+- `transcribir(audio, idioma) -> texto`.
 - `interpretar(texto, contexto_usuario) -> propuesta`.
+- `clasificar_categoria(texto, categorias_usuario) -> categoria_id`.
 - `salud_proveedor() -> estado`.
 
-El proveedor es intercambiable. La versión inicial puede usar reglas locales; el proveedor definitivo aún no está decidido.
+El proveedor es intercambiable. La versión inicial puede usar reglas locales para texto; el proveedor de transcripción y clasificación definitivo aún no está decidido.
 
 ### 9.2 Contexto permitido
 
@@ -778,7 +784,10 @@ No se envían correos, teléfonos, números completos de tarjeta ni tokens.
 
 ### 9.4 Reglas
 
-- Siempre se requiere confirmación humana.
+- La transcripción y la clasificación de categoría se ejecutan en el backend.
+- El dispositivo no envía texto transcrito; envía audio y recibe el resultado.
+- Siempre se requiere confirmación humana antes de guardar; la IA solo propone.
+- Al confirmar, se crea una notificación `movimiento_registrado` asociada al dispositivo de origen.
 - Si falta el monto, no se asigna uno por defecto.
 - Si falta la categoría, se propone la más probable y se marca para revisión.
 - Si falta la cuenta, se usa la cuenta por defecto.
@@ -787,6 +796,7 @@ No se envían correos, teléfonos, números completos de tarjeta ni tokens.
 - La confianza se guarda por transacción y por interacción.
 - Si el proveedor falla, se usa el intérprete de reglas.
 - Si el intérprete de reglas falla, el mensaje queda pendiente de revisión.
+- Si el guardado fue exitoso, se encola una notificación para el dispositivo y para la app.
 - Las interacciones se auditan en `interacciones_ia`.
 
 ---
@@ -799,8 +809,9 @@ El diseño visual y el pinout del dispositivo se documentan en `docs/DISPOSITIVO
 
 - `reposo`.
 - `grabando`.
+- `subiendo_audio`.
 - `procesando`.
-- `transmitiendo`.
+- `notificado`.
 - `bloqueado`.
 
 ### 10.2 Conexión
@@ -808,11 +819,16 @@ El diseño visual y el pinout del dispositivo se documentan en `docs/DISPOSITIVO
 - BLE para configuración inicial.
 - Wi-Fi para operación normal.
 - Token de dispositivo en cada petición.
+- El audio se sube al backend; la transcripción no ocurre en el dispositivo.
+- La notificación de “registro guardado” se recibe por polling HTTP cada 3–5 segundos.
+- El polling usa `after_id` para no repetir notificaciones y envía acuse al mostrarlas.
 - Reintentos con backoff.
 - Cola local de mensajes cuando no hay red.
 - Confirmación visual al recibir respuesta del backend.
 
-### 10.3 Contrato de telemetría
+### 10.3 Contrato de audio y telemetría
+
+El audio viaja como `multipart/form-data`; la telemetría solo lleva metadatos. Contrato propuesto:
 
 ```json
 {
@@ -824,32 +840,59 @@ El diseño visual y el pinout del dispositivo se documentan en `docs/DISPOSITIVO
   "battery_level_pct": 85,
   "hardware": {
     "button_state": true,
-    "device_status": "transmitting",
+    "device_status": "subiendo_audio",
     "audio_duration_sec": 3.5
   },
   "audio": {
-    "raw_voice_text": "gasté 14.000 en el almuerzo"
+    "format": "wav",
+    "sample_rate": 16000,
+    "channels": 1,
+    "sha256": "..."
   }
 }
 ```
 
-Respuesta:
+Respuesta del procesamiento (aún sin guardar):
 
 ```json
 {
   "ok": true,
   "data": {
+    "id": 1,
     "message_id": "9e4f0d7a-3a2b-4c7d-8e1f-123456789abc",
-    "estado": "procesado",
-    "transacciones": []
+    "estado": "pendiente",
+    "texto_transcrito": "gasté 14.000 en el almuerzo",
+    "transacciones": [],
+    "requiere_confirmacion": true
+  }
+}
+```
+
+Respuesta al confirmar:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": 1,
+    "estado": "confirmado",
+    "puntos_otorgados": 1,
+    "notificacion": {
+      "id": 12,
+      "tipo": "movimiento_registrado",
+      "titulo": "Registro guardado",
+      "estado": "pendiente",
+      "duplicado": false
+    }
   }
 }
 ```
 
 ### 10.4 Reglas
 
-- El backend acepta `audio.raw_voice_text` y `measurements.raw_voice_text` durante la transición.
-- El mensaje se procesa una sola vez.
+- El backend acepta audio corto y ejecuta transcripción y clasificación con la IA.
+- El texto directo se mantiene solo como compatibilidad temporal y para pruebas.
+- El mensaje se procesa una sola vez por `message_id`.
 - La batería menor o igual a 20% genera aviso.
 - La batería menor o igual a 10% genera aviso crítico.
 - La pérdida de conexión muestra los registros pendientes.
@@ -857,6 +900,8 @@ Respuesta:
 - El comando de sincronización solicita los mensajes pendientes.
 - Los comandos se guardan en `dispositivos_comandos`.
 - La telemetría se guarda en `dispositivos_telemetria`.
+- Las notificaciones se entregan por polling HTTP; el dispositivo consulta primero `pendiente` y luego marca `entregada` o `leida`.
+- La confirmación del mensaje crea como máximo una notificación `movimiento_registrado` por mensaje y dispositivo.
 
 ---
 
@@ -933,6 +978,11 @@ Códigos:
 | POST | `/device/commands` | Crear comando |
 | GET | `/device/commands` | Consultar comandos pendientes |
 | POST | `/device/telemetry` | Recibir telemetría del dispositivo |
+| POST | `/device/messages` | Procesar audio o texto desde el dispositivo |
+| POST | `/device/messages/{id}/confirm` | Confirmar transacciones desde el dispositivo |
+| GET | `/device/notifications` | Consultar notificaciones pendientes por polling |
+| POST | `/device/notifications/{id}/ack` | Acusar recibo de una notificación |
+| POST | `/device/notifications/ack` | Acusar recibo de varias notificaciones |
 
 ### 11.5 Movimientos y mensajes
 
@@ -997,6 +1047,162 @@ Códigos:
 | GET | `/notification-preferences` | Consultar preferencias |
 | PATCH | `/notification-preferences` | Actualizar preferencias |
 
+### 11.9 Audio y notificaciones del dispositivo
+
+Los endpoints de esta sección usan `X-Device-Token`. Los equivalentes de app usan `Authorization: Bearer <token>`. Todas las respuestas siguen el sobre `{"ok": true, "data": ...}` o `{"ok": false, "error": {...}}`.
+
+#### `POST /device/messages`
+
+Procesa audio o texto enviado por el dispositivo. El audio se transcribe y clasifica en el backend; el dispositivo nunca envía texto transcrito. Mientras no haya proveedor STT configurado, el campo `texto` es obligatorio y el endpoint responde `STT_NO_CONFIGURADO` si falta.
+
+Estado de implementación: el endpoint ya acepta `texto`; el campo `audio` está reservado y devuelve `STT_NO_CONFIGURADO` hasta integrar el proveedor.
+
+- Autenticación: `X-Device-Token`.
+- `Content-Type`: `multipart/form-data` para audio (cuando el STT esté configurado) o `application/json` para texto.
+- Campos:
+
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `audio` | archivo | Sí, si no hay `texto` | WAV, 16 kHz, mono, 0.5–30 s. |
+| `texto` | texto | Sí, si no hay `audio` | Fallback de pruebas o cuando el STT corre en el cliente. |
+| `message_id` | UUID | Sí | Idempotencia; un mismo `message_id` no se procesa dos veces. |
+| `audio_duracion_s` | número | No | Duración real del audio en segundos. |
+| `idioma` | texto | No | `es-CO` por defecto. |
+
+Respuesta `201` en el primer procesamiento y `200` si el mensaje es duplicado:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": 1,
+    "message_id": "9e4f0d7a-3a2b-4c7d-8e1f-123456789abc",
+    "estado": "pendiente",
+    "texto_transcrito": "gasté 14.000 en el almuerzo",
+    "transacciones": [],
+    "puntos_otorgados": 0,
+    "requiere_confirmacion": true,
+    "duplicado": false
+  }
+}
+```
+
+Errores: `401` token inválido, `403` dispositivo no vinculado, `422` falta audio/texto o el audio no cumple el formato.
+
+#### `POST /messages`
+
+Equivalente para la app. Usa `Authorization: Bearer <token>`. Acepta los mismos campos y además `device_id` y `origen` (`app_voz` por defecto). Mismo contrato de respuesta.
+
+#### `POST /device/messages/{id}/confirm` y `POST /messages/{id}/confirm`
+
+Confirman todas las transacciones pendientes del mensaje. No requieren cuerpo. Solo después de este paso el movimiento afecta balances, salud, puntos y metas. Si el mensaje se originó en un dispositivo, se crea una notificación `movimiento_registrado` en estado `pendiente`.
+
+Respuesta:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": 1,
+    "estado": "confirmado",
+    "puntos_otorgados": 1,
+    "transacciones": [],
+    "notificacion": {
+      "id": 12,
+      "tipo": "movimiento_registrado",
+      "titulo": "Registro guardado",
+      "estado": "pendiente",
+      "duplicado": false
+    }
+  }
+}
+```
+
+Errores: `401`, `403`, `404` mensaje inexistente.
+
+#### `GET /device/notifications`
+
+Consulta la cola de notificaciones del dispositivo por polling. Por defecto devuelve las que están en `pendiente` o `entregada` y no han sido leídas.
+
+- Autenticación: `X-Device-Token`.
+- Parámetros de consulta:
+
+| Parámetro | Tipo | Default | Descripción |
+|---|---|---|---|
+| `after_id` | entero | `0` | Devuelve solo notificaciones con `id` mayor. |
+| `limit` | entero | `20` | Máximo 100. |
+| `estado` | texto | vacío | Filtra por `pendiente`, `entregada` o `leida`. |
+
+Respuesta:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "notificaciones": [
+      {
+        "id": 12,
+        "dispositivo_id": 3,
+        "mensaje_id": 1,
+        "transaccion_id": 8,
+        "tipo": "movimiento_registrado",
+        "titulo": "Registro guardado",
+        "mensaje": "Se guardo el registro en FinaGotchi",
+        "payload_json": "{\"message_id\": \"...\", \"transacciones\": 1}",
+        "estado": "pendiente",
+        "creado_en": "2026-11-02T18:40:00Z",
+        "entregado_en": null,
+        "leido_en": null
+      }
+    ],
+    "ultima_id": 12
+  }
+}
+```
+
+El dispositivo guarda `ultima_id` y lo envía como `after_id` en el siguiente polling. Intervalo recomendado: 3–5 segundos.
+
+#### `POST /device/notifications/{id}/ack`
+
+Marca una notificación como recibida o leída.
+
+- Cuerpo: `{"estado": "entregada"}` o `{"estado": "leida"}`; por defecto `leida`.
+- `entregada`: solo aplica desde `pendiente`.
+- `leida`: aplica desde `pendiente` o `entregada` y completa `entregado_en` y `leido_en`.
+
+Respuesta:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": 12,
+    "estado": "leida",
+    "entregado_en": "2026-11-02T18:40:05Z",
+    "leido_en": "2026-11-02T18:40:05Z"
+  }
+}
+```
+
+Errores: `400` estado inválido, `401`, `403`, `404` notificación inexistente para ese dispositivo.
+
+#### `POST /device/notifications/ack`
+
+Acuse en lote.
+
+- Cuerpo: `{"ids": [12, 13], "estado": "leida"}`.
+- Respuesta: `{"ok": true, "data": {"actualizadas": 2}}`.
+- Los ids que no pertenecen al dispositivo se ignoran. Si la lista está vacía o no es una lista, responde `422`.
+
+#### Máquina de estados de la notificación
+
+`pendiente` → `entregada` → `leida`.
+
+- Se crea siempre en `pendiente`.
+- El polling no cambia el estado; el cambio ocurre con el acuse.
+- Una notificación ya `leida` no se vuelve a entregar salvo que se consulte con `estado=leida`.
+- El CHECK de la tabla impide combinaciones incoherentes entre `estado`, `entregado_en` y `leido_en`.
+
 ---
 
 ## 12. Modelo de datos
@@ -1034,6 +1240,7 @@ El esquema se divide en:
 | `puntos_log` | Puntos otorgados. |
 | `metas_eventos` | Eventos de metas. |
 | `alertas_log` | Notificaciones y avisos. |
+| `dispositivos_notificaciones` | Cola de notificaciones por dispositivo con estados `pendiente`, `entregada` y `leida`. |
 | `dispositivos_telemetria` | Telemetría del hardware. |
 | `dispositivos_comandos` | Comandos hacia el hardware. |
 | `schema_migrations` | Versión del esquema. |
@@ -1167,14 +1374,20 @@ El esquema se divide en:
 22. El índice de bienestar devuelve cobertura cuando faltan datos.
 23. El esquema se aplica en una base vacía sin errores.
 24. El esquema se puede validar con `PRAGMA foreign_key_check`.
+25. Una notificación de dispositivo nace en `pendiente` sin fechas de entrega ni lectura.
+26. El CHECK de `dispositivos_notificaciones` impide estados incoherentes con `entregado_en` y `leido_en`.
+27. Un mismo mensaje no genera dos notificaciones `movimiento_registrado` para el mismo dispositivo.
 
 ---
 
-## 17. Decisiones abiertas
+## 17. Decisiones
 
 | Tema | Estado | Propuesta |
 |---|---|---|
-| Proveedor de IA | Abierto | Interfaz abstracta y fallback por reglas. |
+| Proveedor de IA/STT | Abierto | Interfaz abstracta; transcripción y categoría en backend, fallback por reglas para texto. |
+| Guardado automático vs confirmación | Decidido | Se mantiene la confirmación humana: la IA propone y el usuario confirma antes de afectar el dinero. |
+| Notificación al dispositivo | Decidido | Polling HTTP cada 3–5 segundos con `after_id` y acuse explícito. |
+| Persistencia de notificaciones | Decidido | Tabla `dispositivos_notificaciones` con estados `pendiente`, `entregada` y `leida`. |
 | Fórmula de bienestar | Propuesta | Seis componentes ponderados; validar con producto. |
 | Reglas de salud | Propuesta | Ajustar topes después de pruebas con usuarios. |
 | Notificaciones push | Futuro | Requiere servicio externo. |

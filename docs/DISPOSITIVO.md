@@ -4,7 +4,7 @@ Versión: 1.0
 Estado: **EN STAND-BY hasta recibir el diseño de la diseñadora**  
 Documento base: `docs/ESPECIFICACIONES.md`  
 Aplicación de referencia: Figma de FinaGotchi  
-Hardware objetivo: ESP32-S3 Mini, pantalla TFT 240x320, 3 botones, micrófono I2S, amplificador I2S y batería 18650
+Hardware objetivo: ESP32-S3 SuperMini, pantalla TFT 240x320 de 7 pines sin BLK, 3 botones, micrófono I2S, amplificador I2S y batería 18650
 
 ---
 
@@ -70,15 +70,20 @@ El dispositivo debe usar el mismo lenguaje visual y verbal de la app. No se debe
 - Conexión: SPI.
 - Sin táctil.
 - Modelo declarado: TFT 240x320 SPI GMT024-10 v2.1.
-- **Pendiente:** confirmar el controlador real de la pantalla y su secuencia de inicialización.
+- Módulo de 7 pines: `VCC`, `GND`, `CS`, `RST`, `DC`, `MOSI` y `SCLK`.
+- Sin pin `BLK`/`BL`: el backlight no se controla por GPIO.
+- **Pendiente:** confirmar el controlador real de la pantalla, el orden físico de los 7 pines y su secuencia de inicialización.
 
 ### 3.2 Procesador
 
-- ESP32-S3 Mini.
-- 4 MB de flash.
-- 2 MB de PSRAM.
-- Wi-Fi 2.4 GHz.
-- Bluetooth Low Energy para vinculación.
+- ESP32-S3 SuperMini.
+- Doble núcleo Xtensa LX7 hasta 240 MHz.
+- 512 KB de SRAM.
+- 16 MB de flash externa.
+- La ficha declarada no incluye PSRAM; no asumir PSRAM hasta verificar la variante física.
+- Wi-Fi 2.4 GHz y Bluetooth Low Energy 5.
+- 11 GPIO, 4 ADC, 2 UART, 1 SPI y 1 I2C.
+- USB-C de 5 V y lógica de 3.3 V.
 - Sin sistema operativo visual; la interfaz se dibuja directamente sobre la pantalla.
 
 ### 3.3 Controles
@@ -93,8 +98,11 @@ El dispositivo debe usar el mismo lenguaje visual y verbal de la app. No se debe
 - Micrófono digital I2S. El componente declarado es `INPM441`; se asume que corresponde a **INMP441**.
 - Amplificador I2S. El componente declarado es `MAX9835`; se asume que corresponde a **MAX98357A**.
 - Altavoz de 80 ohmios y 0.5 W.
-- El dispositivo graba voz y reproduce avisos cortos.
-- **Pendiente:** definir si la transcripción se hace en el backend o en el dispositivo. La recomendación es que el dispositivo envíe audio corto al backend.
+- El dispositivo captura voz y reproduce avisos cortos.
+- La transcripción y la clasificación de categoría las hace la IA del backend, no el dispositivo.
+- El dispositivo solo envía audio corto, recibe el resultado y muestra la notificación de “registro guardado”.
+- No se almacena audio de forma permanente; se conservan transcripción, categoría y metadatos.
+- El bus I2S se comparte entre micrófono y amplificador para no superar los 11 GPIO. Validar que el ESP32-S3 pueda usar relojes compartidos en recepción y reproducción.
 
 ### 3.5 Energía
 
@@ -108,66 +116,85 @@ El dispositivo debe usar el mismo lenguaje visual y verbal de la app. No se debe
 
 ### 3.6 Almacenamiento
 
-- 4 MB de flash es un presupuesto ajustado.
-- 2 MB de PSRAM se usarán para buffers de pantalla y audio.
+- 16 MB de flash externa permiten recursos visuales, frases y una partición OTA.
+- 512 KB de SRAM son el límite real; no hay PSRAM confirmada.
+- Usar buffers parciales de pantalla, no un framebuffer completo de 240x320x2 bytes.
+- El audio se envía por bloques; no se conserva completo en RAM.
 - Los recursos visuales y las frases pregrabadas deben ser livianos.
 - La cola offline debe tener un límite definido.
-- **Decisión pendiente:** incluir o no actualización OTA. Para el MVP se recomienda no incluirla.
+- **Decisión pendiente:** incluir o no actualización OTA. La flash de 16 MB ya permite evaluarla, pero el MVP puede lanzarse sin OTA.
 
 ---
 
 ## 4. Pinout propuesto
 
-Este pinout es una propuesta de trabajo. Debe validarse contra la placa ESP32-S3 Mini concreta, sus pines expuestos y los pines reservados para USB, PSRAM y flash.
+Con 11 GPIO no caben 15 señales si se conectan por separado. Para que el diseño cierre se aplican tres reducciones:
 
-### 4.1 Pantalla TFT
+1. Relojes I2S compartidos entre micrófono y amplificador.
+2. `TFT_RST` conectado a `EN` de la placa, no a un GPIO.
+3. Los tres botones comparten una escalera resistiva en un solo ADC.
+
+El pinout usa 10 GPIO y deja `GPIO3` libre. Debe validarse contra la placa física y el orden real de los 7 pines de la TFT.
+
+### 4.1 Pantalla TFT de 7 pines
 
 | Señal | GPIO propuesto | Dirección | Nota |
 |---|---:|---|---|
-| TFT_SCLK | GPIO12 | Salida | Reloj SPI |
-| TFT_MOSI | GPIO11 | Salida | Datos SPI |
-| TFT_CS | GPIO10 | Salida | Chip select |
-| TFT_DC | GPIO9 | Salida | Data/Command |
-| TFT_RST | GPIO8 | Salida | Reset |
-| TFT_BL | GPIO7 | Salida PWM | Backlight, preferible con transistor/MOSFET |
-| TFT_VCC | 3V3 | Alimentación | Confirmar si el módulo acepta 3.3 V |
+| TFT_SCLK | GPIO7 | Salida | Reloj SPI |
+| TFT_MOSI | GPIO6 | Salida | Datos SPI |
+| TFT_CS | GPIO5 | Salida | Chip select |
+| TFT_DC | GPIO4 | Salida | Data/Command |
+| TFT_RST | EN | Reset | Conectar al reset de la placa; no consume GPIO |
+| TFT_VCC | 3V3 | Alimentación | Confirmar que el módulo acepte 3.3 V |
 | TFT_GND | GND | Tierra | Común con el resto del sistema |
+| TFT_BL | — | — | No existe pin BLK/BL; el backlight queda fijo |
 
-### 4.2 Micrófono INMP441
+Reglas:
+
+- No hay control de brillo por PWM.
+- Si el módulo expone un pad `LED`/`BL` interno, conectarlo a 3V3 mediante la resistencia que indique el fabricante.
+- Si `TFT_RST` no puede soldarse a `EN`, usar un reset RC de encendido o liberar un GPIO reduciendo otra función.
+
+### 4.2 Bus I2S compartido
 
 | Señal | GPIO propuesto | Dirección | Nota |
 |---|---:|---|---|
-| MIC_SCK | GPIO4 | Salida | Reloj I2S |
-| MIC_WS | GPIO5 | Salida | Word select |
-| MIC_SD | GPIO6 | Entrada | Datos del micrófono |
+| I2S_BCLK | GPIO8 | Salida | Reloj compartido por micrófono y amplificador |
+| I2S_WS | GPIO9 | Salida | Word select compartido |
+| MIC_SD | GPIO10 | Entrada | Datos del INMP441 |
+| AMP_DIN | GPIO11 | Salida | Datos hacia el MAX98357A |
 | MIC_L/R | GND | — | Canal izquierdo |
 | MIC_VDD | 3V3 | Alimentación | Con condensador de desacople |
-| MIC_GND | GND | Tierra | Común |
-
-### 4.3 Amplificador MAX98357A
-
-| Señal | GPIO propuesto | Dirección | Nota |
-|---|---:|---|---|
-| AMP_BCLK | GPIO15 | Salida | Reloj I2S |
-| AMP_LRC | GPIO16 | Salida | Word select |
-| AMP_DIN | GPIO17 | Salida | Datos hacia el amplificador |
 | AMP_VIN | VBAT o 5V | Alimentación | Verificar límite del módulo; no alimentar desde un GPIO |
 | AMP_GND | GND | Tierra | Común |
 | SPK+ / SPK- | Altavoz | Salida | Altavoz de 80 ohmios |
 | GAIN / SD | Según módulo | Configuración | Definir ganancia y canal |
+| MIC_GND | GND | Tierra | Común |
 
-### 4.4 Botones
+Reglas:
 
-| Señal | GPIO propuesto | Modo | Nota |
-|---|---:|---|---|
-| BTN_BACK | GPIO18 | Entrada pull-up | Activo en bajo |
-| BTN_OK | GPIO21 | Entrada pull-up | Activo en bajo |
-| BTN_PTT | GPIO47 | Entrada pull-up | Mantener para hablar; activo en bajo |
-| GND | GND | Tierra | Un terminal del pulsador a GND |
+- Validar que el ESP32-S3 pueda compartir BCLK y WS entre recepción y reproducción.
+- Si el driver no permite relojes compartidos, usar el bus en modo half-duplex: primero grabar y luego reproducir.
+- Mantener el amplificador separado de la alimentación sensible del micrófono.
 
-Si GPIO47 no está disponible en la placa, usar GPIO2 como alternativa y actualizar este documento. Evitar GPIO0, GPIO45 y GPIO46 porque son pines de arranque.
+### 4.3 Botones
 
-### 4.5 Batería y alimentación
+| Señal | Conexión | Modo | Nota |
+|---|---|---|---|
+| BTN_ADC | GPIO2 | ADC1 | Nodo común de la escalera resistiva |
+| BTN_BACK | 0 ohm a GND | Analógico | Botón Atrás |
+| BTN_OK | 4.7 kohm a GND | Analógico | Botón OK |
+| BTN_PTT | 10 kohm a GND | Analógico | Mantener para hablar |
+| Pull-up | 10 kohm a 3V3 | — | Sin botón, el ADC lee cerca de 3.3 V |
+
+Reglas:
+
+- El firmware distingue los botones por rangos de ADC, no por pines digitales.
+- Si se presionan dos botones a la vez, la lectura puede ser ambigua; dar prioridad a `PTT`.
+- Validar los valores con la tolerancia real de las resistencias y del ADC.
+- Si una versión futura de la placa expone más GPIO, se pueden separar los botones.
+
+### 4.4 Batería y alimentación
 
 | Señal | GPIO propuesto | Nota |
 |---|---:|---|
@@ -190,17 +217,18 @@ Reglas:
 - No conectar la batería directamente a un GPIO.
 - No medir la batería sin divisor de voltaje.
 - Verificar la corriente pico del amplificador y del backlight.
-- Mantener el amplificador separado de la alimentación sensible del micrófono.
 - Agregar condensadores de desacople cerca de la pantalla, el micrófono y el amplificador.
 - El switch debe cortar la alimentación de potencia, no solo una señal lógica.
 
-### 4.6 Pines reservados y precauciones
+### 4.5 Pines reservados y precauciones
 
-- GPIO0, GPIO45 y GPIO46: pines de arranque; no usar para botones ni pantalla.
-- GPIO19 y GPIO20: pueden estar conectados al USB nativo; evitar si la placa los usa para programación.
-- GPIO43 y GPIO44: pueden ser UART de consola; evitar si se necesita depuración serial.
-- Confirmar que la placa exponga GPIO47.
+- `GPIO3`: strapping; queda libre y no se usa.
+- `GPIO0`, `GPIO45` y `GPIO46`: pines de arranque; no usar para botones ni pantalla.
+- `GPIO19` y `GPIO20`: USB nativo; no usar.
+- `GPIO43` y `GPIO44`: UART de consola; evitar si se necesita depuración serial.
+- Confirmar que la placa exponga `GPIO1` a `GPIO11` y el pad `EN`.
 - Confirmar que la pantalla y el amplificador funcionen a 3.3 V o prever nivel lógico adecuado.
+- Si la placa real no coincide con este mapa, reasignar manteniendo el mismo número de señales: 3 SPI + 4 I2S + 1 ADC de botones + 1 ADC de batería.
 
 ---
 
@@ -444,6 +472,8 @@ Todas las pantallas deben respetar esta estructura, salvo splash y pairing:
 - Error al confirmar.
 - Confirmación exitosa.
 
+**Nota de decisión:** se mantiene la confirmación humana. La IA no guarda automáticamente; D06 se conserva y D07 muestra “Registro guardado” solo cuando el backend confirma la persistencia.
+
 ---
 
 ### D07 · Resultado
@@ -646,14 +676,17 @@ Máximo 2 segundos por frase. Deben existir al menos:
 - “Conecta el cargador”.
 - “Dispositivo desvinculado”.
 
-### 9.3 Transcripción
+### 9.3 Transcripción y notificación
 
-La transcripción no se diseña en la pantalla, pero sí su estado:
+La transcripción y la categoría las procesa la IA del backend. La pantalla no muestra el texto completo, solo el estado:
 
 - “Entendiendo”.
 - “No entendí”.
 - “Falta el monto”.
+- “Registro guardado”, cuando el backend confirme la persistencia.
 - “¿Confirmas?”.
+
+El dispositivo no transcribe localmente. Envía el audio, espera la respuesta y muestra la notificación final. La confirmación humana es obligatoria. Las notificaciones de guardado se consultan por polling HTTP cada 3–5 segundos y se acusan con `POST /device/notifications/{id}/ack`.
 
 ---
 
@@ -793,7 +826,7 @@ La diseñadora debe entregar:
 6. Especificación de sonidos y frases.
 7. Guía de estados: normal, vacío, cargando, error, sin conexión, batería baja y bloqueado.
 8. Lista de assets con nombre, tamaño y uso.
-9. Revisión de que el diseño cabe en 4 MB de flash y 2 MB de PSRAM.
+9. Revisión de que el diseño cabe en 16 MB de flash externa y 512 KB de SRAM, sin PSRAM confirmada.
 
 ---
 
@@ -815,21 +848,30 @@ El diseño se considera listo cuando:
 12. Los assets tienen tamaños y formatos compatibles con el firmware.
 13. El diseño es consistente con el Figma de la aplicación.
 14. El diseño no depende de touch, teclado ni scroll táctil.
-15. El diseño puede implementarse con las limitaciones de 4 MB de flash y 2 MB de PSRAM.
+15. El diseño puede implementarse con las limitaciones de 16 MB de flash externa y 512 KB de SRAM.
 
 ---
 
-## 16. Decisiones pendientes antes de firmware
+## 16. Decisiones antes de firmware
 
-- Confirmar el controlador exacto de la pantalla GMT024-10 v2.1.
+Decisiones cerradas:
+
+- La confirmación humana es obligatoria; la IA no guarda automáticamente.
+- La notificación al dispositivo se entrega por polling HTTP con `after_id` y acuse explícito.
+- Se usa la tabla `dispositivos_notificaciones` con estados `pendiente`, `entregada` y `leida`.
+
+Pendientes:
+
+- Confirmar el controlador exacto de la pantalla GMT024-10 v2.1 y el orden de sus 7 pines.
 - Confirmar que el micrófono es INMP441.
 - Confirmar que el amplificador es MAX98357A.
 - Confirmar el módulo BMS y cargador de la batería.
 - Confirmar el regulador de 3.3 V y la corriente disponible.
 - Confirmar si el amplificador se alimenta desde VBAT o desde un boost de 5 V.
-- Confirmar la disponibilidad de GPIO47 en la placa.
+- Confirmar que la placa expone `GPIO1` a `GPIO11` y el pad `EN`.
+- Confirmar que la TFT funciona con `CS` por GPIO y `RST` conectado a `EN`.
 - Definir si habrá OTA en el MVP.
-- Definir si la transcripción se hace en el backend o en el dispositivo.
+- Definir proveedor de IA, formato de audio, límite de duración y latencia aceptable.
 - Definir el límite de mensajes en cola offline.
 - Definir la duración máxima de grabación.
 - Definir el volumen y la ganancia del amplificador.

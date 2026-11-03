@@ -743,6 +743,41 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_alertas_dedup
     ON alertas_log (usuario_id, tipo, fecha_local, COALESCE(categoria_id, 0))
     WHERE tipo IN ('presupuesto_diario_excedido','presupuesto_categoria_excedido');
 
+CREATE TABLE IF NOT EXISTS dispositivos_notificaciones (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    dispositivo_id  INTEGER NOT NULL REFERENCES dispositivos (id) ON DELETE CASCADE,
+    usuario_id      INTEGER NOT NULL REFERENCES usuarios (id) ON DELETE CASCADE,
+    mensaje_id      INTEGER,
+    transaccion_id  INTEGER,
+    tipo            TEXT    NOT NULL CHECK (tipo IN (
+        'movimiento_registrado','movimiento_editado','movimiento_eliminado',
+        'registros_agrupados','sincronizacion','bateria_baja',
+        'dispositivo_desconectado','dispositivo_vinculado','dispositivo_desvinculado')),
+    titulo          TEXT    NOT NULL,
+    mensaje         TEXT,
+    payload_json    TEXT,
+    estado          TEXT    NOT NULL DEFAULT 'pendiente'
+                    CHECK (estado IN ('pendiente','entregada','leida')),
+    creado_en       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    entregado_en    TEXT,
+    leido_en        TEXT,
+    FOREIGN KEY (usuario_id, mensaje_id)
+        REFERENCES mensajes_dispositivo (usuario_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id, transaccion_id)
+        REFERENCES transacciones (usuario_id, id) ON DELETE CASCADE,
+    CHECK (
+        (estado = 'pendiente' AND entregado_en IS NULL AND leido_en IS NULL)
+        OR (estado = 'entregada' AND entregado_en IS NOT NULL AND leido_en IS NULL)
+        OR (estado = 'leida' AND entregado_en IS NOT NULL AND leido_en IS NOT NULL)
+    )
+);
+
+CREATE INDEX IF NOT EXISTS ix_dispositivos_notificaciones_pendientes
+    ON dispositivos_notificaciones (dispositivo_id, estado, id);
+
+CREATE INDEX IF NOT EXISTS ix_dispositivos_notificaciones_usuario
+    ON dispositivos_notificaciones (usuario_id, creado_en);
+
 CREATE TRIGGER IF NOT EXISTS trg_usuarios_seed
 AFTER INSERT ON usuarios
 BEGIN

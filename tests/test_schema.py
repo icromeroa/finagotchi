@@ -84,7 +84,7 @@ class SchemaTests(unittest.TestCase):
         ).lastrowid
 
     def test_schema_version_and_catalogs(self):
-        self.assertEqual(init_db.schema_version(self.conn), 2)
+        self.assertEqual(init_db.schema_version(self.conn), 3)
         self.assertEqual(
             self.conn.execute("SELECT COUNT(*) FROM plantilla_categorias").fetchone()[0], 16
         )
@@ -409,6 +409,69 @@ class SchemaTests(unittest.TestCase):
         self.assertIsNone(row[0])
         self.assertIsNone(row[1])
         self.assertEqual(row[2], "desconectado")
+
+    def test_device_notification_queue(self):
+        user_id = self.create_user()
+        category_id = self.first_category(user_id)
+        message_id = self.message(user_id)
+        transaction_id = self.transaction(user_id, category_id, message_id=message_id)
+        device_id = self.conn.execute(
+            """
+            INSERT INTO dispositivos
+                (device_uid, usuario_id, token_hash, vinculado_en, estado_conexion)
+            VALUES ('DEVICE-2', ?, 'hash', '2026-11-02T12:00:00Z', 'conectado')
+            """,
+            (user_id,),
+        ).lastrowid
+        notification_id = self.conn.execute(
+            """
+            INSERT INTO dispositivos_notificaciones
+                (dispositivo_id, usuario_id, mensaje_id, transaccion_id,
+                 tipo, titulo, mensaje)
+            VALUES (?, ?, ?, ?, 'movimiento_registrado',
+                    'Registro guardado', 'Se guardo el movimiento')
+            """,
+            (device_id, user_id, message_id, transaction_id),
+        ).lastrowid
+        row = self.conn.execute(
+            "SELECT estado, entregado_en, leido_en FROM dispositivos_notificaciones WHERE id = ?",
+            (notification_id,),
+        ).fetchone()
+        self.assertEqual(tuple(row), ("pendiente", None, None))
+
+        self.conn.execute(
+            """
+            UPDATE dispositivos_notificaciones
+               SET estado = 'entregada', entregado_en = '2026-11-02T12:05:00Z'
+             WHERE id = ?
+            """,
+            (notification_id,),
+        )
+        self.conn.execute(
+            """
+            UPDATE dispositivos_notificaciones
+               SET estado = 'leida', leido_en = '2026-11-02T12:06:00Z'
+             WHERE id = ?
+            """,
+            (notification_id,),
+        )
+        row = self.conn.execute(
+            "SELECT estado, entregado_en, leido_en FROM dispositivos_notificaciones WHERE id = ?",
+            (notification_id,),
+        ).fetchone()
+        self.assertEqual(row[0], "leida")
+        self.assertIsNotNone(row[1])
+        self.assertIsNotNone(row[2])
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.conn.execute(
+                """
+                INSERT INTO dispositivos_notificaciones
+                    (dispositivo_id, usuario_id, tipo, titulo, estado)
+                VALUES (?, ?, 'movimiento_registrado', 'Invalida', 'leida')
+                """,
+                (device_id, user_id),
+            )
 
     def test_user_delete_cascades(self):
         user_id = self.create_user()
