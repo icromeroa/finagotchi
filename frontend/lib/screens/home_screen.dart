@@ -97,9 +97,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
-                        color: AppColors.lime.withOpacity(0.5),
+                        color: AppColors.lime.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.darkGreen.withOpacity(0.15), width: 1),
+                        border: Border.all(color: AppColors.darkGreen.withValues(alpha: 0.15), width: 1),
                       ),
                       child: Row(
                         children: [
@@ -163,10 +163,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 220,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: AppColors.mutedPink.withOpacity(0.3),
+                        color: AppColors.mutedPink.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: AppColors.wine.withOpacity(0.4),
+                          color: AppColors.wine.withValues(alpha: 0.4),
                           width: 1.5,
                           style: BorderStyle.solid,
                         ),
@@ -308,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.cardCream,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+                        border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.cardCream,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+                        border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,9 +502,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.mutedPink.withOpacity(0.3),
+                              color: AppColors.mutedPink.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+                              border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,7 +635,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: AppColors.cream,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.wine.withOpacity(0.08)),
+        border: Border.all(color: AppColors.wine.withValues(alpha: 0.08)),
       ),
       child: Column(
         children: [
@@ -699,7 +699,7 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: AppColors.mutedPink.withOpacity(0.4),
+              backgroundColor: AppColors.mutedPink.withValues(alpha: 0.4),
               color: AppColors.lime,
               minHeight: 6,
             ),
@@ -716,14 +716,14 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Icon(
           icon,
-          color: isSelected ? AppColors.darkGreen : AppColors.darkGreen.withOpacity(0.5),
+          color: isSelected ? AppColors.darkGreen : AppColors.darkGreen.withValues(alpha: 0.5),
           size: 22,
         ),
         const SizedBox(height: 2),
         Text(
           label,
           style: TextStyle(
-            color: isSelected ? AppColors.darkGreen : AppColors.darkGreen.withOpacity(0.5),
+            color: isSelected ? AppColors.darkGreen : AppColors.darkGreen.withValues(alpha: 0.5),
             fontSize: 10,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),

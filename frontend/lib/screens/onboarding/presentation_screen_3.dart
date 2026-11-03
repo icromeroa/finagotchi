@@ -81,7 +81,7 @@ class PresentationScreen3 extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: cream.withOpacity(0.85),
+                                color: cream.withValues(alpha: 0.85),
                                 width: 2.0,
                               ),
                             ),

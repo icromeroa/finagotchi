@@ -141,7 +141,7 @@ class VoiceRecordingModal extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: AppColors.mutedPink.withOpacity(0.5),
+                    color: AppColors.mutedPink.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.close, color: AppColors.wine, size: 18),
@@ -169,10 +169,10 @@ class VoiceRecordingModal extends StatelessWidget {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: AppColors.mutedPink.withOpacity(0.25),
+              color: AppColors.mutedPink.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: AppColors.wine.withOpacity(0.4),
+                color: AppColors.wine.withValues(alpha: 0.4),
                 width: 1.5,
               ),
             ),
@@ -181,7 +181,7 @@ class VoiceRecordingModal extends StatelessWidget {
                 width: 45,
                 height: 45,
                 decoration: BoxDecoration(
-                  color: AppColors.mutedPink.withOpacity(0.4),
+                  color: AppColors.mutedPink.withValues(alpha: 0.4),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -202,8 +202,8 @@ class VoiceRecordingModal extends StatelessWidget {
             height: 75,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.lime.withOpacity(0.3),
-              border: Border.all(color: AppColors.darkGreen.withOpacity(0.2), width: 1.5),
+              color: AppColors.lime.withValues(alpha: 0.3),
+              border: Border.all(color: AppColors.darkGreen.withValues(alpha: 0.2), width: 1.5),
             ),
             child: Center(
               child: Container(
@@ -296,7 +296,7 @@ class VoiceRecordingModal extends StatelessWidget {
           color: isSelected ? AppColors.wine : AppColors.cardCream,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.wine : AppColors.wine.withOpacity(0.3),
+            color: isSelected ? AppColors.wine : AppColors.wine.withValues(alpha: 0.3),
           ),
         ),
         child: Text(
@@ -350,7 +350,7 @@ class VoiceErrorModal extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppColors.mutedPink.withOpacity(0.6),
+                  color: AppColors.mutedPink.withValues(alpha: 0.6),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.error_outline, color: AppColors.wine, size: 18),
@@ -372,7 +372,7 @@ class VoiceErrorModal extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: AppColors.mutedPink.withOpacity(0.5),
+                    color: AppColors.mutedPink.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.close, color: AppColors.wine, size: 18),
@@ -399,10 +399,10 @@ class VoiceErrorModal extends StatelessWidget {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: AppColors.mutedPink.withOpacity(0.25),
+              color: AppColors.mutedPink.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: AppColors.wine.withOpacity(0.4),
+                color: AppColors.wine.withValues(alpha: 0.4),
                 width: 1.5,
               ),
             ),
@@ -411,7 +411,7 @@ class VoiceErrorModal extends StatelessWidget {
                 width: 45,
                 height: 45,
                 decoration: BoxDecoration(
-                  color: AppColors.mutedPink.withOpacity(0.4),
+                  color: AppColors.mutedPink.withValues(alpha: 0.4),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.mic_off, color: AppColors.wine, size: 22),
@@ -494,7 +494,7 @@ class VoiceErrorModal extends StatelessWidget {
           color: isSelected ? AppColors.wine : AppColors.cardCream,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.wine : AppColors.wine.withOpacity(0.3),
+            color: isSelected ? AppColors.wine : AppColors.wine.withValues(alpha: 0.3),
           ),
         ),
         child: Text(
@@ -515,7 +515,7 @@ class VoiceErrorModal extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardCream,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+        border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -620,7 +620,7 @@ class _ConfirmDataModalState extends State<ConfirmDataModal> {
               decoration: BoxDecoration(
                 color: AppColors.cardCream,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+                border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -735,7 +735,7 @@ class _ConfirmDataModalState extends State<ConfirmDataModal> {
         color: isSelected ? AppColors.wine : AppColors.cardCream,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isSelected ? AppColors.wine : AppColors.wine.withOpacity(0.2),
+          color: isSelected ? AppColors.wine : AppColors.wine.withValues(alpha: 0.2),
         ),
       ),
       child: Text(
@@ -755,14 +755,14 @@ class _ConfirmDataModalState extends State<ConfirmDataModal> {
       decoration: BoxDecoration(
         color: AppColors.cream,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.wine.withOpacity(0.1)),
+        border: Border.all(color: AppColors.wine.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.mutedPink.withOpacity(0.5),
+              color: AppColors.mutedPink.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: AppColors.wine, size: 16),
@@ -796,7 +796,7 @@ class _ConfirmDataModalState extends State<ConfirmDataModal> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.mutedPink.withOpacity(0.6),
+                          color: AppColors.mutedPink.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -911,7 +911,7 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
               decoration: BoxDecoration(
                 color: AppColors.cardCream,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.wine.withOpacity(0.3)),
+                border: Border.all(color: AppColors.wine.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: ['Gasto', 'Ingreso', 'Ahorro'].map((type) {
@@ -956,7 +956,7 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
               decoration: BoxDecoration(
                 color: AppColors.cardCream,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.wine.withOpacity(0.3)),
+                border: Border.all(color: AppColors.wine.withValues(alpha: 0.3)),
               ),
               child: Text(
                 '\$ $amountText|',
@@ -974,7 +974,7 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
               decoration: BoxDecoration(
                 color: AppColors.cardCream,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+                border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
               ),
               child: Column(
                 children: [
@@ -1034,7 +1034,7 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
                           color: isSelected ? AppColors.lime : AppColors.cardCream,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isSelected ? AppColors.darkGreen : AppColors.wine.withOpacity(0.2),
+                            color: isSelected ? AppColors.darkGreen : AppColors.wine.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
@@ -1071,10 +1071,10 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.lime.withOpacity(0.3) : AppColors.cardCream,
+                        color: isSelected ? AppColors.lime.withValues(alpha: 0.3) : AppColors.cardCream,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isSelected ? AppColors.darkGreen : AppColors.wine.withOpacity(0.2),
+                          color: isSelected ? AppColors.darkGreen : AppColors.wine.withValues(alpha: 0.2),
                           width: isSelected ? 1.5 : 1,
                         ),
                       ),
@@ -1086,7 +1086,7 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AppColors.mutedPink.withOpacity(0.4),
+                                  color: AppColors.mutedPink.withValues(alpha: 0.4),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(cat['icon'] as IconData, color: AppColors.wine, size: 20),
@@ -1138,7 +1138,7 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
                             borderRadius: BorderRadius.circular(10),
                             child: LinearProgressIndicator(
                               value: progress,
-                              backgroundColor: AppColors.mutedPink.withOpacity(0.3),
+                              backgroundColor: AppColors.mutedPink.withValues(alpha: 0.3),
                               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.wine),
                               minHeight: 6,
                             ),
@@ -1186,7 +1186,7 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
                       color: isSelected ? AppColors.lime : AppColors.cardCream,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isSelected ? AppColors.darkGreen : AppColors.wine.withOpacity(0.2),
+                        color: isSelected ? AppColors.darkGreen : AppColors.wine.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Center(
@@ -1249,7 +1249,7 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
               decoration: BoxDecoration(
                 color: AppColors.cardCream,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.wine.withOpacity(0.2)),
+                border: Border.all(color: AppColors.wine.withValues(alpha: 0.2)),
               ),
               child: Row(
                 children: const [
@@ -1335,7 +1335,7 @@ class _ManualRegisterModalState extends State<ManualRegisterModal> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: AppColors.wine.withOpacity(0.15)),
+                  side: BorderSide(color: AppColors.wine.withValues(alpha: 0.15)),
                 ),
               ),
               child: key == '⌫'

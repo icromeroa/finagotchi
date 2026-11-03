@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
-import '../login_screen.dart';
 import 'habits_screen.dart'; // <--- Importamos la pantalla de hábitos
 
 class WelcomeScreen extends StatefulWidget {
@@ -79,7 +78,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               Container(
                 height: 6,
                 decoration: BoxDecoration(
-                  color: AppColors.mutedPink.withOpacity(0.25),
+                  color: AppColors.mutedPink.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -120,7 +119,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.mutedPink.withOpacity(0.35),
+                      color: AppColors.mutedPink.withValues(alpha: 0.35),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(

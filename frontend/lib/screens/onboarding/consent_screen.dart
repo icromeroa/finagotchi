@@ -316,10 +316,10 @@ class _ConsentScreenState extends State<ConsentScreen> {
                               AppColors.progressBackground,
                               foregroundColor: AppColors.darkGreen,
                               disabledForegroundColor:
-                              AppColors.darkGreen.withOpacity(0.5),
+                              AppColors.darkGreen.withValues(alpha: 0.5),
                               elevation: 2,
                               shadowColor:
-                              AppColors.darkGreen.withOpacity(0.3),
+                              AppColors.darkGreen.withValues(alpha: 0.3),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(28),
                                 side: const BorderSide(

@@ -97,7 +97,7 @@ class _StreakScreenState extends State<StreakScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.cardCream,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+                    border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,7 +105,7 @@ class _StreakScreenState extends State<StreakScreen> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppColors.mutedPink.withOpacity(0.5),
+                          color: AppColors.mutedPink.withValues(alpha: 0.5),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.local_fire_department, color: Colors.orange, size: 18),
@@ -146,7 +146,7 @@ class _StreakScreenState extends State<StreakScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.cardCream,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+                    border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +154,7 @@ class _StreakScreenState extends State<StreakScreen> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppColors.lime.withOpacity(0.6),
+                          color: AppColors.lime.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.bolt, color: AppColors.darkGreen, size: 18),
@@ -198,7 +198,7 @@ class _StreakScreenState extends State<StreakScreen> {
             decoration: BoxDecoration(
               color: AppColors.cardCream,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+              border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +292,7 @@ class _StreakScreenState extends State<StreakScreen> {
             decoration: BoxDecoration(
               color: AppColors.cardCream,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+              border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
             ),
             child: Row(
               children: [
@@ -380,7 +380,7 @@ class _StreakScreenState extends State<StreakScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.mutedPink.withOpacity(0.4),
+              color: AppColors.mutedPink.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -418,7 +418,7 @@ class _StreakScreenState extends State<StreakScreen> {
             decoration: BoxDecoration(
               color: AppColors.cardCream,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.wine.withOpacity(0.2)),
+              border: Border.all(color: AppColors.wine.withValues(alpha: 0.2)),
             ),
             child: Center(
               child: Row(
@@ -429,7 +429,7 @@ class _StreakScreenState extends State<StreakScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.cream,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.wine.withOpacity(0.1)),
+                      border: Border.all(color: AppColors.wine.withValues(alpha: 0.1)),
                     ),
                     child: Row(
                       children: const [
@@ -466,7 +466,7 @@ class _StreakScreenState extends State<StreakScreen> {
             decoration: BoxDecoration(
               color: AppColors.cardCream,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+              border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,7 +481,7 @@ class _StreakScreenState extends State<StreakScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: AppColors.mutedPink.withOpacity(0.6),
+                        color: AppColors.mutedPink.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Text(
@@ -529,7 +529,7 @@ class _StreakScreenState extends State<StreakScreen> {
             decoration: BoxDecoration(
               color: AppColors.cardCream,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.wine.withOpacity(0.15)),
+              border: Border.all(color: AppColors.wine.withValues(alpha: 0.15)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,7 +553,7 @@ class _StreakScreenState extends State<StreakScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.lime.withOpacity(0.5),
+                    color: AppColors.lime.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -617,7 +617,7 @@ class _StreakScreenState extends State<StreakScreen> {
       decoration: BoxDecoration(
         color: AppColors.cream,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.wine.withOpacity(0.08)),
+        border: Border.all(color: AppColors.wine.withValues(alpha: 0.08)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -654,7 +654,7 @@ class _StreakScreenState extends State<StreakScreen> {
       decoration: BoxDecoration(
         color: AppColors.cream,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.wine.withOpacity(0.08)),
+        border: Border.all(color: AppColors.wine.withValues(alpha: 0.08)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -718,7 +718,7 @@ class _StreakScreenState extends State<StreakScreen> {
             decoration: BoxDecoration(
               color: AppColors.mutedPink,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.wine.withOpacity(0.3)),
+              border: Border.all(color: AppColors.wine.withValues(alpha: 0.3)),
             ),
             child: Text(
               metaText,
@@ -734,9 +734,9 @@ class _StreakScreenState extends State<StreakScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
-        color: AppColors.cream.withOpacity(0.5),
+        color: AppColors.cream.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.wine.withOpacity(0.04)),
+        border: Border.all(color: AppColors.wine.withValues(alpha: 0.04)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -748,7 +748,7 @@ class _StreakScreenState extends State<StreakScreen> {
                 Text(
                   d,
                   style: TextStyle(
-                    color: d.isEmpty ? Colors.transparent : AppColors.wine.withOpacity(0.3),
+                    color: d.isEmpty ? Colors.transparent : AppColors.wine.withValues(alpha: 0.3),
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -756,7 +756,7 @@ class _StreakScreenState extends State<StreakScreen> {
                 const SizedBox(height: 3),
                 Icon(
                   Icons.circle,
-                  color: d.isEmpty ? Colors.transparent : AppColors.wine.withOpacity(0.2),
+                  color: d.isEmpty ? Colors.transparent : AppColors.wine.withValues(alpha: 0.2),
                   size: 6,
                 ),
               ],
