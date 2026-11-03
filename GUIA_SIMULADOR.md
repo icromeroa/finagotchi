@@ -2,7 +2,31 @@
 
 El simulador representa el dispositivo físico: inicia sesión con un usuario de prueba, vincula un dispositivo virtual, captura la voz, **envía el audio al backend** y confirma el registro propuesto.
 
-> El simulador ya no transcribe en el PC. Graba un WAV de 16 kHz mono y lo sube por `multipart/form-data` a `POST /api/v1/device/messages`. La transcripción la hace Gemini Flash en el backend y la clasificación por reglas, exactamente como será en el firmware de la ESP32.
+Recorre las mismas pantallas que tendrá el firmware, definidas en `docs/DISPOSITIVO.md`:
+
+| Pantalla | Qué muestra |
+|---|---|
+| D03 Reposo | Ánimo de Nancy, salud, cupo del día, gastos, ingresos, puntos, conexión y batería. |
+| D04 Grabando | "Te escucho", el tiempo transcurrido y la barra de audio. |
+| D05 Procesando | "Entendiendo tu mensaje". |
+| D06 Confirmar | "¿Registro esto?" con tipo, monto, categoría, cuenta y la frase transcrita. |
+| D07 Resultado | "Listo", los puntos ganados y el cupo restante. |
+| D08 Consulta | "Así vas hoy": ingresos, gastos, ahorro, balance, cupo, salud y ánimo. |
+| D09 Cierre | El resumen del cierre del día. |
+| D10 Sin conexión | "No pude enviar tu mensaje. Voy a intentarlo otra vez". |
+| D11 No entendí | Pide repetir con el monto y el tipo de movimiento. |
+| D13 Avisos | Las notificaciones del dispositivo. |
+
+## Menú
+
+```
+  [H] Hablar   [E] Estado del dia   [C] Cerrar el dia
+  [N] Notificaciones   [R] Repetir la ultima frase   [S] Salir
+```
+
+## Sobre la transcripción y la IA
+
+El simulador no transcribe en el PC. Graba un WAV de 16 kHz mono y lo sube por `multipart/form-data` a `POST /api/v1/device/messages`. La transcripción la hace `faster-whisper` o Gemini en el backend, y la interpretación de la frase (tipo, monto, categoría y cuenta) la hace un modelo de lenguaje con Ollama. Es exactamente el camino que seguirá el firmware de la ESP32.
 
 ## Requisitos
 
@@ -121,7 +145,9 @@ Terminal 2, ejecutada como administrador:
 py -3 simulator/simulator.py
 ```
 
-Mantén presionada la tecla ESPACIO mientras hablas. Al soltarla, el simulador envía el WAV al backend, muestra la transcripción que devuelve Gemini, propone los movimientos, confirma y consulta las notificaciones.
+Elige `[H] Hablar` y mantén presionada la tecla ESPACIO mientras hablas. Al soltarla, el simulador envía el WAV al backend, muestra la transcripción, propone los movimientos, pide la confirmación y muestra el resultado.
+
+> El servidor ya no reinicia solo cuando cambias un archivo. Con el reinicio automático de Flask, cualquier cambio en el proyecto cortaba las peticiones en vuelo y el audio se perdía a medio enviar. Para depurar con recarga automática: `FLASK_DEBUG=1 py -3 backend/server.py`.
 
 ## Frases de prueba
 
@@ -160,7 +186,7 @@ Consultas y cierre:
 8. Para cierre, `POST /device/close-day`.
 9. Para consultas, `GET /home`.
 
-El simulador envía el archivo `audio`, `message_id`, `audio_duracion_s` e `idioma`. El backend valida el WAV, lo transcribe con Gemini, registra la auditoría en `interacciones_ia` y crea las transacciones en estado `pendiente`. Solo la confirmación las vuelve `confirmado`, otorga puntos y afecta el saldo. El audio nunca se guarda.
+El simulador envía el archivo `audio`, `message_id`, `audio_duracion_s` e `idioma`. El backend valida el WAV, lo transcribe, registra la auditoría en `interacciones_ia` y crea las transacciones en estado `pendiente`. Solo la confirmación las vuelve `confirmado`, otorga puntos y afecta el saldo. El audio nunca se guarda.
 
 El `message_id` se genera una vez por grabación, así que un reintento no duplica el registro.
 

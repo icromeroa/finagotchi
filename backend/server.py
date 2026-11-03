@@ -1583,4 +1583,14 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    # El reinicio automatico de Flask (debug) corta las peticiones en vuelo
+    # cuando se cambia un archivo: durante una demo eso parte el audio a
+    # medio enviar. Se deja desactivado por defecto y se puede activar con
+    # FLASK_DEBUG=1.
+    depurar = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(
+        host=os.environ.get("HOST", "0.0.0.0"),
+        port=int(os.environ.get("PORT", 5000)),
+        debug=depurar,
+        use_reloader=depurar,
+    )

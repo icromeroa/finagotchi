@@ -1,5 +1,15 @@
+"""Simulador del dispositivo FinaGotchi para escritorio.
+
+Reproduce el flujo de pantallas definido en docs/DISPOSITIVO.md (D01 a D13)
+contra el backend real: graba el audio, lo transcribe, interpreta la frase con
+la IA, confirma, y muestra el resultado.
+
+    py -3 simulator/simulator.py
+"""
+
 import io
 import json
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -8,6 +18,10 @@ import keyboard
 import requests
 import scipy.io.wavfile as wav
 import sounddevice as sd
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from simulator import pantallas  # noqa: E402
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
 DEFAULT_CONFIG = {
@@ -67,12 +81,9 @@ class FinaGotchiClient:
         return payload.get("data", payload)
 
     def login_or_register(self):
-        credentials = {
-            "correo": self.config["email"],
-            "password": self.config["password"],
-        }
+        credenciales = {"correo": self.config["email"], "password": self.config["password"]}
         try:
-            payload = self.request("POST", "/auth/login", json=credentials)
+            payload = self.request("POST", "/auth/login", json=credenciales)
         except ApiError as exc:
             if exc.status != 401:
                 raise
@@ -89,7 +100,7 @@ class FinaGotchiClient:
             except ApiError as register_error:
                 if register_error.status != 409:
                     raise
-                payload = self.request("POST", "/auth/login", json=credentials)
+                payload = self.request("POST", "/auth/login", json=credenciales)
         self.user_token = payload["tokens"]["access_token"]
         return payload["usuario"]
 
@@ -100,7 +111,7 @@ class FinaGotchiClient:
         body = {
             "device_uid": self.device_uid,
             "modelo": "Simulador PC",
-            "firmware": "sim-v2",
+            "firmware": "sim-v3",
         }
         try:
             registration = self.request("POST", "/device/register", json=body)
@@ -136,22 +147,10 @@ class FinaGotchiClient:
             "/device/telemetry",
             headers=self.device_headers(),
             json={
-                "bateria": 95,
+                "bateria": 87,
                 "estado_dispositivo": "reposo",
                 "tipo": "latido",
-                "firmware": "sim-v2",
-            },
-        )
-
-    def send_message(self, text, duration):
-        return self.request(
-            "POST",
-            "/device/messages",
-            headers=self.device_headers(),
-            json={
-                "texto": text,
-                "message_id": str(uuid.uuid4()),
-                "audio_duracion_s": duration,
+                "firmware": "sim-v3",
             },
         )
 
@@ -167,21 +166,6 @@ class FinaGotchiClient:
                 "audio_duracion_s": f"{float(duration):.1f}",
                 "idioma": self.config.get("language", "es-CO"),
             },
-        )
-
-    def notifications(self, after_id=0, limit=20):
-        return self.request(
-            "GET",
-            f"/device/notifications?after_id={int(after_id)}&limit={int(limit)}",
-            headers=self.device_headers(),
-        )
-
-    def ack_notification(self, notification_id, estado="leida"):
-        return self.request(
-            "POST",
-            f"/device/notifications/{notification_id}/ack",
-            headers=self.device_headers(),
-            json={"estado": estado},
         )
 
     def confirm_message(self, message_id):
@@ -203,154 +187,206 @@ class FinaGotchiClient:
     def home(self):
         return self.request("GET", "/home", headers=self.user_headers())
 
+    def notifications(self, after_id=0, limit=20):
+        return self.request(
+            "GET",
+            f"/device/notifications?after_id={int(after_id)}&limit={int(limit)}",
+            headers=self.device_headers(),
+        )
 
-def capture_voice():
-    """Graba el microfono y devuelve los bytes WAV y la duracion.
+    def ack_notification(self, notification_id, estado="leida"):
+        return self.request(
+            "POST",
+            f"/device/notifications/{notification_id}/ack",
+            headers=self.device_headers(),
+            json={"estado": estado},
+        )
 
-    El simulador no transcribe: solo captura y envia el audio al backend,
-    igual que hara el firmware de la ESP32.
+
+def capture_voice(duracion_maxima=40):
+    """Graba el microfono mientras se mantenga la tecla ESPACIO.
+
+    Devuelve los bytes WAV y la duracion. El simulador no transcribe: solo
+    captura y envia el audio al backend, igual que hara el firmware.
     """
-    print("\n------------------------------------------------")
-    print("  SIMULADOR DE HARDWARE FINAGOTCHI (PC)")
-    print("------------------------------------------------")
-    print("Mantén presionada la tecla [ESPACIO] para hablar...")
+    print("\n  Mantén presionada la tecla [ESPACIO] y habla.")
+    print("  Suelta para enviar. [Atrás para cancelar]")
 
     while not keyboard.is_pressed("space"):
         time.sleep(0.05)
 
-    print("\n[GRABANDO] Habla ahora hacia el micrófono...")
-    audio_data = []
-    start_time = time.time()
+    bloques = []
+    inicio = time.time()
 
     def callback(indata, frames, time_info, status):
-        audio_data.append(indata.copy())
+        bloques.append(indata.copy())
 
     with sd.InputStream(
         samplerate=CONFIG["sample_rate"], channels=1, dtype="int16", callback=callback
     ):
         while keyboard.is_pressed("space"):
             time.sleep(0.05)
+            if time.time() - inicio > duracion_maxima:
+                print(f"  Tiempo máximo alcanzado ({duracion_maxima}s).")
+                break
 
-    duration = round(time.time() - start_time, 1)
-    print(f"[GRABACIÓN FINALIZADA] {duration}s. Enviando audio al backend...")
-
-    if not audio_data:
-        return b"", duration
+    duracion = round(time.time() - inicio, 1)
+    if not bloques:
+        return b"", 0.0
 
     import numpy as np
 
-    audio_np = np.concatenate(audio_data, axis=0)
-    wav_bytes = io.BytesIO()
-    wav.write(wav_bytes, CONFIG["sample_rate"], audio_np)
-    return wav_bytes.getvalue(), duration
+    muestras = np.concatenate(bloques, axis=0)
+    buffer = io.BytesIO()
+    wav.write(buffer, CONFIG["sample_rate"], muestras)
+    return buffer.getvalue(), duracion
 
 
-def print_home(data):
-    mascot = data.get("mascota", {})
-    today = data.get("hoy", {})
-    print("\nESTADO DE FINAGOTCHI")
-    print(f"  Nancy: salud={mascot.get('salud')}% ánimo={mascot.get('animo')}")
-    print(
-        f"  Hoy: gastos=${today.get('gastos', 0):,} cupo=${today.get('cupo_restante', 0):,}"
-    )
-    print(f"  Puntos: {data.get('puntos', 0)}")
+class Simulador:
+    """Maquina de estados del dispositivo simulado."""
 
+    def __init__(self, client):
+        self.client = client
+        self.ultima_frase = None
+        self.ultimo_id_notificacion = 0
+        self.ultimo_home = {}
 
-def print_closure(data):
-    print("\nCIERRE DEL DÍA")
-    print(f"  Ingresos: ${data.get('total_ingresos', 0):,}")
-    print(f"  Gastos:   ${data.get('total_gastos', 0):,}")
-    print(f"  Ahorro:   ${data.get('total_ahorrado', 0):,}")
-    print(f"  Salud:    {data.get('salud_fin')}% ({data.get('animo')})")
+    # --- D03 -------------------------------------------------------------
+    def pantalla_reposo(self):
+        try:
+            self.ultimo_home = self.client.home()
+        except ApiError:
+            self.ultimo_home = {}
+        pendientes = len(self.client.notifications(self.ultimo_id_notificacion).get("notificaciones", []))
+        print(pantallas.d03_reposo(self.ultimo_home, conectado=True, pendientes=pendientes))
 
+    # --- D04 a D07 -------------------------------------------------------
+    def hablar(self):
+        wav_bytes, duracion = capture_voice()
+        if not wav_bytes:
+            print(pantallas.d11_no_entendio())
+            return
+        if duracion > 40:
+            print(pantallas.d11_no_entendio())
+            return
 
-def print_notifications(client, last_id=0):
-    """Consulta las notificaciones pendientes y las acusa."""
-    payload = client.notifications(after_id=last_id)
-    rows = payload.get("notificaciones") or []
-    for row in rows:
-        print(f"  [NOTIFICACIÓN] {row.get('titulo')}: {row.get('mensaje') or ''}")
-        client.ack_notification(row["id"], "leida")
-    return payload.get("ultima_id", last_id) or last_id
+        print(pantallas.d05_procesando())
+        message_id = str(uuid.uuid4())
+        try:
+            message = self.client.send_audio(wav_bytes, duracion, message_id)
+        except ApiError as exc:
+            if exc.status == 422:
+                print(pantallas.d11_no_entendio())
+            elif exc.status in (429, 502, 503):
+                print(pantallas.d10_sin_conexion())
+            else:
+                print(pantallas.d10_sin_conexion())
+                print(f"  Detalle: {exc}")
+            return
 
+        texto = message.get("texto_transcrito")
+        self.ultima_frase = texto
+        intent = message.get("intent")
 
-def handle_message(client, message, last_notification_id=0):
-    intent = message.get("intent")
-    transactions = message.get("transacciones") or []
-    texto = message.get("texto_transcrito")
-    if texto:
-        print(f'[VOZ TRANSCRITA]: "{texto}"')
-    if message.get("proveedor_stt"):
-        proveedor = message["proveedor_stt"]
-        modelo = message.get("modelo_stt") or ""
-        print(f"[TRANSCRIPTO POR]: {proveedor} {modelo}".rstrip())
-    if message.get("stt_caida"):
-        print(f"[AVISO] {message['stt_caida']}")
+        if intent == "cerrar_dia":
+            print(pantallas.d09_cierre(self.client.close_day()))
+            self.pantalla_reposo()
+            return
+        if intent == "consulta_estado":
+            print(pantallas.d08_consulta(self.client.home()))
+            self.ultimo_home = self.client.home()
+            return
 
-    if intent == "cerrar_dia":
-        print_closure(client.close_day())
-        return last_notification_id
-    if intent == "consulta_estado":
-        print_home(client.home())
-        return last_notification_id
-    if not transactions:
-        print(f"No se pudo interpretar: {message.get('error')}")
-        return last_notification_id
+        transacciones = message.get("transacciones") or []
+        if not transacciones:
+            print(pantallas.d11_no_entendio())
+            return
 
-    print("\nPROPUESTA DE REGISTRO")
-    for transaction in transactions:
-        print(
-            f"  {transaction['tipo'].upper()}: ${transaction['monto']:,} "
-            f"| categoría={transaction.get('categoria') or 'ahorro'} "
-            f"| cuenta={transaction.get('cuenta')}"
-        )
-    origen = message.get("origen_interpretacion")
-    if origen:
-        proveedor = message.get("proveedor_interpretacion") or ""
-        print(f"  (interpretado por: {origen} {proveedor})".rstrip())
+        print(pantallas.d06_confirmar(transacciones, texto or ""))
 
-    should_confirm = CONFIG.get("auto_confirm", True)
-    if not should_confirm:
-        answer = input("¿Confirmar? [S/n]: ").strip().lower()
-        should_confirm = answer in ("", "s", "si", "sí")
-    if not should_confirm:
-        print("Registro descartado.")
-        return last_notification_id
+        should_confirm = CONFIG.get("auto_confirm", True)
+        if not should_confirm:
+            answer = input("  ¿Confirmar? [S/n]: ").strip().lower()
+            should_confirm = answer in ("", "s", "si", "sí")
+        if not should_confirm:
+            print("  Registro descartado.")
+            self.pantalla_reposo()
+            return
 
-    confirmed = client.confirm_message(message["id"])
-    print(f"Registro confirmado. Puntos otorgados: {confirmed.get('puntos_otorgados', 0)}")
-    print_home(client.home())
+        confirmado = self.client.confirm_message(message["id"])
+        home = self.client.home()
+        self.ultimo_home = home
+        print(pantallas.d07_resultado(confirmado.get("puntos_otorgados", 0), home))
 
-    print("\nNOTIFICACIONES DEL DISPOSITIVO")
-    last_notification_id = print_notifications(client, last_notification_id)
-    return last_notification_id
+    # --- D09 -------------------------------------------------------------
+    def cerrar_dia(self):
+        try:
+            cierre = self.client.close_day()
+        except ApiError as exc:
+            print(f"  No se pudo cerrar el día: {exc}")
+            return
+        print(pantallas.d09_cierre(cierre))
+        self.pantalla_reposo()
+
+    # --- D13 -------------------------------------------------------------
+    def ver_notificaciones(self):
+        payload = self.client.notifications(self.ultimo_id_notificacion)
+        rows = payload.get("notificaciones") or []
+        if not rows:
+            print(pantallas.d13_aviso("Sin avisos", "No hay notificaciones nuevas."))
+            return
+        for row in rows:
+            print(pantallas.d13_aviso(row.get("titulo") or "Aviso", row.get("mensaje") or ""))
+            self.client.ack_notification(row["id"], "leida")
+        self.ultimo_id_notificacion = payload.get("ultima_id", self.ultimo_id_notificacion)
+
+    # --- D08 -------------------------------------------------------------
+    def estado_del_dia(self):
+        print(pantallas.d08_consulta(self.client.home()))
+        self.ultimo_home = self.client.home()
 
 
 def main():
     client = FinaGotchiClient(CONFIG)
     user = client.login_or_register()
-    print(f"Sesión iniciada como {user['correo']}")
+    print(f"  Sesión iniciada como {user['correo']}")
     client.ensure_device()
-    print(f"Dispositivo vinculado: {client.device_uid}")
+    print(f"  Dispositivo vinculado: {client.device_uid}")
     client.telemetry()
-    print(f"Proveedor de transcripción: {CONFIG.get('stt_provider', 'gemini')}")
+    print(f"  Proveedor de transcripción: {CONFIG.get('stt_provider', 'gemini')}")
 
-    last_notification_id = 0
+    simulador = Simulador(client)
+    print(pantallas.d01_arranque())
+    simulador.pantalla_reposo()
+
     while True:
-        wav_bytes, duration = capture_voice()
-        if not wav_bytes:
-            print("No se grabó audio válido.")
-            continue
-        message_id = str(uuid.uuid4())
+        print(pantallas.menu())
         try:
-            message = client.send_audio(wav_bytes, max(duration, 0.5), message_id)
-            if message.get("duplicado"):
-                print("El mensaje ya se había procesado. Se devuelve el resultado guardado.")
-            last_notification_id = handle_message(client, message, last_notification_id)
-        except ApiError as exc:
-            print(f"ERROR DE API ({exc.status}): {exc}")
-        except Exception as exc:
-            print(f"ERROR: {exc}")
+            opcion = input("\n  Opción: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\n  Hasta luego.")
+            return
+
+        if opcion in ("s", "salir", "q"):
+            print("  Hasta luego.")
+            return
+        if opcion in ("h", "hablar"):
+            simulador.hablar()
+        elif opcion in ("e", "estado"):
+            simulador.estado_del_dia()
+        elif opcion in ("c", "cerrar", "cierre"):
+            simulador.cerrar_dia()
+        elif opcion in ("n", "notificaciones"):
+            simulador.ver_notificaciones()
+        elif opcion in ("r", "repetir"):
+            if simulador.ultima_frase:
+                print(f"  Última frase: {simulador.ultima_frase}")
+            else:
+                print("  Todavia no has hablado.")
+        elif opcion == "":
+            continue
+        else:
+            print("  Opción no reconocida.")
 
 
 if __name__ == "__main__":
