@@ -2,6 +2,8 @@
 
 Reglas del proyecto:
 - El backend es el unico que ve la API key.
+- La key vive FUERA del repositorio, en ``%USERPROFILE%/.finagotchi/gemini.env``.
+  Asi un ``git clean -xdf`` no puede borrarla.
 - El audio se procesa en memoria y nunca se guarda en disco ni en la base.
 - Gemini solo transcribe. La interpretacion de montos, categorias y cuentas
   sigue a cargo de ``backend/nlp.py`` por reglas.
@@ -13,6 +15,8 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+CARPETA_PERSONAL = Path.home() / ".finagotchi"
+ARCHIVO_EXTERNO = CARPETA_PERSONAL / "gemini.env"
 MODELO_POR_DEFECTO = "gemini-3.8-flash"
 MODELOS_RESPALDO = ("gemini-3.5-flash", "gemini-3.5-flash-lite")
 IDIOMA_POR_DEFECTO = "es-CO"
@@ -74,18 +78,60 @@ class STTSinTexto(ErrorSTT):
     estado_http = 422
 
 
+def rutas_env():
+    """Rutas donde puede estar la configuracion, en orden de prioridad.
+
+    1. ``backend/.env`` dentro del repo (ignorado por git, se puede borrar).
+    2. ``.env`` en la raiz del repo (ignorado por git, se puede borrar).
+    3. ``%USERPROFILE%/.finagotchi/gemini.env`` FUERA del repo (a salvo de
+       ``git clean`` y de reinstalar el proyecto).
+
+    La variable de entorno del sistema gana sobre todas: si ya esta definida,
+    no se toca.
+    """
+    return (
+        Path(__file__).resolve().parent / ".env",
+        ROOT / ".env",
+        ARCHIVO_EXTERNO,
+    )
+
+
 def _cargar_env():
-    """Carga backend/.env y, si no existe, el .env de la raiz."""
+    """Carga los archivos .env disponibles sin sobrescribir variables ya fijadas."""
     try:
         from dotenv import load_dotenv
     except ImportError:
-        return
-    for candidate in (Path(__file__).resolve().parent / ".env", ROOT / ".env"):
+        return []
+    cargados = []
+    for candidate in rutas_env():
         if candidate.exists():
-            load_dotenv(candidate, override=False)
+            try:
+                load_dotenv(candidate, override=False)
+            except Exception:  # noqa: BLE001 - un .env roto no debe tumbar el backend
+                continue
+            cargados.append(candidate)
+    return cargados
 
 
-_cargar_env()
+_KEY_DEL_ENTORNO = bool(os.environ.get("GEMINI_API_KEY"))
+ARCHIVOS_CARGADOS = _cargar_env()
+
+
+def origen_de_la_key():
+    """De donde viene la API key: 'variable de entorno', la ruta del archivo o None."""
+    if _KEY_DEL_ENTORNO:
+        return "variable de entorno"
+    for candidate in rutas_env():
+        if candidate.exists():
+            try:
+                # utf-8-sig tolera el BOM que agregan algunos editores.
+                for linea in candidate.read_text(encoding="utf-8-sig").splitlines():
+                    if linea.strip().startswith("GEMINI_API_KEY="):
+                        if linea.split("=", 1)[1].strip():
+                            return str(candidate)
+            except OSError:
+                continue
+    return None
 
 
 def api_key():

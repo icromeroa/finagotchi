@@ -27,19 +27,27 @@ py -3 -m pip install -r requirements.txt
 
 ### 2. Configurar la IA
 
+La API key **vive fuera del repositorio**, en `%USERPROFILE%\.finagotchi\gemini.env`. Así ningún `git clean -xdf`, borrado de carpeta o reinstalación del proyecto puede borrarla.
+
 ```powershell
-Copy-Item backend/.env.example backend/.env
+py -3 tools/configurar_api_key.py
 ```
 
-Editar `backend/.env` y poner la clave de <https://aistudio.google.com>:
+El asistente pide la clave (no se muestra mientras la escribes), la guarda en el archivo externo y la verifica contra la API real de Google. La clave se genera en <https://aistudio.google.com> → *Get API key*.
 
-```text
-GEMINI_API_KEY=tu_clave
-GEMINI_MODEL=gemini-3.5-flash
-GEMINI_MODEL_FALLBACKS=gemini-3.5-flash-lite,gemini-3.8-flash
+Para revisar el estado sin cambiar nada:
+
+```powershell
+py -3 tools/verificar_entorno.py
 ```
 
-La clave solo vive en el backend. Nunca va en la ESP32, en la app ni en el repositorio: `.gitignore` excluye `backend/.env`.
+> **Nunca escribas la clave en `backend/.env.example`**: ese archivo sí está versionado en git y terminaría publicada en GitHub. `tests/test_seguridad.py` falla si detecta una clave real en cualquier archivo del repo.
+>
+> Si prefieres una variable de entorno en vez del archivo externo, también funciona y tiene prioridad sobre todo lo demás:
+>
+> ```powershell
+> [Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "tu_clave", "User")
+> ```
 
 ### 3. Base de datos
 

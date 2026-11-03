@@ -15,6 +15,7 @@ Estado al cierre de la Fase A (audio real con IA).
 | El mensaje duplicado se procesaba dos veces | Resuelto | La idempotencia se valida antes de llamar al proveedor de transcripción. |
 | El audio podía quedar almacenado | Resuelto | El audio se procesa en memoria y no se persiste en disco ni en la base. |
 | La clave de Gemini podía subirse al repositorio | Resuelto | `.gitignore` excluye `backend/.env` y `*.db`. |
+| Un `git clean -xdf` borró `backend/.env` y se perdió la clave | Resuelto | La clave ahora vive en `%USERPROFILE%\.finagotchi/gemini.env`, fuera del repo, con `tools/configurar_api_key.py`. `tests/test_seguridad.py` falla si una clave real entra al repo. |
 
 ## Abiertos
 

@@ -1127,9 +1127,10 @@ La transcripción se configura en `backend/.env` (copiar `backend/.env.example`)
 | Variable | Default | Descripción |
 |---|---|---|
 | `GEMINI_API_KEY` | vacío | Clave de la API de Gemini. Sin ella el audio responde `STT_NO_CONFIGURADO`. |
-| `GEMINI_MODEL` | `gemini-3.5-flash` | Modelo principal de transcripción. |
-| `GEMINI_MODEL_FALLBACKS` | `gemini-3.5-flash-lite,gemini-3.8-flash` | Modelos alternos cuando el principal no responde. |
-| `GEMINI_TIMEOUT_S` | `60` | Tiempo máximo de espera de la transcripción. |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Modelo principal de transcripción. |
+| `GEMINI_MODEL_FALLBACKS` | `gemini-3.5-flash,gemini-3.5-flash-lite` | Modelos alternos cuando el principal no responde. |
+| `GEMINI_TIMEOUT_S` | `60` | Tiempo máximo de espera de una llamada. |
+| `GEMINI_PLAZO_S` | `90` | Tiempo máximo total de todos los reintentos. |
 
 La API de Google puede responder `503` por demanda alta o retirar un modelo. El backend reintenta con el siguiente modelo de la cadena antes de devolver un error, y el dispositivo puede reintentar con el mismo `message_id`.
 
@@ -1473,12 +1474,29 @@ El esquema se divide en:
 
 ```powershell
 py -3 -m pip install -r requirements.txt
-Copy-Item backend/.env.example backend/.env
+py -3 tools/configurar_api_key.py
 ```
 
-Editar `backend/.env` y pegar la clave de <https://aistudio.google.com> en `GEMINI_API_KEY`. Sin ese archivo el backend funciona con texto, pero el audio responde `STT_NO_CONFIGURADO`.
+La API key se guarda **fuera del repositorio**, en `%USERPROFILE%\.finagotchi\gemini.env`, para que ningún `git clean -xdf` ni una reinstalación la borren. El asistente también la verifica contra la API real antes de terminar.
 
-La clave nunca se versiona: `.gitignore` excluye `backend/.env`, `*.db` y los audios del dataset.
+El backend busca la configuración en este orden:
+
+| Prioridad | Origen | Nota |
+|---|---|---|
+| 1 | Variable de entorno del sistema | `GEMINI_API_KEY` gana sobre todo lo demás. |
+| 2 | `backend/.env` | Ignorado por git, se puede borrar. |
+| 3 | `.env` en la raíz | Ignorado por git, se puede borrar. |
+| 4 | `%USERPROFILE%/.finagotchi/gemini.env` | Fuera del repo, a salvo de `git clean`. |
+
+`backend/.env.example` **sí está versionado**: es una plantilla y nunca debe llevar una clave real. `tests/test_seguridad.py` falla si encuentra una clave con formato de Google en cualquier archivo del repositorio.
+
+Diagnóstico del entorno:
+
+```powershell
+py -3 tools/verificar_entorno.py
+```
+
+Revisa Python y las dependencias, el esquema de la base, el origen de la clave, si la API responde y si hay micrófono disponible. Devuelve 1 si hay algo que arreglar.
 
 ### 18.2 Inicializar una base nueva
 

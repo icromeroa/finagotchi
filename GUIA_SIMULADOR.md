@@ -19,13 +19,21 @@ py -3 -m pip install -r requirements.txt
 py -3 -m pip install -r requirements-simulator.txt
 ```
 
-El backend necesita la clave de Gemini:
+El backend necesita la clave de Gemini. La clave se guarda **fuera del repositorio**, en `%USERPROFILE%\.finagotchi\gemini.env`:
 
 ```powershell
-Copy-Item backend/.env.example backend/.env
+py -3 tools/configurar_api_key.py
 ```
 
-Editar `backend/.env` y poner la clave de <https://aistudio.google.com> en `GEMINI_API_KEY`. Sin ese archivo el backend responde `STT_NO_CONFIGURADO` cuando llega audio.
+El asistente pide la clave, la guarda en ese archivo y la verifica contra la API. Para ver el estado:
+
+```powershell
+py -3 tools/verificar_entorno.py
+```
+
+Sin clave, el backend responde `STT_NO_CONFIGURADO` cuando llega audio.
+
+> No copies la clave a `backend/.env.example`: ese archivo está versionado en git.
 
 ## Configuración
 
