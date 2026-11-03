@@ -114,9 +114,10 @@ def procesar_mensaje_voz(
 
         mime = _mime_audio(archivo)
         idioma = (idioma or ai.IDIOMA_POR_DEFECTO).strip()
+        hotwords = nlp.palabras_clave_usuario(conn, user_id)
         try:
             resultado = ai.transcribe_audio(
-                audio_bytes, mime_type=mime, language=idioma
+                audio_bytes, mime_type=mime, language=idioma, initial_prompt=hotwords
             )
         except ai.ErrorSTT as exc:
             services.log_ai_interaction(
@@ -235,6 +236,17 @@ def create_app(database=None):
             "El archivo enviado supera el tamano maximo permitido",
             413,
             {"max_bytes": audio.MAX_BYTES},
+        )
+
+    @app.errorhandler(Exception)
+    def error_inesperado(exc):
+        """La API siempre responde JSON, nunca la pagina de depuracion de Flask."""
+        app.logger.exception("Error no controlado: %s", exc)
+        return error(
+            "ERROR_INTERNO",
+            "Ocurrio un error inesperado al procesar la peticion",
+            500,
+            {"tipo": type(exc).__name__},
         )
 
     @app.get("/api/v1/health")

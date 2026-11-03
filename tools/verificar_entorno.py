@@ -150,6 +150,28 @@ def revisar_ia():
         return False
 
 
+def revisar_llm():
+    print("Modelo de IA para interpretar la frase")
+    print(f"  Proveedor configurado: {ai.proveedor_llm() or 'ninguno'}")
+    if ai.ollama_disponible():
+        ok(f"Ollama disponible con el modelo '{ai.modelo_ollama()}'")
+        ok(f"URL: {ai.url_ollama()}")
+        return True
+    aviso(
+        "Ollama no esta disponible (no responde o falta el modelo "
+        f"'{ai.modelo_ollama()}')."
+    )
+    aviso(
+        "Instalalo con: winget install --id Ollama.Ollama --exact --silent  "
+        "y despues: ollama pull " + ai.modelo_ollama()
+    )
+    if ai.esta_configurado():
+        aviso("Se puede usar Gemini para la interpretacion si la clave funciona.")
+    else:
+        aviso("Sin LLM el backend usa las reglas por palabra clave.")
+    return False
+
+
 def revisar_microfono():
     print("Microfono para el simulador")
     try:
@@ -175,6 +197,7 @@ def main():
         revisar_python(),
         revisar_base(),
         revisar_ia(),
+        revisar_llm(),
         revisar_microfono(),
     ]
     print()

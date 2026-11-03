@@ -199,6 +199,9 @@ def create_message(
     conn.commit()
     payload = message_payload(conn, user_id, internal_id)
     payload["intent"] = result["intent"]
+    payload["origen_interpretacion"] = result.get("origen", "reglas")
+    if result.get("proveedor"):
+        payload["proveedor_interpretacion"] = result["proveedor"]
     return payload
 
 

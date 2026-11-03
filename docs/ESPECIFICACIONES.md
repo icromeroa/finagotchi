@@ -760,6 +760,52 @@ El modelo se configura con `GEMINI_MODEL` y admite una cadena de respaldo con `G
 
 Los modelos locales (whisper, Ollama, llama.cpp, Gemma) se ejecutan en el **PC o servidor del backend**, nunca en la ESP32. La ESP32 solo graba, envía y muestra.
 
+### 9.1.1 Interpretación: el modelo de lenguaje
+
+Transcribir no basta. Hay un paso aparte donde un modelo de lenguaje decide **qué tipo de movimiento es, el monto, la categoría y la cuenta**. Ese paso lo hace `nlp.interpretar_con_ia`.
+
+| Proveedor | Clave | Latencia | Notas |
+|---|---|---|---|
+| `ollama` | no | 2–8 s | Modelo local. `qwen3:4b` por defecto. Gratis, offline, sin cuota. |
+| `gemini` | sí | 1–3 s | Solo si la API key funciona. |
+
+El modelo recibe el catálogo real del usuario (sus categorías con su tipo y sus cuentas) y debe responder un JSON:
+
+```json
+{
+  "tipo": "gasto",
+  "monto": 20000,
+  "categoria": "Alimentación",
+  "cuenta": "Nequi",
+  "concepto": "almuerzo del viernes"
+}
+```
+
+**La respuesta se valida contra la base de datos antes de aceptarla:**
+
+| Campo | Regla de validación |
+|---|---|
+| `tipo` | Debe ser `gasto`, `ingreso` o `ahorro`. |
+| `monto` | Entero positivo. Si falta, se usa el monto que sale de las reglas. |
+| `categoria` | Debe existir en las categorías del usuario y ser del mismo tipo que el movimiento. Si no, se deja vacía. |
+| `cuenta` | Debe existir en las cuentas del usuario. Si no, se usa la cuenta por defecto. |
+
+Así el modelo puede equivocarse sin romper nada: lo que no cuadra con el catálogo del usuario se descarta y se completa con las reglas.
+
+Si no hay ningún LLM disponible, `nlp.interpret` usa las reglas por palabra clave (`NLP_USAR_IA=off` las fuerza).
+
+### 9.1.2 Hotwords de transcripción
+
+El modelo de transcripción recibe los nombres de cuentas y categorías del usuario como `initial_prompt`. Sin esto, los modelos de ASR escriben las marcas de forma aproximada:
+
+| Frase | Sin hotwords | Con hotwords |
+|---|---|---|
+| "gasté 20.000 por nequi" | "por Nike" | "por Nequi" |
+| "compré 5.000 con daviplata" | "con David Plata" | "con Daviplata" |
+| "me pagaron 800.000 a la cuenta nu" | "a la cuenta no" | "a la cuenta Nu" |
+
+La lista se arma con `nlp.palabras_clave_usuario` a partir de las cuentas y categorías activas del usuario.
+
 ### 9.2 Contexto permitido
 
 - Texto transcrito.

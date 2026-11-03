@@ -53,6 +53,35 @@ Con `STT_PROVEEDOR=auto` (el valor por defecto) no hay que hacer nada: el backen
 
 Para forzar siempre el modelo local, pon `STT_PROVEEDOR=local` en `%USERPROFILE%\.finagotchi\gemini.env`.
 
+### El modelo que interpreta la frase
+
+Transcribir no es suficiente: hace falta un modelo que entienda **qué tipo de movimiento es, el monto, la categoría y la cuenta**. Eso lo hace un modelo de lenguaje local con **Ollama**:
+
+```powershell
+winget install --id Ollama.Ollama --exact --silent
+ollama pull qwen3:4b
+```
+
+Es gratis, corre en tu PC, no necesita clave ni internet. El backend recibe el catálogo real del usuario (sus 16 categorías y sus 5 cuentas) y el modelo responde un JSON que después se valida contra la base de datos: si inventa una categoría que no existe, se descarta.
+
+Ejemplo de lo que entiende:
+
+| Dices | Transcripción | Tipo | Monto | Categoría | Cuenta |
+|---|---|---|---|---|---|
+| "gasté 20.000 por nequi" | "Gasté 20.000 pesos por Nequi." | gasto | $20.000 | Otros | **Nequi** |
+| "compré 5.000 con daviplata en el almacén" | "Compré 5.000 con Daviplata en el almacén." | gasto | $5.000 | **Alimentación** | **Daviplata** |
+| "me pagaron 800.000 a la cuenta nu" | "Me pagaron 800.000 a la cuenta Nu." | ingreso | $800.000 | **Trabajo** | **Nu** |
+
+Ojo: la transcripción sola escribía "por **Nike**" y "con **David Plata**". Para evitarlo, el backend manda los nombres de tus cuentas y categorías al modelo de transcripción como pistas (hotwords).
+
+Si Ollama no está instalado, el backend cae a las reglas por palabra clave y todo sigue funcionando, pero la categoría y la cuenta se detectan con menos precisión.
+
+Para ver qué está activo:
+
+```powershell
+py -3 tools/verificar_entorno.py
+```
+
 ## Configuración
 
 Edita `simulator/config.json`:

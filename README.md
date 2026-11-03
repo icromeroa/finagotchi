@@ -104,6 +104,28 @@ py -3 tools/probar_flujo_voz.py ruta\al\audio.wav
 
 El modelo local no necesita clave, ni cuota, ni conexión a internet: es la vía garantizada para una demo.
 
+### Modelo de IA que interpreta la frase
+
+La transcripción solo devuelve texto. Quien decide **qué tipo de movimiento es, el monto, la categoría y la cuenta** es un modelo de lenguaje:
+
+| Proveedor | Clave | Latencia | Notas |
+|---|---|---|---|
+| `ollama` | no | 2–8 s | Modelo local (qwen3:4b). Gratis, offline, sin cuota. |
+| `gemini` | sí | 1–3 s | Solo si la API key funciona. |
+
+Se instala con:
+
+```powershell
+winget install --id Ollama.Ollama --exact --silent
+ollama pull qwen3:4b
+```
+
+La IA recibe el **catálogo real del usuario** (sus 16 categorías y sus cuentas) y debe responder con un JSON. Esa respuesta se **valida contra la base de datos**: si inventa una categoría que no existe, o dice una cuenta inexistente, se descarta ese campo y se usa el de la cuenta por defecto. Si no hay ningún LLM disponible, el sistema cae a las reglas por palabra clave de `backend/nlp.py`.
+
+Para apagar la interpretación por IA y quedarte solo con las reglas: `NLP_USAR_IA=off`.
+
+Además, la transcripción recibe las **hotwords** del usuario (los nombres de sus cuentas y categorías). Sin eso, Whisper escribe "por Nike" en vez de "por Nequi", y "con David Plata" en vez de "con Daviplata".
+
 ## Dataset de evaluación
 
 `datasets/eval_audio/manifest.csv` define 30 casos de prueba: montos en cifras y en palabras, millones, ingresos, gastos, ahorro, consultas, frases sin monto, ruido y acentos.

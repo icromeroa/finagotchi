@@ -304,6 +304,10 @@ def handle_message(client, message, last_notification_id=0):
             f"| categoría={transaction.get('categoria') or 'ahorro'} "
             f"| cuenta={transaction.get('cuenta')}"
         )
+    origen = message.get("origen_interpretacion")
+    if origen:
+        proveedor = message.get("proveedor_interpretacion") or ""
+        print(f"  (interpretado por: {origen} {proveedor})".rstrip())
 
     should_confirm = CONFIG.get("auto_confirm", True)
     if not should_confirm:

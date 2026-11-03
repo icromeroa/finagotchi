@@ -42,12 +42,27 @@ PROVEEDOR_AUTO = "auto"
 MODELOS_LOCALES = ("tiny", "base", "small", "medium", "large-v3")
 IDIOMA_WHISPER = {"es-CO": "es", "es": "es"}
 
+PROVEEDOR_LLM_OLLAMA = "ollama"
+PROVEEDOR_LLM_GEMINI = "gemini"
+OLLAMA_URL_POR_DEFECTO = "http://127.0.0.1:11434"
+MODELO_OLLAMA_POR_DEFECTO = "qwen3:4b"
+
 PROMPT_TRANSCRIPCION = (
     "Transcribe literalmente el audio en espanol colombiano. "
     "Devuelve solo el texto transcrito, sin resumen, sin explicaciones y sin "
     "inventar datos. Conserva los montos, los nombres de cuentas y las "
     "expresiones tal como se dicen, con tildes y signos de puntuacion naturales."
 )
+
+
+def prompt_con_hotwords(initial_prompt=None):
+    """Prompt de transcripcion con las palabras del usuario como pista."""
+    if not initial_prompt:
+        return PROMPT_TRANSCRIPCION
+    return (
+        f"{PROMPT_TRANSCRIPCION} "
+        f"Estos nombres pueden aparecer en el audio, escribelos tal cual: {initial_prompt}."
+    )
 
 
 class ErrorSTT(RuntimeError):
@@ -213,6 +228,46 @@ def local_disponible():
     return True
 
 
+def url_ollama():
+    return (os.environ.get("OLLAMA_URL") or OLLAMA_URL_POR_DEFECTO).rstrip("/")
+
+
+def modelo_ollama():
+    return (os.environ.get("OLLAMA_MODEL") or MODELO_OLLAMA_POR_DEFECTO).strip()
+
+
+def ollama_disponible():
+    """True si hay un servidor de Ollama escuchando con el modelo configurado."""
+    try:
+        import json
+        import urllib.request
+
+        with urllib.request.urlopen(f"{url_ollama()}/api/tags", timeout=3) as respuesta:
+            datos = json.loads(respuesta.read().decode("utf-8"))
+    except Exception:  # noqa: BLE001 - si no hay Ollama, simplemente no esta
+        return False
+    nombres = {modelo.get("name", "") for modelo in datos.get("models", [])}
+    if not nombres:
+        return False
+    objetivo = modelo_ollama()
+    return any(nombre == objetivo or nombre.startswith(objetivo + ":") for nombre in nombres)
+
+
+def proveedor_llm():
+    """Devuelve el proveedor de LLM disponible: 'ollama', 'gemini' o None."""
+    preferido = (os.environ.get("LLM_PROVEEDOR") or "auto").strip().lower()
+    if preferido == PROVEEDOR_LLM_OLLAMA:
+        return PROVEEDOR_LLM_OLLAMA if ollama_disponible() else None
+    if preferido == PROVEEDOR_LLM_GEMINI:
+        return PROVEEDOR_LLM_GEMINI if esta_configurado() else None
+
+    if ollama_disponible():
+        return PROVEEDOR_LLM_OLLAMA
+    if esta_configurado():
+        return PROVEEDOR_LLM_GEMINI
+    return None
+
+
 def _cliente():
     try:
         from google import genai
@@ -289,9 +344,9 @@ def _limpiar_texto(texto):
     return limpio[:MAX_TEXTO]
 
 
-def _llamar_gemini(cliente, audio_bytes, mime_type, language, model, con_transcription_config):
+def _llamar_gemini(cliente, audio_bytes, mime_type, language, model, con_transcription_config, initial_prompt=None):
     payload = [
-        {"type": "text", "text": PROMPT_TRANSCRIPCION},
+        {"type": "text", "text": prompt_con_hotwords(initial_prompt)},
         {
             "type": "audio",
             "data": base64.b64encode(audio_bytes).decode("ascii"),
@@ -306,14 +361,18 @@ def _llamar_gemini(cliente, audio_bytes, mime_type, language, model, con_transcr
     return cliente.interactions.create(**kwargs)
 
 
-def _intentar_modelo(cliente, audio_bytes, mime_type, idioma, model):
+def _intentar_modelo(cliente, audio_bytes, mime_type, idioma, model, initial_prompt=None):
     """Llama a Gemini con un modelo. Reintenta sin bloque de transcripcion
     cuando el modelo no acepta ese parametro."""
     try:
-        return _llamar_gemini(cliente, audio_bytes, mime_type, idioma, model, True)
+        return _llamar_gemini(
+            cliente, audio_bytes, mime_type, idioma, model, True, initial_prompt
+        )
     except Exception as exc:  # noqa: BLE001
         if _es_error_de_argumento(exc):
-            return _llamar_gemini(cliente, audio_bytes, mime_type, idioma, model, False)
+            return _llamar_gemini(
+                cliente, audio_bytes, mime_type, idioma, model, False, initial_prompt
+            )
         raise
 
 
@@ -322,11 +381,15 @@ def transcribe_audio(
     mime_type="audio/wav",
     language=IDIOMA_POR_DEFECTO,
     model=None,
+    initial_prompt=None,
 ):
     """Transcribe el audio y devuelve un diccionario con la trazabilidad.
 
     Con ``STT_PROVEEDOR=auto`` usa Gemini cuando hay clave y, si la clave esta
     rota o el proveedor no responde, cae al modelo local del PC.
+
+    ``initial_prompt`` son las "hotwords" del usuario (cuentas y categorias):
+    hacen que el modelo escriba bien las marcas y los nombres propios.
 
     Lanza una subclase de ``ErrorSTT`` si ningun proveedor puede transcribir.
     """
@@ -337,14 +400,14 @@ def transcribe_audio(
     idioma = (language or IDIOMA_POR_DEFECTO).strip()
 
     if proveedor == PROVEEDOR_LOCAL:
-        return transcribe_local(audio_bytes, idioma)
+        return transcribe_local(audio_bytes, idioma, initial_prompt)
     if proveedor == PROVEEDOR_GEMINI:
-        return transcribe_gemini(audio_bytes, mime_type, idioma, model)
+        return transcribe_gemini(audio_bytes, mime_type, idioma, model, initial_prompt)
 
     # Modo automatico.
     if not esta_configurado():
         if local_disponible():
-            return transcribe_local(audio_bytes, idioma)
+            return transcribe_local(audio_bytes, idioma, initial_prompt)
         raise STTNoConfigurado(
             "No hay API key de Gemini ni faster-whisper instalado. "
             "Configura la clave con tools/configurar_api_key.py o instala "
@@ -353,7 +416,9 @@ def transcribe_audio(
         )
 
     try:
-        return transcribe_gemini(audio_bytes, mime_type, idioma, model)
+        return transcribe_gemini(
+            audio_bytes, mime_type, idioma, model, initial_prompt
+        )
     except (
         STTKeyInvalida,
         STTSinPermisos,
@@ -363,10 +428,195 @@ def transcribe_audio(
     ) as exc:
         if not local_disponible():
             raise
-        resultado = transcribe_local(audio_bytes, idioma)
+        resultado = transcribe_local(audio_bytes, idioma, initial_prompt)
         resultado["motivo_fallback"] = exc.mensaje
         resultado["error_proveedor"] = exc.codigo
         return resultado
+
+
+PROMPT_EXTRACCION = """Eres un asistente que convierte frases de finanzas personales en datos estructurados.
+
+Categorias disponibles:
+{categorias}
+
+Cuentas disponibles:
+{cuentas}
+
+Frase del usuario: "{texto}"
+
+Responde SOLO con un JSON valido, sin texto antes ni despues:
+{{"tipo": "gasto|ingreso|ahorro", "monto": <numero entero o null>, "categoria": "<nombre exacto de la lista o null>", "cuenta": "<nombre exacto de la lista o null>", "concepto": "<resumen breve en menos de 8 palabras>"}}
+
+Reglas:
+- "tipo" es "gasto", "ingreso" o "ahorro".
+- "monto" es el valor total en pesos enteros, sin punto ni signo. Si la frase no menciona un monto, pon null.
+- "categoria" y "cuenta" deben ser EXACTAMENTE un nombre de las listas de arriba, en minúsculas. Si la frase no lo menciona, pon null. Si no sabes con certeza, pon null.
+- Si la frase menciona varias categorias o cuentas, escoge la mas probable.
+- No inventes categorias ni cuentas que no esten en las listas.
+"""
+
+
+def _armar_prompt_extraccion(texto, categorias, cuentas):
+    lineas_categorias = "\n".join(
+        f"- {categoria['nombre']} ({categoria['tipo']})" for categoria in categorias
+    )
+    lineas_cuentas = "\n".join(f"- {cuenta['nombre']}" for cuenta in cuentas)
+    return PROMPT_EXTRACCION.format(
+        categorias=lineas_categorias or "(ninguna)",
+        cuentas=lineas_cuentas or "(ninguna)",
+        texto=str(texto).replace('"', "'"),
+    )
+
+
+def _json_de_texto(texto):
+    """Saca el JSON de una respuesta del modelo, aunque venga con texto extra."""
+    import json
+
+    if not texto:
+        return None
+    limpio = texto.strip()
+    if limpio.startswith("```"):
+        limpio = limpio.strip("`")
+        if limpio.lower().startswith("json"):
+            limpio = limpio[4:]
+    limpio = limpio.strip()
+    try:
+        return json.loads(limpio)
+    except ValueError:
+        pass
+    inicio = limpio.find("{")
+    fin = limpio.rfind("}")
+    if inicio != -1 and fin > inicio:
+        try:
+            return json.loads(limpio[inicio : fin + 1])
+        except ValueError:
+            return None
+    return None
+
+
+def extraer_estructura(texto, categorias, cuentas, modelo=None):
+    """Pide a un LLM que extraiga tipo, monto, categoria y cuenta.
+
+    Devuelve un diccionario con los datos crudos del modelo, o None si no hay
+    ningun LLM disponible o si la respuesta no es utilizable.
+    """
+    proveedor = proveedor_llm()
+    if proveedor is None:
+        return None
+
+    prompt = _armar_prompt_extraccion(texto, categorias, cuentas)
+    started = time.perf_counter()
+
+    if proveedor == PROVEEDOR_LLM_OLLAMA:
+        respuesta = _extraer_con_ollama(prompt, modelo)
+    else:
+        respuesta = _extraer_con_gemini(prompt)
+
+    if not respuesta:
+        return None
+
+    respuesta["proveedor"] = proveedor
+    respuesta["latencia_ms"] = int((time.perf_counter() - started) * 1000)
+    return respuesta
+
+
+def _extraer_con_ollama(prompt, modelo=None):
+    import json
+    import urllib.request
+
+    cuerpo = {
+        "model": modelo or modelo_ollama(),
+        "messages": [{"role": "user", "content": prompt}],
+        "format": "json",
+        "stream": False,
+        # Sin esto los modelos con "modo pensar" se demoran 30 s o mas.
+        "think": False,
+        # Mantiene el modelo en memoria entre peticiones.
+        "keep_alive": "10m",
+        "options": {"temperature": 0, "num_predict": 200},
+    }
+
+    def enviar(cuerpo_enviado):
+        peticion = urllib.request.Request(
+            f"{url_ollama()}/api/chat",
+            data=json.dumps(cuerpo_enviado).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(peticion, timeout=120) as respuesta:
+            return json.loads(respuesta.read().decode("utf-8"))
+
+    try:
+        datos = enviar(cuerpo)
+    except urllib.error.HTTPError as exc:
+        if exc.code == 400:
+            # Versiones antiguas de Ollama no conocen el parametro think.
+            cuerpo.pop("think", None)
+            try:
+                datos = enviar(cuerpo)
+            except Exception as exc2:  # noqa: BLE001
+                raise ErrorSTT(
+                    "Ollama no pudo responder",
+                    detalles={
+                        "proveedor": PROVEEDOR_LLM_OLLAMA,
+                        "motivo": str(exc2)[:300],
+                    },
+                ) from exc2
+        else:
+            raise ErrorSTT(
+                "Ollama no pudo responder",
+                detalles={
+                    "proveedor": PROVEEDOR_LLM_OLLAMA,
+                    "motivo": f"HTTP {exc.code}: {str(exc)[:200]}",
+                },
+            ) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise ErrorSTT(
+            "Ollama no pudo responder",
+            detalles={"proveedor": PROVEEDOR_LLM_OLLAMA, "motivo": str(exc)[:300]},
+        ) from exc
+
+    mensaje = datos.get("message") or {}
+    contenido = mensaje.get("content") or ""
+    if not contenido and mensaje.get("thinking"):
+        contenido = mensaje["thinking"]
+    return _json_de_texto(contenido)
+
+
+def _extraer_con_gemini(prompt):
+    if not api_key():
+        return None
+    try:
+        from google import genai
+        from google.genai import types
+
+        cliente = genai.Client(api_key=api_key())
+        esquema = {
+            "type": "object",
+            "properties": {
+                "tipo": {"type": "string", "enum": ["gasto", "ingreso", "ahorro"]},
+                "monto": {"type": "integer", "nullable": True},
+                "categoria": {"type": "string", "nullable": True},
+                "cuenta": {"type": "string", "nullable": True},
+                "concepto": {"type": "string"},
+            },
+            "required": ["tipo", "monto", "categoria", "cuenta", "concepto"],
+        }
+        respuesta = cliente.models.generate_content(
+            model=modelo or modelo(),
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=esquema,
+                temperature=0,
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise ErrorSTT(
+            "Gemini no pudo extraer la estructura",
+            detalles={"proveedor": PROVEEDOR_LLM_GEMINI, "motivo": str(exc)[:300]},
+        ) from exc
+    return _json_de_texto(getattr(respuesta, "text", None))
 
 
 def _wav_a_float32(audio_bytes):
@@ -378,7 +628,7 @@ def _wav_a_float32(audio_bytes):
     return np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
 
 
-def transcribe_local(audio_bytes, language=IDIOMA_POR_DEFECTO):
+def transcribe_local(audio_bytes, language=IDIOMA_POR_DEFECTO, initial_prompt=None):
     """Transcribe el audio con faster-whisper corriendo en el PC.
 
     No necesita clave de API, ni cuota, ni conexion a Internet. El modelo se
@@ -412,9 +662,12 @@ def transcribe_local(audio_bytes, language=IDIOMA_POR_DEFECTO):
 
     try:
         modelo = _modelo_whisper()
-        segmentos, _info = modelo.transcribe(
-            muestras, language=idioma, beam_size=1, vad_filter=True
-        )
+        opciones = {"language": idioma, "beam_size": 1, "vad_filter": True}
+        if initial_prompt:
+            # Las "hotwords" corrigen marcas y nombres propios: sin esto,
+            # whisper escribe "por Nike" en vez de "por Nequi".
+            opciones["initial_prompt"] = initial_prompt
+        segmentos, _info = modelo.transcribe(muestras, **opciones)
         texto = " ".join(segmento.text for segmento in segmentos)
     except Exception as exc:  # noqa: BLE001
         raise ErrorSTT(
@@ -459,6 +712,7 @@ def transcribe_gemini(
     mime_type="audio/wav",
     language=IDIOMA_POR_DEFECTO,
     model=None,
+    initial_prompt=None,
 ):
     """Transcribe el audio con Gemini Flash."""
     if not api_key():
@@ -485,7 +739,7 @@ def transcribe_gemini(
             modelo_usado = candidato
             try:
                 interaccion = _intentar_modelo(
-                    cliente, audio_bytes, mime_type, language, candidato
+                    cliente, audio_bytes, mime_type, language, candidato, initial_prompt
                 )
             except Exception as exc:  # noqa: BLE001 - se clasifica mas abajo
                 ultimo_error = exc
