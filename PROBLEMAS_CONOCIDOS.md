@@ -27,7 +27,7 @@ Estado al cierre de la Fase A (audio real con IA).
 | Problema | Impacto | Plan |
 |---|---|---|
 | El modelo `gemini-3.8-flash` responde `503` por demanda alta | Transcripción intermitente | Cadena de modelos de respaldo (`GEMINI_MODEL_FALLBACKS`) y reintento con backoff. Implementado. |
-| La capa gratuita limita a 3 peticiones por minuto y por modelo | El dataset de 30 clips necesita pausas | `tools/evaluar_dataset.py` espera entre clips y reintenta ante `429`. |
+| La capa gratuita limita a 3 peticiones por minuto y por modelo | El dataset de 500 clips necesita pausas | `tools/evaluar_dataset.py` espera entre clips y reintenta ante `429`. |
 | La capa gratuita sube la latencia de transcripción a 16–18 s cuando se agota la cuota | El usuario espera demasiado ante el dispositivo | Con la API en reposo la latencia es de 3–5 s. Para producción se recomienda cuenta de pago o un STT dedicado. |
 | Un mensaje con dos transacciones solo genera una | Se pierde parte de la información | El esquema ya soporta varias transacciones por mensaje; falta la segmentación en `backend/nlp.py`. |
 | La app Flutter no tiene capa HTTP | El frontend no consume la API | Fase B: cliente HTTP, tokens, login, onboarding y pantalla de voz. |
@@ -36,4 +36,4 @@ Estado al cierre de la Fase A (audio real con IA).
 | BLE sin implementar | Solo configuración | El MVP usa Wi-Fi; BLE queda para la vinculación inicial. |
 | Endpoints de app documentados pero no implementados | `/notifications`, `/trash`, `/transactions/bulk-confirm`, `/device/commands` | Fase B: implementarlos o retirarlos de la documentación. |
 | `docs/ESPECIFICACIONES.md` usa `/metrics/diagnosis` | El backend expone `/metrics/diagnostics` | Corregir la documentación en la fase B. |
-| El dataset real todavía no está grabado | No hay línea base con voz humana | `tools/grabar_dataset.py` graba los 30 clips del manifiesto. |
+| El dataset real todavía no está grabado | No hay línea base con voz humana | `tools/grabar_dataset.py` graba los 500 clips del manifiesto. |

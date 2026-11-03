@@ -142,10 +142,14 @@ py -3 backend/server.py
 Terminal 2, ejecutada como administrador:
 
 ```powershell
-py -3 simulator/simulator.py
+py -3 simulator/main.py
 ```
 
 Elige `[H] Hablar` y mantén presionada la tecla ESPACIO mientras hablas. Al soltarla, el simulador envía el WAV al backend, muestra la transcripción, propone los movimientos, pide la confirmación y muestra el resultado.
+
+> El archivo se llama `main.py` y no `simulator.py` a propósito. Si el módulo se llamara igual que el paquete, al ejecutarlo directamente Python lo cargaría como `simulator` y el import de las pantallas fallaría con `ImportError: cannot import name 'pantallas' from 'simulator'`. El paquete `simulator/` tiene su `__init__.py` y se puede importar igual desde el código: `from simulator import pantallas`.
+>
+> Hay una prueba que ejecuta exactamente estos dos comandos (`tests/test_comandos.py`), para que un comando documentado nunca vuelva a fallar sin avisar.
 
 > El servidor ya no reinicia solo cuando cambias un archivo. Con el reinicio automático de Flask, cualquier cambio en el proyecto cortaba las peticiones en vuelo y el audio se perdía a medio enviar. Para depurar con recarga automática: `FLASK_DEBUG=1 py -3 backend/server.py`.
 

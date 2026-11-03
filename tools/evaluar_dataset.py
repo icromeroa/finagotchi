@@ -73,6 +73,18 @@ def wer(referencia, hipotesis):
     return jiwer.wer(referencia, hipotesis)
 
 
+def intencion_del_sistema(intencion_base, monto):
+    """Reproduce la intencion que devuelve el backend para una transcripcion.
+
+    ``nlp.detect_intent`` solo distingue tres casos. El backend agrega un
+    cuarto: una peticion de registro sin monto recuperable queda pendiente de
+    aclaracion porque nunca se inventa un valor.
+    """
+    if intencion_base == "registrar" and monto is None:
+        return "requiere_aclaracion"
+    return intencion_base
+
+
 def main():
     args = parse_args()
     if not MANIFEST.exists():
@@ -130,7 +142,9 @@ def main():
         monto_esperado = fila["monto_esperado"].strip()
         monto_obtenido = nlp.parse_amount(normalizar(transcrito))
         intencion_esperada = fila["intent"]
-        intencion_obtenida = nlp.detect_intent(normalizar(transcrito))
+        intencion_obtenida = intencion_del_sistema(
+            nlp.detect_intent(normalizar(transcrito)), monto_obtenido
+        )
 
         monto_ok = None
         if monto_esperado:

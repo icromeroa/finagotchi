@@ -1587,6 +1587,24 @@ py -3 -m unittest discover -s tests -v
 py -3 -m compileall -q backend simulator tests
 ```
 
+Entre las pruebas hay `tests/test_comandos.py`, que levanta el backend en un puerto libre y ejecuta `py -3 simulator/main.py` exactamente como lo documenta la guía. Sirve para que un comando anunciado nunca falle sin que nadie se entere.
+
+### 18.5 Comandos del proyecto
+
+| Comando | Qué hace |
+|---|---|
+| `py -3 backend/server.py` | Levanta la API. `FLASK_DEBUG=1` activa la recarga automática al depurar. |
+| `py -3 simulator/main.py` | Abre el dispositivo simulado con el menú de pantallas. |
+| `py -3 database/init_db.py` | Crea o actualiza la base de datos. |
+| `py -3 -m unittest discover -s tests -v` | Corre todas las pruebas. |
+| `py -3 tools/verificar_entorno.py` | Revisa dependencias, base, clave, IA y micrófono. |
+| `py -3 tools/configurar_api_key.py` | Guarda la clave de Gemini fuera del repositorio. |
+| `py -3 tools/grabar_dataset.py` | Graba los clips del dataset con el micrófono. |
+| `py -3 tools/evaluar_dataset.py` | Evalúa el dataset (WER, montos, latencia). |
+| `py -3 tools/probar_flujo_voz.py audio.wav` | Prueba el flujo de voz con un WAV. |
+
+El punto de entrada del simulador se llama `main.py` y no `simulator.py` a propósito: si el módulo se llamara igual que el paquete, al ejecutarlo directamente Python lo cargaría como `simulator` y el import de las pantallas fallaría con `ImportError`.
+
 ### 18.5 Prueba real del flujo de voz
 
 Con el backend levantado (`py -3 backend/server.py`) y un WAV de 16 kHz mono:
@@ -1599,7 +1617,7 @@ El script registra un usuario de prueba, vincula un dispositivo, envía el audio
 
 ### 18.6 Dataset de evaluación de audio
 
-El manifiesto `datasets/eval_audio/manifest.csv` define 30 casos de prueba con su verdad conocida:
+El manifiesto `datasets/eval_audio/manifest.csv` define 500 casos de prueba con su verdad conocida:
 
 | Columna | Descripción |
 |---|---|
@@ -1616,9 +1634,17 @@ El manifiesto `datasets/eval_audio/manifest.csv` define 30 casos de prueba con s
 
 Los casos cubren montos en cifras (`14.000`) y en palabras (`catorce mil`), millones (`1.5 millones`), ingresos, gastos y ahorro, consultas, frases sin monto, correcciones, ruido y variantes de la frase de cierre.
 
+Reglas que debe cumplir el manifiesto:
+
+- Una fila con monto declara exactamente lo que devuelve `nlp.parse_amount` sobre su transcripción normalizada.
+- Una fila sin monto no tiene ninguna cifra ni cantidad en palabras que se pueda interpretar.
+- `intent` coincide con `nlp.detect_intent`, y una petición de registro sin monto queda como `requiere_aclaracion` sin categoría ni cuenta, porque nunca se inventa un valor.
+- `categoria_esperada` y `cuenta_esperada` pertenecen al catálogo del usuario.
+
 Herramientas:
 
 ```powershell
+py -3 tools/generar_dataset.py     # regenera el manifiesto y lo valida
 py -3 tools/grabar_dataset.py      # graba los clips pendientes con el micrófono
 py -3 tools/evaluar_dataset.py     # transcribe y genera datasets/eval_audio/reporte.json
 ```

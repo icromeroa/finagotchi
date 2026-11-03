@@ -67,10 +67,25 @@ Queda en `http://127.0.0.1:5000/api/v1`.
 
 ```powershell
 py -3 -m pip install -r requirements-simulator.txt
-py -3 simulator/simulator.py
+py -3 simulator/main.py
 ```
 
 Ejecutar como administrador para que `keyboard` capture la tecla ESPACIO. Más detalles en `GUIA_SIMULADOR.md`.
+
+### Comandos que sí funcionan
+
+Estos son los comandos del proyecto, verificados por `tests/test_comandos.py`, que levanta el backend y ejecuta el simulador tal como se documenta:
+
+| Comando | Qué hace |
+|---|---|
+| `py -3 backend/server.py` | Levanta la API en el puerto 5000. |
+| `py -3 simulator/main.py` | Abre el dispositivo simulado con su menú de pantallas. |
+| `py -3 database/init_db.py` | Crea o actualiza la base de datos. |
+| `py -3 -m unittest discover -s tests -v` | Corre todas las pruebas. |
+| `py -3 tools/verificar_entorno.py` | Revisa dependencias, base, clave, IA y micrófono. |
+| `py -3 tools/grabar_dataset.py` | Graba los clips del dataset con el micrófono. |
+| `py -3 tools/evaluar_dataset.py` | Evalúa el dataset (WER, montos, latencia). |
+| `py -3 tools/probar_flujo_voz.py audio.wav` | Prueba el flujo de voz con un WAV. |
 
 ## Pruebas
 
@@ -128,9 +143,10 @@ Además, la transcripción recibe las **hotwords** del usuario (los nombres de s
 
 ## Dataset de evaluación
 
-`datasets/eval_audio/manifest.csv` define 30 casos de prueba: montos en cifras y en palabras, millones, ingresos, gastos, ahorro, consultas, frases sin monto, ruido y acentos.
+`datasets/eval_audio/manifest.csv` define 500 casos de prueba: montos en cifras y en palabras, millones, ingresos, gastos, ahorro, consultas, frases sin monto, ruido y acentos.
 
 ```powershell
+py -3 tools/generar_dataset.py     # regenera y valida el manifiesto
 py -3 tools/grabar_dataset.py     # graba los clips con el micrófono
 py -3 tools/evaluar_dataset.py    # transcribe y calcula WER, montos y latencia
 ```

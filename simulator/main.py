@@ -4,11 +4,16 @@ Reproduce el flujo de pantallas definido en docs/DISPOSITIVO.md (D01 a D13)
 contra el backend real: graba el audio, lo transcribe, interpreta la frase con
 la IA, confirma, y muestra el resultado.
 
-    py -3 simulator/simulator.py
+    py -3 simulator/main.py
+
+El archivo se llama main.py y no simulator.py a proposito: si el modulo se
+llamara igual que el paquete, al ejecutarlo directamente el archivo se
+sombrearia a si mismo y el import de las pantallas fallaria.
 """
 
 import io
 import json
+import os
 import sys
 import time
 import uuid
@@ -19,7 +24,9 @@ import requests
 import scipy.io.wavfile as wav
 import sounddevice as sd
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+RAIZ = Path(__file__).resolve().parent.parent
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
 
 from simulator import pantallas  # noqa: E402
 
@@ -50,6 +57,8 @@ def load_config():
     config = dict(DEFAULT_CONFIG)
     if CONFIG_PATH.exists():
         config.update(json.loads(CONFIG_PATH.read_text(encoding="utf-8")))
+    # Permite apuntar a otro backend sin tocar el archivo de configuracion.
+    config["http_base_url"] = os.environ.get("FINAGOTCHI_BASE_URL", config["http_base_url"])
     return config
 
 

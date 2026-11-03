@@ -120,6 +120,7 @@ STATUS_WORDS = (
 CLOSE_WORDS = (
     "cerrar dia",
     "cierra el dia",
+    "cerra el dia",
     "cerrar el dia",
     "terminar dia",
     "termina el dia",
