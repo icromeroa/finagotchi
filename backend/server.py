@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend import nlp, services  # noqa: E402
-from backend.api_utils import body, error, ok, require_fields  # noqa: E402
+from backend import ai, audio, nlp, services  # noqa: E402
+from backend.api_utils import body, datos_entrantes, error, ok, require_fields  # noqa: E402
 from backend.auth import (  # noqa: E402
     auth_required,
     create_access_token,
@@ -41,6 +41,146 @@ def public_user(row):
     return user
 
 
+MIME_AUDIO_ACEPTADOS = {
+    "audio/wav",
+    "audio/x-wav",
+    "audio/wave",
+    "audio/vnd.wave",
+    "application/octet-stream",
+}
+
+
+class ErrorSolicitud(Exception):
+    """Error de negocio que se traduce a una respuesta de la API."""
+
+    def __init__(self, codigo, mensaje, estado=400, detalles=None):
+        super().__init__(mensaje)
+        self.codigo = codigo
+        self.mensaje = mensaje
+        self.estado = estado
+        self.detalles = detalles or {}
+
+
+def _mime_audio(archivo):
+    mime = (getattr(archivo, "content_type", "") or "").split(";")[0].strip().lower()
+    if mime in MIME_AUDIO_ACEPTADOS:
+        return mime
+    nombre = (getattr(archivo, "filename", "") or "").lower()
+    if nombre.endswith(".wav"):
+        return audio.MIME_TYPE
+    return mime or "application/octet-stream"
+
+
+def procesar_mensaje_voz(
+    conn,
+    user_id,
+    texto=None,
+    archivo=None,
+    message_id=None,
+    device_id=None,
+    device_uid=None,
+    origen="app_voz",
+    idioma=None,
+):
+    """Procesa un mensaje enviado como audio o como texto.
+
+    El audio se transcribe con el proveedor de STT configurado. El archivo no
+    se guarda en disco ni en la base: solo se conserva el texto, la duracion y
+    los metadatos de la llamada en ``interacciones_ia``.
+    """
+    if archivo is not None:
+        if not message_id:
+            raise ErrorSolicitud(
+                "CAMPOS_REQUERIDOS",
+                "El campo message_id es obligatorio cuando se envia audio",
+                422,
+                {"campos": ["message_id"]},
+            )
+
+        # Idempotencia antes de gastar una llamada al proveedor.
+        existente = services.message_por_message_id(conn, user_id, message_id)
+        if existente is not None:
+            existente["duplicado"] = True
+            existente.setdefault("puntos_otorgados", 0)
+            return existente, 200
+
+        audio_bytes = archivo.read()
+        try:
+            info = audio.validar_wav(audio_bytes)
+        except audio.AudioMuyGrande as exc:
+            raise ErrorSolicitud(exc.codigo, exc.mensaje, 413, exc.detalles) from exc
+        except audio.AudioInvalido as exc:
+            raise ErrorSolicitud(exc.codigo, exc.mensaje, 422, exc.detalles) from exc
+
+        mime = _mime_audio(archivo)
+        idioma = (idioma or ai.IDIOMA_POR_DEFECTO).strip()
+        try:
+            resultado = ai.transcribe_audio(
+                audio_bytes, mime_type=mime, language=idioma
+            )
+        except ai.ErrorSTT as exc:
+            services.log_ai_interaction(
+                conn,
+                user_id,
+                proveedor="google",
+                modelo=ai.modelo(),
+                version_prompt=ai.PROMPT_TRANSCRIPCION,
+                entrada={"mime_type": mime, "duracion_s": info.duracion_s, "idioma": idioma},
+                salida={"error": exc.codigo, "mensaje": exc.mensaje},
+                mensaje_id=None,
+            )
+            raise ErrorSolicitud(exc.codigo, exc.mensaje, exc.estado_http, exc.detalles) from exc
+
+        payload = services.create_message(
+            conn,
+            user_id,
+            resultado["texto"],
+            message_id=message_id,
+            device_id=device_id,
+            device_uid=device_uid,
+            origen=origen,
+            audio_duration_s=info.duracion_s,
+        )
+        services.log_ai_interaction(
+            conn,
+            user_id,
+            proveedor=resultado.get("proveedor") or "google",
+            modelo=resultado.get("modelo"),
+            version_prompt=ai.PROMPT_TRANSCRIPCION,
+            entrada={"mime_type": mime, "duracion_s": info.duracion_s, "idioma": idioma},
+            salida={"texto": resultado["texto"]},
+            latencia_ms=resultado.get("latencia_ms"),
+            tokens_entrada=resultado.get("tokens_entrada"),
+            tokens_salida=resultado.get("tokens_salida"),
+            mensaje_id=payload.get("id"),
+        )
+        payload.setdefault("duplicado", False)
+        payload.setdefault("puntos_otorgados", 0)
+        return payload, 201
+
+    texto = (texto or "").strip()
+    if not texto:
+        raise ErrorSolicitud(
+            "CAMPOS_REQUERIDOS",
+            "Envia el campo audio o el campo texto",
+            422,
+            {"campos": ["audio", "texto"]},
+        )
+
+    payload = services.create_message(
+        conn,
+        user_id,
+        texto,
+        message_id=message_id,
+        device_id=device_id,
+        device_uid=device_uid,
+        origen=origen,
+    )
+    payload.setdefault("duplicado", False)
+    payload.setdefault("puntos_otorgados", 0)
+    return payload, 200 if payload.get("duplicado") else 201
+
+
 def create_app(database=None):
     app = Flask(__name__)
     database = database or os.environ.get("FINAGOTCHI_DB") or str(ROOT / "finagotchi.db")
@@ -49,6 +189,7 @@ def create_app(database=None):
         DATABASE=database,
         CORS_ORIGIN=os.environ.get("FINAGOTCHI_CORS_ORIGIN", "*"),
         JSON_SORT_KEYS=False,
+        MAX_CONTENT_LENGTH=audio.MAX_BYTES,
     )
 
     path = Path(app.config["DATABASE"])
@@ -74,6 +215,15 @@ def create_app(database=None):
     @app.errorhandler(ValueError)
     def value_error(exc):
         return error("DATOS_INVALIDOS", str(exc), 400)
+
+    @app.errorhandler(413)
+    def payload_too_large(exc):
+        return error(
+            "AUDIO_MUY_GRANDE",
+            "El archivo enviado supera el tamano maximo permitido",
+            413,
+            {"max_bytes": audio.MAX_BYTES},
+        )
 
     @app.get("/api/v1/health")
     def health():
@@ -667,23 +817,21 @@ def create_app(database=None):
     @app.post("/api/v1/messages")
     @auth_required
     def post_message():
-        data = body()
-        text = data.get("texto") or request.form.get("texto")
-        if not text:
-            return error("STT_NO_CONFIGURADO", "Envía texto o configura un proveedor de transcripción", 422)
-        duration = data.get("audio_duracion_s") or request.form.get("audio_duracion_s")
-        payload = services.create_message(
-            get_db(),
-            g.user_id,
-            text,
-            message_id=data.get("message_id") or request.form.get("message_id"),
-            device_id=data.get("device_id"),
-            origen=data.get("origen") or "app_voz",
-            audio_duration_s=duration,
-        )
-        payload.setdefault("duplicado", False)
-        payload.setdefault("puntos_otorgados", 0)
-        return ok(payload, 200 if payload["duplicado"] else 201)
+        data = datos_entrantes()
+        try:
+            payload, status = procesar_mensaje_voz(
+                get_db(),
+                g.user_id,
+                texto=data.get("texto"),
+                archivo=request.files.get("audio"),
+                message_id=data.get("message_id"),
+                device_id=data.get("device_id"),
+                origen=data.get("origen") or "app_voz",
+                idioma=data.get("idioma"),
+            )
+        except ErrorSolicitud as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+        return ok(payload, status)
 
     @app.get("/api/v1/messages/<int:message_id>")
     @auth_required
@@ -1331,23 +1479,22 @@ def create_app(database=None):
     def device_message():
         if not g.device["usuario_id"]:
             return error("DISPOSITIVO_NO_VINCULADO", "El dispositivo no está vinculado", 403)
-        data = body()
-        text = data.get("texto") or request.form.get("texto")
-        if not text:
-            return error("STT_NO_CONFIGURADO", "El dispositivo debe enviar texto transcrito o audio", 422)
-        payload = services.create_message(
-            get_db(),
-            g.device["usuario_id"],
-            text,
-            message_id=data.get("message_id"),
-            device_id=g.device["id"],
-            device_uid=g.device["device_uid"],
-            origen="dispositivo",
-            audio_duration_s=data.get("audio_duracion_s"),
-        )
-        payload.setdefault("duplicado", False)
-        payload.setdefault("puntos_otorgados", 0)
-        return ok(payload, 200 if payload["duplicado"] else 201)
+        data = datos_entrantes()
+        try:
+            payload, status = procesar_mensaje_voz(
+                get_db(),
+                g.device["usuario_id"],
+                texto=data.get("texto"),
+                archivo=request.files.get("audio"),
+                message_id=data.get("message_id"),
+                device_id=g.device["id"],
+                device_uid=g.device["device_uid"],
+                origen="dispositivo",
+                idioma=data.get("idioma"),
+            )
+        except ErrorSolicitud as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+        return ok(payload, status)
 
     @app.post("/api/v1/device/messages/<int:message_id>/confirm")
     @device_required

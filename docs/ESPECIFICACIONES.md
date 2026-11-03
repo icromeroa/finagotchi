@@ -732,14 +732,18 @@ La clave de periodo evita duplicados.
 
 ### 9.1 Interfaz
 
-El backend expone una interfaz de proveedor con estas operaciones:
+El backend expone un proveedor de transcripción con estas operaciones:
 
-- `transcribir(audio, idioma) -> texto`.
+- `transcribe_audio(audio_bytes, mime_type, language) -> texto`.
 - `interpretar(texto, contexto_usuario) -> propuesta`.
 - `clasificar_categoria(texto, categorias_usuario) -> categoria_id`.
-- `salud_proveedor() -> estado`.
+- `esta_configurado() -> estado`.
 
-El proveedor es intercambiable. La versión inicial puede usar reglas locales para texto; el proveedor de transcripción y clasificación definitivo aún no está decidido.
+**Decisión vigente.** La transcripción la hace **Gemini Flash** mediante la API de Google (`backend/ai.py`), y la interpretación de montos, categorías y cuentas sigue con las **reglas locales** de `backend/nlp.py`. La IA solo transcribe: nunca decide montos ni confirmaciones. El proveedor queda encapsulado para poder sustituirlo sin tocar los endpoints.
+
+El modelo se configura con `GEMINI_MODEL` y admite una cadena de respaldo con `GEMINI_MODEL_FALLBACKS`, porque la API de Google puede responder con `503` por demanda alta o dejar de ofrecer un modelo.
+
+Los modelos locales (Ollama, llama.cpp, Gemma) se ejecutan en el **PC o servidor del backend**, nunca en la ESP32. La ESP32 solo graba, envía y muestra.
 
 ### 9.2 Contexto permitido
 
@@ -794,10 +798,11 @@ No se envían correos, teléfonos, números completos de tarjeta ni tokens.
 - Si el texto menciona una meta, se propone `meta_id`.
 - Si el texto contiene varias acciones, se devuelven varias transacciones.
 - La confianza se guarda por transacción y por interacción.
-- Si el proveedor falla, se usa el intérprete de reglas.
+- Si el proveedor de transcripción falla, no se crea el mensaje: el dispositivo reintenta con el mismo `message_id`.
 - Si el intérprete de reglas falla, el mensaje queda pendiente de revisión.
 - Si el guardado fue exitoso, se encola una notificación para el dispositivo y para la app.
-- Las interacciones se auditan en `interacciones_ia`.
+- Las interacciones se auditan en `interacciones_ia`, guardando solo metadatos: el audio nunca se persiste.
+- El texto transcrito puede traer el monto en cifras (`14.000`) o en palabras (`catorce mil`); el intérprete de reglas entiende ambas formas y también los millones (`1.5 millones`).
 
 ---
 
@@ -817,13 +822,13 @@ El diseño visual y el pinout del dispositivo se documentan en `docs/DISPOSITIVO
 ### 10.2 Conexión
 
 - BLE para configuración inicial.
-- Wi-Fi para operación normal.
+- Wi-Fi para operación normal, incluido el envío del audio.
 - Token de dispositivo en cada petición.
 - El audio se sube al backend; la transcripción no ocurre en el dispositivo.
 - La notificación de “registro guardado” se recibe por polling HTTP cada 3–5 segundos.
 - El polling usa `after_id` para no repetir notificaciones y envía acuse al mostrarlas.
 - Reintentos con backoff.
-- Cola local de mensajes cuando no hay red.
+- El dispositivo trabaja con conexión permanente: si la red falla, reintenta con el mismo `message_id` en lugar de guardar audio en cola.
 - Confirmación visual al recibir respuesta del backend.
 
 ### 10.3 Contrato de audio y telemetría
@@ -1053,21 +1058,29 @@ Los endpoints de esta sección usan `X-Device-Token`. Los equivalentes de app us
 
 #### `POST /device/messages`
 
-Procesa audio o texto enviado por el dispositivo. El audio se transcribe y clasifica en el backend; el dispositivo nunca envía texto transcrito. Mientras no haya proveedor STT configurado, el campo `texto` es obligatorio y el endpoint responde `STT_NO_CONFIGURADO` si falta.
+Procesa audio o texto enviado por el dispositivo. El audio se transcribe en el backend con Gemini Flash y luego se clasifica con las reglas locales; el dispositivo nunca transcribe.
 
-Estado de implementación: el endpoint ya acepta `texto`; el campo `audio` está reservado y devuelve `STT_NO_CONFIGURADO` hasta integrar el proveedor.
+Estado de implementación: **operativo**. El endpoint recibe `audio` (multipart) o `texto` (JSON o multipart). Con audio se valida el WAV, se transcribe, se registra la auditoría en `interacciones_ia` y se crea el mensaje con sus transacciones pendientes.
 
 - Autenticación: `X-Device-Token`.
-- `Content-Type`: `multipart/form-data` para audio (cuando el STT esté configurado) o `application/json` para texto.
+- `Content-Type`: `multipart/form-data` para audio o `application/json` para texto.
 - Campos:
 
 | Campo | Tipo | Obligatorio | Descripción |
 |---|---|---|---|
-| `audio` | archivo | Sí, si no hay `texto` | WAV, 16 kHz, mono, 0.5–30 s. |
+| `audio` | archivo | Sí, si no hay `texto` | WAV, 16 kHz, mono, 16 bits, 0.5–40 s, máximo 2 MB. |
 | `texto` | texto | Sí, si no hay `audio` | Fallback de pruebas o cuando el STT corre en el cliente. |
-| `message_id` | UUID | Sí | Idempotencia; un mismo `message_id` no se procesa dos veces. |
-| `audio_duracion_s` | número | No | Duración real del audio en segundos. |
+| `message_id` | UUID | Sí, si hay `audio` | Idempotencia; un mismo `message_id` no se procesa dos veces. |
+| `audio_duracion_s` | número | No | Informativo. La duración real la calcula el servidor a partir del WAV. |
 | `idioma` | texto | No | `es-CO` por defecto. |
+
+Orden de procesamiento:
+
+1. Si el `message_id` ya existe, se devuelve el mensaje guardado con `duplicado: true` **sin volver a llamar a la IA**.
+2. Se valida el WAV: 16 kHz, mono, 16 bits, 0.5–40 s y máximo 2 MB.
+3. Se transcribe con Gemini Flash.
+4. Se interpretan montos, categoría y cuenta con `backend/nlp.py`.
+5. Se guarda el texto, la duración y la auditoría. El audio no se persiste en ningún sitio.
 
 Respuesta `201` en el primer procesamiento y `200` si el mensaje es duplicado:
 
@@ -1079,6 +1092,7 @@ Respuesta `201` en el primer procesamiento y `200` si el mensaje es duplicado:
     "message_id": "9e4f0d7a-3a2b-4c7d-8e1f-123456789abc",
     "estado": "pendiente",
     "texto_transcrito": "gasté 14.000 en el almuerzo",
+    "duracion_audio_s": 3.84,
     "transacciones": [],
     "puntos_otorgados": 0,
     "requiere_confirmacion": true,
@@ -1087,11 +1101,56 @@ Respuesta `201` en el primer procesamiento y `200` si el mensaje es duplicado:
 }
 ```
 
-Errores: `401` token inválido, `403` dispositivo no vinculado, `422` falta audio/texto o el audio no cumple el formato.
+Errores:
+
+| Código | HTTP | Cuándo ocurre |
+|---|---|---|
+| `CAMPOS_REQUERIDOS` | 422 | Falta `audio` y `texto`, o falta `message_id` cuando hay audio. |
+| `AUDIO_INVALIDO` | 422 | El WAV no cumple el formato o la duración (0.5–40 s). |
+| `AUDIO_MUY_GRANDE` | 413 | El archivo supera los 2 MB. |
+| `STT_NO_CONFIGURADO` | 503 | Falta `GEMINI_API_KEY` en `backend/.env`. |
+| `STT_CUOTA` | 429 | Google rechazó la petición por límite de cuota. |
+| `STT_NO_DISPONIBLE` | 502 | Google no responde o el modelo no está disponible. |
+| `STT_ERROR` | 502 | Cualquier otro fallo del proveedor. |
+| `STT_SIN_TEXTO` | 422 | El modelo no devolvió texto para el audio recibido. |
+
+Cuando la transcripción falla no se crea el mensaje ni la transacción: el dispositivo puede reintentar con el mismo `message_id`.
 
 #### `POST /messages`
 
 Equivalente para la app. Usa `Authorization: Bearer <token>`. Acepta los mismos campos y además `device_id` y `origen` (`app_voz` por defecto). Mismo contrato de respuesta.
+
+#### Configuración del proveedor de transcripción
+
+La transcripción se configura en `backend/.env` (copiar `backend/.env.example`). La clave nunca viaja al dispositivo ni al frontend.
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `GEMINI_API_KEY` | vacío | Clave de la API de Gemini. Sin ella el audio responde `STT_NO_CONFIGURADO`. |
+| `GEMINI_MODEL` | `gemini-3.5-flash` | Modelo principal de transcripción. |
+| `GEMINI_MODEL_FALLBACKS` | `gemini-3.5-flash-lite,gemini-3.8-flash` | Modelos alternos cuando el principal no responde. |
+| `GEMINI_TIMEOUT_S` | `60` | Tiempo máximo de espera de la transcripción. |
+
+La API de Google puede responder `503` por demanda alta o retirar un modelo. El backend reintenta con el siguiente modelo de la cadena antes de devolver un error, y el dispositivo puede reintentar con el mismo `message_id`.
+
+**Límites de la capa gratuita.** Google limita a 3 peticiones por minuto y por modelo. Al agotarse la cuota la latencia de transcripción sube de 3–5 segundos a 16–18 segundos y las peticiones responden `429`. El backend tiene un plazo total (`GEMINI_PLAZO_S`, 90 segundos por defecto) para no dejar la petición colgada. Para una demo frente a la docencia o para producción se recomienda una cuenta de pago; la clave sigue siendo la misma.
+
+#### Auditoría de las llamadas a la IA
+
+Cada llamada al proveedor se registra en `interacciones_ia`:
+
+| Columna | Contenido |
+|---|---|
+| `proveedor` | `google`. |
+| `modelo` | Modelo que respondió. |
+| `version_prompt` | Prompt de transcripción usado. |
+| `entrada_json` | Metadatos del audio: `mime_type`, `duracion_s` e `idioma`. |
+| `salida_json` | Texto transcrito o el error de la llamada. |
+| `latencia_ms` | Tiempo de la llamada. |
+| `tokens_entrada` / `tokens_salida` | Consumo de tokens. |
+| `mensaje_id` | Mensaje resultante. Es `NULL` si la transcripción falló. |
+
+El audio no se guarda ni en la base ni en disco, ni siquiera de forma temporal: se procesa en memoria durante la petición.
 
 #### `POST /device/messages/{id}/confirm` y `POST /messages/{id}/confirm`
 
@@ -1377,6 +1436,13 @@ El esquema se divide en:
 25. Una notificación de dispositivo nace en `pendiente` sin fechas de entrega ni lectura.
 26. El CHECK de `dispositivos_notificaciones` impide estados incoherentes con `entregado_en` y `leido_en`.
 27. Un mismo mensaje no genera dos notificaciones `movimiento_registrado` para el mismo dispositivo.
+28. Un WAV de 16 kHz mono entre 0.5 y 40 s se transcribe y crea el mensaje con sus transacciones pendientes.
+29. Un WAV con otra frecuencia, en estéreo, con menos de 0.5 s o con más de 40 s se rechaza con `AUDIO_INVALIDO`.
+30. Un `message_id` repetido con audio devuelve el mensaje guardado y no vuelve a llamar al proveedor.
+31. Si el proveedor de transcripción falla no queda ningún mensaje ni transacción creados.
+32. La llamada al proveedor queda auditada en `interacciones_ia` con modelo, latencia y tokens.
+33. El audio no queda almacenado en la base ni en el disco.
+34. El texto transcrito en palabras (`catorce mil`) y en cifras (`14.000`) producen el mismo monto, incluidos los millones.
 
 ---
 
@@ -1384,7 +1450,11 @@ El esquema se divide en:
 
 | Tema | Estado | Propuesta |
 |---|---|---|
-| Proveedor de IA/STT | Abierto | Interfaz abstracta; transcripción y categoría en backend, fallback por reglas para texto. |
+| Proveedor de IA/STT | Decidido | Gemini Flash (API de Google) para transcripción, con cadena de modelos de respaldo; interpretación de montos y categorías por reglas locales en `backend/nlp.py`. |
+| Duración máxima del audio | Decidido | 40 segundos, validada por el servidor. |
+| Transmisión del audio | Decidido | Wi-Fi por HTTP multipart. BLE queda solo para configuración inicial. |
+| SLM local | Decidido | Se ejecuta en el PC o servidor del backend, nunca en la ESP32. Queda para el agente consejero. |
+| Modelo local en el dispositivo | Descartado | La ESP32-S3 no puede ejecutar un SLM: 512 KB de SRAM y 16 MB de flash. |
 | Guardado automático vs confirmación | Decidido | Se mantiene la confirmación humana: la IA propone y el usuario confirma antes de afectar el dinero. |
 | Notificación al dispositivo | Decidido | Polling HTTP cada 3–5 segundos con `after_id` y acuse explícito. |
 | Persistencia de notificaciones | Decidido | Tabla `dispositivos_notificaciones` con estados `pendiente`, `entregada` y `leida`. |
@@ -1399,15 +1469,26 @@ El esquema se divide en:
 
 ## 18. Operación
 
-### 18.1 Inicializar una base nueva
+### 18.1 Instalar dependencias y configurar la IA
+
+```powershell
+py -3 -m pip install -r requirements.txt
+Copy-Item backend/.env.example backend/.env
+```
+
+Editar `backend/.env` y pegar la clave de <https://aistudio.google.com> en `GEMINI_API_KEY`. Sin ese archivo el backend funciona con texto, pero el audio responde `STT_NO_CONFIGURADO`.
+
+La clave nunca se versiona: `.gitignore` excluye `backend/.env`, `*.db` y los audios del dataset.
+
+### 18.2 Inicializar una base nueva
 
 ```powershell
 py -3 database/init_db.py
 ```
 
-### 18.2 Reiniciar la base desde cero
+### 18.3 Reiniciar la base desde cero
 
-No se migran datos legacy. Para descartar el dataset anterior y crear una base v2 limpia:
+No se migran datos legacy. Para descartar el dataset anterior y crear una base limpia:
 
 ```powershell
 Remove-Item finagotchi.db, finagotchi.db-wal, finagotchi.db-shm -Force -ErrorAction SilentlyContinue
@@ -1416,13 +1497,60 @@ py -3 database/init_db.py
 
 La base nueva contiene solo catálogos y estructuras; no crea usuarios, transacciones ni mascotas hasta que se registre el primer usuario.
 
-### 18.3 Validación
+### 18.4 Validación
 
 ```powershell
 py -3 -m unittest discover -s tests -v
+py -3 -m compileall -q backend simulator tests
 ```
 
-### 18.4 Respaldo
+### 18.5 Prueba real del flujo de voz
+
+Con el backend levantado (`py -3 backend/server.py`) y un WAV de 16 kHz mono:
+
+```powershell
+py -3 tools/probar_flujo_voz.py ruta\al\audio.wav
+```
+
+El script registra un usuario de prueba, vincula un dispositivo, envía el audio, confirma el mensaje, consulta y acusa las notificaciones, y muestra la auditoría de `interacciones_ia`.
+
+### 18.6 Dataset de evaluación de audio
+
+El manifiesto `datasets/eval_audio/manifest.csv` define 30 casos de prueba con su verdad conocida:
+
+| Columna | Descripción |
+|---|---|
+| `id` | Identificador del clip. |
+| `archivo` | WAV dentro de `datasets/eval_audio/audio`. |
+| `transcripcion` | Texto esperado. |
+| `intent` | `registrar`, `consulta_estado`, `cerrar_dia` o `requiere_aclaracion`. |
+| `monto_esperado` | Monto esperado en pesos enteros. |
+| `categoria_esperada` | Categoría esperada. |
+| `cuenta_esperada` | Cuenta esperada. |
+| `duracion_s` | Se completa al grabar. |
+| `ruido` | `bajo`, `medio` o `alto`. |
+| `notas` | Observaciones del caso. |
+
+Los casos cubren montos en cifras (`14.000`) y en palabras (`catorce mil`), millones (`1.5 millones`), ingresos, gastos y ahorro, consultas, frases sin monto, correcciones, ruido y variantes de la frase de cierre.
+
+Herramientas:
+
+```powershell
+py -3 tools/grabar_dataset.py      # graba los clips pendientes con el micrófono
+py -3 tools/evaluar_dataset.py     # transcribe y genera datasets/eval_audio/reporte.json
+```
+
+Métricas del reporte: WER promedio, exactitud de montos, exactitud de intención, latencia promedio y máxima, y tokens consumidos.
+
+| Objetivo | Umbral |
+|---|---|
+| WER promedio | menor a 15 % |
+| Montos exactos | al menos 90 % |
+| Latencia | menor a 5 segundos en el 95 % de los casos |
+
+La capa gratuita de Gemini limita a 3 peticiones por minuto y por modelo, así que la evaluación pausa entre clips y reintenta cuando recibe `429`.
+
+### 18.7 Respaldo
 
 - Copiar `finagotchi.db` con el servicio detenido.
 - Copiar también `finagotchi.db-wal` y `finagotchi.db-shm` si existen.

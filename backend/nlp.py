@@ -43,7 +43,42 @@ NUMBERS = {
     "setecientos": 700,
     "ochocientos": 800,
     "novecientos": 900,
+    "veintiuno": 21,
+    "veintiun": 21,
+    "veintidos": 22,
+    "veintitres": 23,
+    "veinticuatro": 24,
+    "veinticinco": 25,
+    "veintiseis": 26,
+    "veintisiete": 27,
+    "veintiocho": 28,
+    "veintinueve": 29,
 }
+
+NUMBERS_CENTENAS = {
+    "ciento": 100,
+    "doscientos": 200,
+    "trescientos": 300,
+    "cuatrocientos": 400,
+    "quinientos": 500,
+    "seiscientos": 600,
+    "setecientos": 700,
+    "ochocientos": 800,
+    "novecientos": 900,
+}
+
+NUMBERS_DECENAS = {
+    "veinte": 20,
+    "treinta": 30,
+    "cuarenta": 40,
+    "cincuenta": 50,
+    "sesenta": 60,
+    "setenta": 70,
+    "ochenta": 80,
+    "noventa": 90,
+}
+
+ESCALAS = {"mil", "millon", "millones"}
 
 INCOME_WORDS = (
     "ingreso",
@@ -107,29 +142,85 @@ def word_in_text(word, text):
 
 
 def amount_from_words(text):
-    for phrase, value in (
-        ("dos mil", 2000),
-        ("tres mil", 3000),
-        ("cuatro mil", 4000),
-        ("cinco mil", 5000),
-        ("diez mil", 10000),
-        ("veinte mil", 20000),
-        ("treinta mil", 30000),
-        ("cincuenta mil", 50000),
-        ("cien mil", 100000),
-    ):
-        if phrase in text:
-            return value
-    return None
+    """Interpreta un monto escrito en palabras.
+
+    Ejemplos: "catorce mil" -> 14000, "treinta y cinco mil" -> 35000,
+    "ciento veinte mil" -> 120000, "un millon" -> 1000000.
+    """
+    tokens = [token for token in re.split(r"[^a-z]+", str(text or "").lower()) if token]
+    if not tokens:
+        return None
+
+    mejor = None
+    indice = 0
+    while indice < len(tokens):
+        if tokens[indice] not in NUMBERS and tokens[indice] not in ESCALAS:
+            indice += 1
+            continue
+        valor, consumidos, escala = _parse_number_tokens(tokens, indice)
+        inicio_word = tokens[indice]
+        aceptable = (
+            escala
+            or inicio_word in NUMBERS_DECENAS
+            or inicio_word in NUMBERS_CENTENAS
+        )
+        if valor and aceptable:
+            if mejor is None or valor > mejor:
+                mejor = valor
+        indice += max(consumidos, 1)
+    return mejor
 
 
-def parse_amount(text):
-    words_amount = amount_from_words(text)
-    if words_amount is not None:
-        return words_amount
+def _parse_number_tokens(tokens, inicio):
+    """Lee un numero en palabras desde tokens[inicio].
 
+    Devuelve (valor, tokens_consumidos, uso_escala).
+    """
+    actual = 0
+    total = 0
+    escala = False
+    i = inicio
+    while i < len(tokens):
+        token = tokens[i]
+        if token in NUMBERS_CENTENAS:
+            actual += NUMBERS_CENTENAS[token]
+            i += 1
+            continue
+        if token in NUMBERS_DECENAS:
+            actual += NUMBERS_DECENAS[token]
+            i += 1
+            if (
+                i + 1 < len(tokens)
+                and tokens[i] == "y"
+                and tokens[i + 1] in NUMBERS
+                and tokens[i + 1] not in ("cien", "ciento")
+            ):
+                actual += NUMBERS[tokens[i + 1]]
+                i += 2
+            continue
+        if token in NUMBERS:
+            actual += NUMBERS[token]
+            i += 1
+            continue
+        if token == "mil":
+            total += (actual or 1) * 1000
+            actual = 0
+            escala = True
+            i += 1
+            continue
+        if token in ("millon", "millones"):
+            total += (actual or 1) * 1000000
+            actual = 0
+            escala = True
+            i += 1
+            continue
+        break
+    return total + actual, i - inicio, escala
+
+
+def _parse_amount_digits(text):
     match = re.search(
-        r"(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(mil|k)?",
+        r"(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(millones|millon|mil|k)?",
         text,
     )
     if not match:
@@ -145,13 +236,23 @@ def parse_amount(text):
     except InvalidOperation:
         return None
 
-    if suffix in ("mil", "k"):
+    if suffix in ("millones", "millon"):
+        value *= 1000000
+    elif suffix in ("mil", "k"):
         value *= 1000
-    elif value < 1000 and "mil" in text:
+    elif value < 1000 and re.search(r"\bmil\b", text):
         value *= 1000
 
     value = int(value)
     return value if value > 0 else None
+
+
+def parse_amount(text):
+    """Obtiene el monto de un texto en cifras o en palabras."""
+    digits = _parse_amount_digits(text)
+    if digits is not None:
+        return digits
+    return amount_from_words(text)
 
 
 def detect_intent(text):
@@ -252,7 +353,7 @@ def interpret(conn, user_id, text):
         return {
             "intent": "requiere_aclaracion",
             "texto": text,
-            "error": "No se identificó un monto",
+            "error": "No se identificÃ³ un monto",
             "transacciones": [],
         }
     if account is None:
@@ -266,7 +367,7 @@ def interpret(conn, user_id, text):
         return {
             "intent": "requiere_aclaracion",
             "texto": text,
-            "error": "No hay una categoría disponible",
+            "error": "No hay una categorÃ­a disponible",
             "transacciones": [],
         }
 

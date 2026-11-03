@@ -1,0 +1,6 @@
+# Dependencias del simulador de escritorio (PC)
+requests>=2.31.0
+sounddevice>=0.4.6
+scipy>=1.11.0
+numpy>=1.26.0
+keyboard>=0.13.5

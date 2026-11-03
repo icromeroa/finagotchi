@@ -6,5 +6,7 @@
   "nombre": "Simulador",
   "auto_confirm": true,
   "sample_rate": 16000,
-  "language": "es-CO"
+  "language": "es-CO",
+  "stt_provider": "gemini",
+  "request_timeout_s": 90
 }

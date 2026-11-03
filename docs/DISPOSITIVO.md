@@ -16,7 +16,7 @@ FinaGotchi debe funcionar como un compañero físico de la aplicación, no como 
 2. Confirmar o cancelar lo que Nancy entendió.
 3. Mostrar el estado emocional de Nancy y el avance del día.
 4. Consultar un resumen breve.
-5. Guardar mensajes cuando no haya conexión.
+5. Reintentar el envío de un mensaje cuando se cae la conexión.
 6. Avisar sobre batería baja, errores y dispositivos sin vincular.
 
 La edición detallada, las metas, las cuentas, las categorías, el perfil y las métricas completas se quedan en la aplicación web. El dispositivo debe ser rápido, claro y usable con tres botones.
@@ -104,6 +104,17 @@ El dispositivo debe usar el mismo lenguaje visual y verbal de la app. No se debe
 - No se almacena audio de forma permanente; se conservan transcripción, categoría y metadatos.
 - El bus I2S se comparte entre micrófono y amplificador para no superar los 11 GPIO. Validar que el ESP32-S3 pueda usar relojes compartidos en recepción y reproducción.
 
+**Formato de audio que acepta el backend:** WAV, 16 kHz, mono, 16 bits, entre 0.5 y 40 segundos, máximo 2 MB. El backend calcula la duración real y rechaza lo que no cumpla el contrato con `AUDIO_INVALIDO`.
+
+**Límite físico de SRAM.** 40 segundos de WAV sin comprimir ocupan unos 1,28 MB (`16.000 muestras/s × 2 bytes × 40 s`). Eso no cabe en los 512 KB de SRAM de la ESP32-S3, así que el firmware tiene dos caminos posibles:
+
+1. **Streaming por Wi-Fi.** El audio se envía por bloques mientras se graba y nunca se almacena completo. Es la opción recomendada.
+2. **Cola temporal en flash.** El WAV se escribe en la flash externa y se envía al recuperar la conexión. Ocupa espacio y desgasta la flash, así que la cola debe tener un límite definido.
+
+El audio se transmite en **Wi-Fi**, no por BLE. BLE queda para la vinculación y la configuración inicial: enviar casi 1,3 MB por BLE es lento e inestable. Si el equipo quiere conexión sin internet, el PC puede crear un hotspot Wi-Fi al que se conecte la ESP32.
+
+**Siempre conectado.** El dispositivo trabaja con conexión permanente. Si la red falla, reintenta con el mismo `message_id` en lugar de guardar audio en cola.
+
 ### 3.5 Energía
 
 - Batería de litio 18650.
@@ -121,7 +132,7 @@ El dispositivo debe usar el mismo lenguaje visual y verbal de la app. No se debe
 - Usar buffers parciales de pantalla, no un framebuffer completo de 240x320x2 bytes.
 - El audio se envía por bloques; no se conserva completo en RAM.
 - Los recursos visuales y las frases pregrabadas deben ser livianos.
-- La cola offline debe tener un límite definido.
+- La cola offline no se usa en el MVP: el dispositivo reintenta con el mismo `message_id`. Si más adelante se decide soportar trabajo sin conexión, la cola debe tener un límite definido.
 - **Decisión pendiente:** incluir o no actualización OTA. La flash de 16 MB ya permite evaluarla, pero el MVP puede lanzarse sin OTA.
 
 ---
@@ -177,24 +188,43 @@ Reglas:
 - Si el driver no permite relojes compartidos, usar el bus en modo half-duplex: primero grabar y luego reproducir.
 - Mantener el amplificador separado de la alimentación sensible del micrófono.
 
-### 4.3 Botones
+### o en su defecto:
 
-| Señal | Conexión | Modo | Nota |
-|---|---|---|---|
-| BTN_ADC | GPIO2 | ADC1 | Nodo común de la escalera resistiva |
-| BTN_BACK | 0 ohm a GND | Analógico | Botón Atrás |
-| BTN_OK | 4.7 kohm a GND | Analógico | Botón OK |
-| BTN_PTT | 10 kohm a GND | Analógico | Mantener para hablar |
-| Pull-up | 10 kohm a 3V3 | — | Sin botón, el ADC lee cerca de 3.3 V |
+### 4.2 Micrófono INMP441
 
-Reglas:
+| Señal | GPIO propuesto | Dirección | Nota |
+|---|---:|---|---|
+| MIC_SCK | GPIO4 | Salida | Reloj I2S |
+| MIC_WS | GPIO5 | Salida | Word select |
+| MIC_SD | GPIO6 | Entrada | Datos del micrófono |
+| MIC_L/R | GND | — | Canal izquierdo |
+| MIC_VDD | 3V3 | Alimentación | Con condensador de desacople |
+| MIC_GND | GND | Tierra | Común |
 
-- El firmware distingue los botones por rangos de ADC, no por pines digitales.
-- Si se presionan dos botones a la vez, la lectura puede ser ambigua; dar prioridad a `PTT`.
-- Validar los valores con la tolerancia real de las resistencias y del ADC.
-- Si una versión futura de la placa expone más GPIO, se pueden separar los botones.
+### 4.3 Amplificador MAX98357A
 
-### 4.4 Batería y alimentación
+| Señal | GPIO propuesto | Dirección | Nota |
+|---|---:|---|---|
+| AMP_BCLK | GPIO15 | Salida | Reloj I2S |
+| AMP_LRC | GPIO16 | Salida | Word select |
+| AMP_DIN | GPIO17 | Salida | Datos hacia el amplificador |
+| AMP_VIN | VBAT o 5V | Alimentación | Verificar límite del módulo; no alimentar desde un GPIO |
+| AMP_GND | GND | Tierra | Común |
+| SPK+ / SPK- | Altavoz | Salida | Altavoz de 80 ohmios |
+| GAIN / SD | Según módulo | Configuración | Definir ganancia y canal |
+
+### 4.4 Botones
+
+| Señal | GPIO propuesto | Modo | Nota |
+|---|---:|---|---|
+| BTN_BACK | GPIO18 | Entrada pull-up | Activo en bajo |
+| BTN_OK | GPIO21 | Entrada pull-up | Activo en bajo |
+| BTN_PTT | GPIO47 | Entrada pull-up | Mantener para hablar; activo en bajo |
+| GND | GND | Tierra | Un terminal del pulsador a GND |
+
+Si GPIO47 no está disponible en la placa, usar GPIO2 como alternativa y actualizar este documento. Evitar GPIO0, GPIO45 y GPIO46 porque son pines de arranque.
+
+### 4.5 Batería y alimentación
 
 | Señal | GPIO propuesto | Nota |
 |---|---:|---|
@@ -217,18 +247,17 @@ Reglas:
 - No conectar la batería directamente a un GPIO.
 - No medir la batería sin divisor de voltaje.
 - Verificar la corriente pico del amplificador y del backlight.
+- Mantener el amplificador separado de la alimentación sensible del micrófono.
 - Agregar condensadores de desacople cerca de la pantalla, el micrófono y el amplificador.
 - El switch debe cortar la alimentación de potencia, no solo una señal lógica.
 
-### 4.5 Pines reservados y precauciones
+### 4.6 Pines reservados y precauciones
 
-- `GPIO3`: strapping; queda libre y no se usa.
-- `GPIO0`, `GPIO45` y `GPIO46`: pines de arranque; no usar para botones ni pantalla.
-- `GPIO19` y `GPIO20`: USB nativo; no usar.
-- `GPIO43` y `GPIO44`: UART de consola; evitar si se necesita depuración serial.
-- Confirmar que la placa exponga `GPIO1` a `GPIO11` y el pad `EN`.
+- GPIO0, GPIO45 y GPIO46: pines de arranque; no usar para botones ni pantalla.
+- GPIO19 y GPIO20: pueden estar conectados al USB nativo; evitar si la placa los usa para programación.
+- GPIO43 y GPIO44: pueden ser UART de consola; evitar si se necesita depuración serial.
+- Confirmar que la placa exponga GPIO47.
 - Confirmar que la pantalla y el amplificador funcionen a 3.3 V o prever nivel lógico adecuado.
-- Si la placa real no coincide con este mapa, reasignar manteniendo el mismo número de señales: 3 SPI + 4 I2S + 1 ADC de botones + 1 ADC de batería.
 
 ---
 
@@ -545,25 +574,26 @@ Todas las pantallas deben respetar esta estructura, salvo splash y pairing:
 
 ### D10 · Sin conexión y cola
 
-**Objetivo:** informar que el mensaje se guardó localmente.
+**Objetivo:** informar que el envío quedó pendiente y se va a reintentar.
+
+El dispositivo trabaja con conexión permanente, así que no guarda audio en cola. Si la red falla durante el envío, reintenta con el mismo `message_id`.
 
 **Contenido:**
 - Icono de Wi-Fi tachado.
 - Título: “Sin conexión”.
-- Texto: “Guardé tu mensaje”.
-- Número de mensajes pendientes.
-- Texto: “Se enviarán cuando vuelva la conexión”.
+- Texto: “No pude enviar tu mensaje”.
+- Texto: “Voy a intentarlo otra vez”.
 - Opción de reintentar.
 
 **Botones:**
 - `Atrás`: volver.
-- `OK`: reintentar.
-- `Hablar`: permitir grabar y encolar.
+- `OK`: reintentar ahora.
+- `Hablar`: permitir grabar de nuevo.
 
 **Estados:**
 - Sin conexión.
 - Reintentando.
-- Cola llena.
+- Conexión recuperada.
 - Sincronización exitosa.
 
 ---
@@ -631,7 +661,7 @@ Deben desaparecer solas o con `OK`.
 | D07 Resultado | Volver | Volver | Grabar |
 | D08 Consulta | Volver | Actualizar | Nueva consulta |
 | D09 Cierre | Volver | Confirmar | Deshabilitado |
-| D10 Sin conexión | Volver | Reintentar | Grabar y encolar |
+| D10 Sin conexión | Volver | Reintentar | Grabar de nuevo |
 | D11 No entendí | Cancelar | Reintentar | Grabar |
 | D12 Bloqueado | Volver | Reintentar | Deshabilitado |
 
@@ -687,6 +717,8 @@ La transcripción y la categoría las procesa la IA del backend. La pantalla no 
 - “¿Confirmas?”.
 
 El dispositivo no transcribe localmente. Envía el audio, espera la respuesta y muestra la notificación final. La confirmación humana es obligatoria. Las notificaciones de guardado se consultan por polling HTTP cada 3–5 segundos y se acusan con `POST /device/notifications/{id}/ack`.
+
+El backend transcribe con Gemini Flash y responde entre 3 y 6 segundos por audio corto cuando la API está en reposo. La capa gratuita limita a 3 peticiones por minuto y por modelo: al agotarse la cuota la latencia sube a 16–18 segundos y el backend responde `429 STT_CUOTA`. Para producción se recomienda una cuenta de pago o un modelo STT dedicado. Si la transcripción falla, el dispositivo reintenta con el mismo `message_id`: el backend guarda el mensaje una sola vez.
 
 ---
 
@@ -871,9 +903,9 @@ Pendientes:
 - Confirmar que la placa expone `GPIO1` a `GPIO11` y el pad `EN`.
 - Confirmar que la TFT funciona con `CS` por GPIO y `RST` conectado a `EN`.
 - Definir si habrá OTA en el MVP.
-- Definir proveedor de IA, formato de audio, límite de duración y latencia aceptable.
-- Definir el límite de mensajes en cola offline.
-- Definir la duración máxima de grabación.
+- Definir proveedor de IA, formato de audio, límite de duración y latencia aceptable. **Ya está:** Gemini Flash para transcripción, WAV 16 kHz mono 16 bits, 40 s máximos y 3–6 s de latencia observada.
+- Definir el límite de mensajes en cola offline. **No aplica en el MVP:** el dispositivo siempre está conectado y reintenta con el mismo `message_id`.
+- Definir la duración máxima de grabación. **Ya está:** 40 s en el contrato del backend; el firmware debe resolver el límite de SRAM con streaming o cola en flash.
 - Definir el volumen y la ganancia del amplificador.
 - Validar el pinout con la placa física antes de soldar.
 

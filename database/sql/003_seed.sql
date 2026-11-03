@@ -61,5 +61,5 @@ INSERT OR IGNORE INTO plantilla_cuenta_palabras (cuenta_nombre, palabra) VALUES
  ('Bancolombia','bancolombia'), ('Bancolombia','por bancolombia'), ('Bancolombia','con bancolombia');
 
 INSERT OR REPLACE INTO schema_migrations (version, descripcion, aplicado_en)
-VALUES (3, 'Esquema v3 con cola de notificaciones por dispositivo',
+VALUES (4, 'Esquema v4 con duracion maxima de audio de 40 segundos',
         strftime('%Y-%m-%dT%H:%M:%SZ','now'));

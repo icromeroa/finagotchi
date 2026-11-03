@@ -6,6 +6,7 @@ from datetime import date as date_cls
 from datetime import datetime
 
 from . import nlp
+from .audio import MAX_DURACION_S as MAX_AUDIO_DURACION_S
 from .db import (
     BOGOTA,
     clamp,
@@ -43,6 +44,19 @@ def transaction_row(conn, user_id, transaction_id):
         """,
         (user_id, transaction_id),
     ).fetchone()
+
+
+def message_por_message_id(conn, user_id, message_id):
+    """Busca un mensaje por su identificador externo (idempotencia)."""
+    if not message_id:
+        return None
+    row = conn.execute(
+        "SELECT id FROM mensajes_dispositivo WHERE usuario_id = ? AND message_id = ?",
+        (user_id, str(message_id)),
+    ).fetchone()
+    if row is None:
+        return None
+    return message_payload(conn, user_id, row["id"])
 
 
 def message_payload(conn, user_id, message_id):
@@ -117,7 +131,7 @@ def create_message(
             audio_duration_s = float(audio_duration_s)
         except (TypeError, ValueError):
             audio_duration_s = None
-        if audio_duration_s is not None and not 0.5 <= audio_duration_s <= 30:
+        if audio_duration_s is not None and not 0.5 <= audio_duration_s <= MAX_AUDIO_DURACION_S:
             audio_duration_s = None
     confidence_values = [
         proposal.get("confianza")
@@ -186,6 +200,51 @@ def create_message(
     payload = message_payload(conn, user_id, internal_id)
     payload["intent"] = result["intent"]
     return payload
+
+
+def log_ai_interaction(
+    conn,
+    user_id,
+    proveedor,
+    modelo=None,
+    version_prompt=None,
+    entrada=None,
+    salida=None,
+    confianza=None,
+    latencia_ms=None,
+    tokens_entrada=None,
+    tokens_salida=None,
+    mensaje_id=None,
+):
+    """Registra la auditoria de una llamada de IA.
+
+    ``entrada`` y ``salida`` solo deben contener metadatos y texto. El audio
+    nunca se persiste.
+    """
+    cursor = conn.execute(
+        """
+        INSERT INTO interacciones_ia
+            (usuario_id, mensaje_id, proveedor, modelo, version_prompt,
+             entrada_json, salida_json, confianza, latencia_ms,
+             tokens_entrada, tokens_salida)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            mensaje_id,
+            proveedor,
+            modelo,
+            version_prompt,
+            json.dumps(entrada, ensure_ascii=False) if entrada is not None else None,
+            json.dumps(salida, ensure_ascii=False) if salida is not None else None,
+            confianza,
+            latencia_ms,
+            tokens_entrada,
+            tokens_salida,
+        ),
+    )
+    conn.commit()
+    return cursor.lastrowid
 
 
 def create_device_notification(

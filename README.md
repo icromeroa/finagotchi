@@ -1,1 +1,112 @@
-prueba1# finagotchi
+# FinaGotchi
+
+Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32 o al simulador de escritorio, el backend transcribe el audio con IA, propone los movimientos y el usuario confirma antes de que se guarde.
+
+## Componentes
+
+| Ruta | Qué es |
+|---|---|
+| `backend/` | API Flask + SQLite + IA. Endpoints, autenticación, reglas de negocio. |
+| `backend/ai.py` | Proveedor de transcripción (Gemini Flash). |
+| `backend/audio.py` | Validación del WAV que llega del dispositivo. |
+| `backend/nlp.py` | Reglas locales para montos, categorías y cuentas. |
+| `database/` | Esquema SQL, vistas, seeds e inicializador. |
+| `simulator/` | Simulador de escritorio que imita al dispositivo. |
+| `tests/` | Pruebas del esquema y de la API. |
+| `tools/` | Utilidades, incluida la prueba real del flujo de voz. |
+| `docs/` | Especificación funcional y especificación del dispositivo. |
+| `frontend/` | App Flutter (pendiente de capa HTTP). |
+
+## Puesta en marcha
+
+### 1. Dependencias
+
+```powershell
+py -3 -m pip install -r requirements.txt
+```
+
+### 2. Configurar la IA
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+```
+
+Editar `backend/.env` y poner la clave de <https://aistudio.google.com>:
+
+```text
+GEMINI_API_KEY=tu_clave
+GEMINI_MODEL=gemini-3.5-flash
+GEMINI_MODEL_FALLBACKS=gemini-3.5-flash-lite,gemini-3.8-flash
+```
+
+La clave solo vive en el backend. Nunca va en la ESP32, en la app ni en el repositorio: `.gitignore` excluye `backend/.env`.
+
+### 3. Base de datos
+
+```powershell
+py -3 database/init_db.py
+```
+
+### 4. Levantar el backend
+
+```powershell
+py -3 backend/server.py
+```
+
+Queda en `http://127.0.0.1:5000/api/v1`.
+
+### 5. Simulador
+
+```powershell
+py -3 -m pip install -r requirements-simulator.txt
+py -3 simulator/simulator.py
+```
+
+Ejecutar como administrador para que `keyboard` capture la tecla ESPACIO. Más detalles en `GUIA_SIMULADOR.md`.
+
+## Pruebas
+
+```powershell
+py -3 -m unittest discover -s tests -v
+py -3 -m compileall -q backend simulator tests
+```
+
+Con el backend levantado se puede probar el flujo completo con audio real:
+
+```powershell
+py -3 tools/probar_flujo_voz.py ruta\al\audio.wav
+```
+
+## Audio
+
+- Formato aceptado: WAV, 16 kHz, mono, 16 bits.
+- Duración: entre 0,5 y 40 segundos.
+- Tamaño máximo: 2 MB.
+- El audio se procesa en memoria y **no se guarda** ni en la base ni en disco.
+- El backend guarda el texto, la duración y la auditoría de la llamada en `interacciones_ia`.
+
+## Dataset de evaluación
+
+`datasets/eval_audio/manifest.csv` define 30 casos de prueba: montos en cifras y en palabras, millones, ingresos, gastos, ahorro, consultas, frases sin monto, ruido y acentos.
+
+```powershell
+py -3 tools/grabar_dataset.py     # graba los clips con el micrófono
+py -3 tools/evaluar_dataset.py    # transcribe y calcula WER, montos y latencia
+```
+
+El manifiesto se actualiza con la duración de cada clip. Los audios no se versionan. El reporte queda en `datasets/eval_audio/reporte.json`.
+
+Objetivos de la evaluación: WER menor a 15 %, montos exactos en al menos 90 % de los casos y latencia p95 menor a 5 segundos.
+
+## Base de datos
+
+- SQLite con `PRAGMA foreign_keys = ON`.
+- Esquema versionado en `database/sql/`; la versión vigente está en `database/init_db.py`.
+- `fecha_hora` en UTC y `fecha_local` en `America/Bogota`.
+- Solo las transacciones `confirmado` afectan balances, puntos, metas y salud.
+
+## Documentación
+
+- `docs/ESPECIFICACIONES.md`: contrato funcional, endpoints, esquema y decisiones.
+- `docs/DISPOSITIVO.md`: hardware, pinout, audio y flujos de pantalla para el firmware.
+- `GUIA_SIMULADOR.md`: guía del simulador de escritorio.

@@ -1,0 +1,2 @@
+# Dependencias para evaluar el dataset de audio (offline, no runtime)
+jiwer>=3.0.0

@@ -352,7 +352,7 @@ CREATE TABLE IF NOT EXISTS dispositivos_telemetria (
     bateria           INTEGER CHECK (bateria BETWEEN 0 AND 100),
     estado            TEXT,
     boton             INTEGER CHECK (boton IN (0,1)),
-    audio_duracion_s  REAL    CHECK (audio_duracion_s IS NULL OR audio_duracion_s BETWEEN 0.5 AND 30),
+    audio_duracion_s  REAL    CHECK (audio_duracion_s IS NULL OR audio_duracion_s BETWEEN 0.5 AND 40),
     payload_json      TEXT,
     recibido_en       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
     fecha_local       TEXT    NOT NULL
@@ -374,7 +374,7 @@ CREATE TABLE IF NOT EXISTS mensajes_dispositivo (
     origen            TEXT    NOT NULL DEFAULT 'dispositivo'
                       CHECK (origen IN ('dispositivo','app_voz','manual','importacion')),
     texto_transcrito  TEXT,
-    duracion_audio_s  REAL    CHECK (duracion_audio_s IS NULL OR duracion_audio_s BETWEEN 0.5 AND 30),
+    duracion_audio_s  REAL    CHECK (duracion_audio_s IS NULL OR duracion_audio_s BETWEEN 0.5 AND 40),
     confianza_ia      REAL    CHECK (confianza_ia IS NULL OR confianza_ia BETWEEN 0 AND 1),
     estado            TEXT    NOT NULL DEFAULT 'recibido'
                       CHECK (estado IN ('recibido','procesado','confirmado','descartado')),

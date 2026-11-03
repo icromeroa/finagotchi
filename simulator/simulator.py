@@ -8,7 +8,6 @@ import keyboard
 import requests
 import scipy.io.wavfile as wav
 import sounddevice as sd
-import speech_recognition as sr
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
 DEFAULT_CONFIG = {
@@ -20,6 +19,8 @@ DEFAULT_CONFIG = {
     "auto_confirm": True,
     "sample_rate": 16000,
     "language": "es-CO",
+    "stt_provider": "gemini",
+    "request_timeout_s": 90,
 }
 
 
@@ -49,12 +50,12 @@ class FinaGotchiClient:
         self.device_token = None
         self.device_uid = config["device_uid"]
 
-    def request(self, method, path, headers=None, expected=(200, 201), **kwargs):
+    def request(self, method, path, headers=None, expected=(200, 201), timeout=None, **kwargs):
         response = requests.request(
             method,
             BASE_URL + path,
             headers=headers,
-            timeout=(3, 15),
+            timeout=timeout or (3, self.config.get("request_timeout_s", 90)),
             **kwargs,
         )
         try:
@@ -154,6 +155,35 @@ class FinaGotchiClient:
             },
         )
 
+    def send_audio(self, wav_bytes, duration, message_id):
+        """Envia el WAV al backend. La transcripcion la hace el servidor."""
+        return self.request(
+            "POST",
+            "/device/messages",
+            headers=self.device_headers(),
+            files={"audio": ("audio.wav", wav_bytes, "audio/wav")},
+            data={
+                "message_id": message_id,
+                "audio_duracion_s": f"{float(duration):.1f}",
+                "idioma": self.config.get("language", "es-CO"),
+            },
+        )
+
+    def notifications(self, after_id=0, limit=20):
+        return self.request(
+            "GET",
+            f"/device/notifications?after_id={int(after_id)}&limit={int(limit)}",
+            headers=self.device_headers(),
+        )
+
+    def ack_notification(self, notification_id, estado="leida"):
+        return self.request(
+            "POST",
+            f"/device/notifications/{notification_id}/ack",
+            headers=self.device_headers(),
+            json={"estado": estado},
+        )
+
     def confirm_message(self, message_id):
         return self.request(
             "POST",
@@ -175,6 +205,11 @@ class FinaGotchiClient:
 
 
 def capture_voice():
+    """Graba el microfono y devuelve los bytes WAV y la duracion.
+
+    El simulador no transcribe: solo captura y envia el audio al backend,
+    igual que hara el firmware de la ESP32.
+    """
     print("\n------------------------------------------------")
     print("  SIMULADOR DE HARDWARE FINAGOTCHI (PC)")
     print("------------------------------------------------")
@@ -197,28 +232,17 @@ def capture_voice():
             time.sleep(0.05)
 
     duration = round(time.time() - start_time, 1)
-    print("[GRABACIÓN FINALIZADA] Transcribiendo voz...")
+    print(f"[GRABACIÓN FINALIZADA] {duration}s. Enviando audio al backend...")
 
     if not audio_data:
-        return "", duration
+        return b"", duration
 
     import numpy as np
 
     audio_np = np.concatenate(audio_data, axis=0)
     wav_bytes = io.BytesIO()
     wav.write(wav_bytes, CONFIG["sample_rate"], audio_np)
-    wav_bytes.seek(0)
-
-    recognizer = sr.Recognizer()
-    try:
-        with sr.AudioFile(wav_bytes) as source:
-            audio = recognizer.record(source)
-            transcription = recognizer.recognize_google(audio, language=CONFIG["language"])
-            print(f'[VOZ TRANSCRITA]: "{transcription}"')
-            return transcription, duration
-    except Exception as exc:
-        print(f"[ERROR DE TRANSCRIPCIÓN]: {exc}")
-        return "", duration
+    return wav_bytes.getvalue(), duration
 
 
 def print_home(data):
@@ -240,20 +264,32 @@ def print_closure(data):
     print(f"  Salud:    {data.get('salud_fin')}% ({data.get('animo')})")
 
 
-def handle_text(client, text, duration):
-    message = client.send_message(text, duration)
+def print_notifications(client, last_id=0):
+    """Consulta las notificaciones pendientes y las acusa."""
+    payload = client.notifications(after_id=last_id)
+    rows = payload.get("notificaciones") or []
+    for row in rows:
+        print(f"  [NOTIFICACIÓN] {row.get('titulo')}: {row.get('mensaje') or ''}")
+        client.ack_notification(row["id"], "leida")
+    return payload.get("ultima_id", last_id) or last_id
+
+
+def handle_message(client, message, last_notification_id=0):
     intent = message.get("intent")
     transactions = message.get("transacciones") or []
+    texto = message.get("texto_transcrito")
+    if texto:
+        print(f'[VOZ TRANSCRITA]: "{texto}"')
 
     if intent == "cerrar_dia":
         print_closure(client.close_day())
-        return
+        return last_notification_id
     if intent == "consulta_estado":
         print_home(client.home())
-        return
+        return last_notification_id
     if not transactions:
         print(f"No se pudo interpretar: {message.get('error')}")
-        return
+        return last_notification_id
 
     print("\nPROPUESTA DE REGISTRO")
     for transaction in transactions:
@@ -269,11 +305,15 @@ def handle_text(client, text, duration):
         should_confirm = answer in ("", "s", "si", "sí")
     if not should_confirm:
         print("Registro descartado.")
-        return
+        return last_notification_id
 
     confirmed = client.confirm_message(message["id"])
     print(f"Registro confirmado. Puntos otorgados: {confirmed.get('puntos_otorgados', 0)}")
     print_home(client.home())
+
+    print("\nNOTIFICACIONES DEL DISPOSITIVO")
+    last_notification_id = print_notifications(client, last_notification_id)
+    return last_notification_id
 
 
 def main():
@@ -283,14 +323,20 @@ def main():
     client.ensure_device()
     print(f"Dispositivo vinculado: {client.device_uid}")
     client.telemetry()
+    print(f"Proveedor de transcripción: {CONFIG.get('stt_provider', 'gemini')}")
 
+    last_notification_id = 0
     while True:
-        text, duration = capture_voice()
-        if not text:
-            print("No se recibió una transcripción válida.")
+        wav_bytes, duration = capture_voice()
+        if not wav_bytes:
+            print("No se grabó audio válido.")
             continue
+        message_id = str(uuid.uuid4())
         try:
-            handle_text(client, text, max(duration, 0.5))
+            message = client.send_audio(wav_bytes, max(duration, 0.5), message_id)
+            if message.get("duplicado"):
+                print("El mensaje ya se había procesado. Se devuelve el resultado guardado.")
+            last_notification_id = handle_message(client, message, last_notification_id)
         except ApiError as exc:
             print(f"ERROR DE API ({exc.status}): {exc}")
         except Exception as exc:

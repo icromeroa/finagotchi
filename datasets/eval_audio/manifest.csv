@@ -1,0 +1,31 @@
+id,archivo,transcripcion,intent,monto_esperado,categoria_esperada,cuenta_esperada,duracion_s,ruido,notas
+001,audio/0001.wav,gasté 14.000 en el almuerzo,registrar,14000,Alimentación,Efectivo,,bajo,
+002,audio/0002.wav,gasté catorce mil en el almuerzo,registrar,14000,Alimentación,Efectivo,,bajo,monto en palabras
+003,audio/0003.wav,pagué 8.000 de transporte,registrar,8000,Transporte,Efectivo,,bajo,
+004,audio/0004.wav,compré un café por 5 mil,registrar,5000,Alimentación,Efectivo,,bajo,mil abreviado
+005,audio/0005.wav,me pagaron 50.000 por un trabajo,registrar,50000,Trabajo,Efectivo,,bajo,
+006,audio/0006.wav,recibí 20.000 de mesada,registrar,20000,Trabajo,Efectivo,,bajo,
+007,audio/0007.wav,ahorré 30.000 para el portátil,registrar,30000,,Efectivo,,bajo,ahorro
+008,audio/0008.wav,gasté 1.5 millones en el apartamento,registrar,1500000,Vivienda,Efectivo,,medio,millones con decimal
+009,audio/0009.wav,me pagaron dos millones del trabajo,registrar,2000000,Trabajo,Efectivo,,medio,millones en palabras
+010,audio/0010.wav,gasté cuarenta mil en el mercado,registrar,40000,Alimentación,Efectivo,,bajo,monto en palabras
+011,audio/0011.wav,pagué tres mil de bus,registrar,3000,Transporte,Efectivo,,bajo,
+012,audio/0012.wav,gasté 12.000 en almuerzo y 3.000 en bus,registrar,12000,Alimentación,Efectivo,,medio,dos transacciones
+013,audio/0013.wav,¿cómo voy hoy?,consulta_estado,,,,,bajo,consulta
+014,audio/0014.wav,dame mi balance,consulta_estado,,,,,bajo,consulta
+015,audio/0015.wav,cierra el día,cerrar_dia,,,,,bajo,cierre
+016,audio/0016.wav,la verdad no me acuerdo de cuánto gasté,requiere_aclaracion,,,,,medio,sin monto
+017,audio/0017.wav,gasté quince mil en el almuerzo,registrar,15000,Alimentación,Efectivo,,bajo,corrección del monto
+018,audio/0018.wav,me salió un gasto raro,registrar,,,Efectivo,,medio,sin monto
+019,audio/0019.wav,pagué la cuota de la biking,registrar,,Transporte,Nequi,,medio,transporte
+020,audio/0020.wav,saqué 50.000 del cajero,registrar,50000,,Efectivo,,bajo,retiro
+021,audio/0021.wav,gasté 25.000 en una chaqueta,registrar,25000,Ropa,Efectivo,,bajo,
+022,audio/0022.wav,me llegó el sueldo de dos millones quinientos mil,registrar,2500000,Trabajo,Efectivo,,medio,millones y miles
+023,audio/0023.wav,pagué 3.500 en el parqueadero,registrar,3500,,Efectivo,,bajo,monto con decimal
+024,audio/0024.wav,compré gasolina,registrar,,Transporte,Efectivo,,bajo,sin monto
+025,audio/0025.wav,gasté 120.000 en el arriendo,registrar,120000,Vivienda,Efectivo,,bajo,
+026,audio/0026.wav,guardé 200.000 para el viaje,registrar,200000,,Efectivo,,bajo,ahorro
+027,audio/0027.wav,gasté 8.000 en transporte,registrar,8000,Transporte,Efectivo,,alto,ruido alto
+028,audio/0028.wav,me pagaron 50.000 por un trabajo,registrar,50000,Trabajo,Efectivo,,alto,ruido alto
+029,audio/0029.wav,gasté 40.000 en el mercado,registrar,40000,Alimentación,Efectivo,,medio,
+030,audio/0030.wav,cerrá el día por favor,cerrar_dia,,,,,medio,variante
