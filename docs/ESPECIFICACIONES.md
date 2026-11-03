@@ -739,11 +739,26 @@ El backend expone un proveedor de transcripción con estas operaciones:
 - `clasificar_categoria(texto, categorias_usuario) -> categoria_id`.
 - `esta_configurado() -> estado`.
 
-**Decisión vigente.** La transcripción la hace **Gemini Flash** mediante la API de Google (`backend/ai.py`), y la interpretación de montos, categorías y cuentas sigue con las **reglas locales** de `backend/nlp.py`. La IA solo transcribe: nunca decide montos ni confirmaciones. El proveedor queda encapsulado para poder sustituirlo sin tocar los endpoints.
+**Decisión vigente.** La transcripción la hace un proveedor de STT en el backend (`backend/ai.py`) y la interpretación de montos, categorías y cuentas sigue con las **reglas locales** de `backend/nlp.py`. El proveedor solo transcribe: nunca decide montos ni confirmaciones.
 
-El modelo se configura con `GEMINI_MODEL` y admite una cadena de respaldo con `GEMINI_MODEL_FALLBACKS`, porque la API de Google puede responder con `503` por demanda alta o dejar de ofrecer un modelo.
+Hay dos proveedores:
 
-Los modelos locales (Ollama, llama.cpp, Gemma) se ejecutan en el **PC o servidor del backend**, nunca en la ESP32. La ESP32 solo graba, envía y muestra.
+| Proveedor | Qué es | Clave | Cuota | Latencia |
+|---|---|---|---|---|
+| `gemini` | Gemini Flash por la API de Google | `GEMINI_API_KEY` | 3 peticiones/min en la capa gratuita | 3–5 s |
+| `local` | faster-whisper corriendo en el PC del backend | no | ninguna | ~1 s |
+
+`STT_PROVEEDOR` decide el comportamiento:
+
+- `auto` (por defecto): usa Gemini si hay clave y responde. Si la clave está rota, no hay cuota o el proveedor falla, cae al modelo local y deja constancia del motivo en `interacciones_ia`.
+- `gemini`: solo la API de Google. Si falla, el endpoint responde error.
+- `local`: solo el modelo local del PC. No necesita clave ni conexión.
+
+**Por qué existe el proveedor local.** Desde el 28 de mayo de 2026 Google AI Studio solo emite "Auth keys" (`AQ.Ab...`) en lugar de las estándar (`AIza...`), y hay un problema abierto de compatibilidad: esas claves responden `401 UNAUTHENTICATED` con motivo `ACCESS_TOKEN_TYPE_UNSUPPORTED` en `generativelanguage.googleapis.com`. El modelo local garantiza que el proyecto se pueda demostrar sin depender de ese servicio.
+
+El modelo se configura con `GEMINI_MODEL` y admite una cadena de respaldo con `GEMINI_MODEL_FALLBACKS`, porque la API de Google puede responder con `503` por demanda alta o dejar de ofrecer un modelo. El modelo local se configura con `STT_MODELO_LOCAL` (`tiny`, `base`, `small`, `medium`).
+
+Los modelos locales (whisper, Ollama, llama.cpp, Gemma) se ejecutan en el **PC o servidor del backend**, nunca en la ESP32. La ESP32 solo graba, envía y muestra.
 
 ### 9.2 Contexto permitido
 
@@ -1108,7 +1123,9 @@ Errores:
 | `CAMPOS_REQUERIDOS` | 422 | Falta `audio` y `texto`, o falta `message_id` cuando hay audio. |
 | `AUDIO_INVALIDO` | 422 | El WAV no cumple el formato o la duración (0.5–40 s). |
 | `AUDIO_MUY_GRANDE` | 413 | El archivo supera los 2 MB. |
-| `STT_NO_CONFIGURADO` | 503 | Falta `GEMINI_API_KEY` en `backend/.env`. |
+| `STT_NO_CONFIGURADO` | 503 | Falta la API key y no hay proveedor local disponible. |
+| `STT_KEY_INVALIDA` | 502 | Google rechazó la credencial (401). Ocurre con las "Auth keys" (`AQ.Ab...`). |
+| `STT_SIN_PERMISOS` | 502 | La credencial es válida pero no tiene acceso al modelo (403). |
 | `STT_CUOTA` | 429 | Google rechazó la petición por límite de cuota. |
 | `STT_NO_DISPONIBLE` | 502 | Google no responde o el modelo no está disponible. |
 | `STT_ERROR` | 502 | Cualquier otro fallo del proveedor. |
@@ -1131,6 +1148,8 @@ La transcripción se configura en `backend/.env` (copiar `backend/.env.example`)
 | `GEMINI_MODEL_FALLBACKS` | `gemini-3.5-flash,gemini-3.5-flash-lite` | Modelos alternos cuando el principal no responde. |
 | `GEMINI_TIMEOUT_S` | `60` | Tiempo máximo de espera de una llamada. |
 | `GEMINI_PLAZO_S` | `90` | Tiempo máximo total de todos los reintentos. |
+| `STT_PROVEEDOR` | `auto` | `auto`, `gemini` o `local`. |
+| `STT_MODELO_LOCAL` | `base` | Modelo de faster-whisper: `tiny`, `base`, `small`, `medium`. |
 
 La API de Google puede responder `503` por demanda alta o retirar un modelo. El backend reintenta con el siguiente modelo de la cadena antes de devolver un error, y el dispositivo puede reintentar con el mismo `message_id`.
 
@@ -1451,7 +1470,7 @@ El esquema se divide en:
 
 | Tema | Estado | Propuesta |
 |---|---|---|
-| Proveedor de IA/STT | Decidido | Gemini Flash (API de Google) para transcripción, con cadena de modelos de respaldo; interpretación de montos y categorías por reglas locales en `backend/nlp.py`. |
+| Proveedor de IA/STT | Decidido | Gemini Flash (API de Google) con cadena de modelos de respaldo y caída automática a faster-whisper local; interpretación de montos y categorías por reglas locales en `backend/nlp.py`. |
 | Duración máxima del audio | Decidido | 40 segundos, validada por el servidor. |
 | Transmisión del audio | Decidido | Wi-Fi por HTTP multipart. BLE queda solo para configuración inicial. |
 | SLM local | Decidido | Se ejecuta en el PC o servidor del backend, nunca en la ESP32. Queda para el agente consejero. |

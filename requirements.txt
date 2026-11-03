@@ -4,3 +4,7 @@ Werkzeug==3.1.8
 itsdangerous==2.2.0
 google-genai>=1.0.0
 python-dotenv>=1.0.0
+
+# Proveedor de transcripcion local (faster-whisper).
+# No necesita clave de API ni cuota. El modelo se descarga la primera vez.
+faster-whisper>=1.2.0

@@ -122,11 +122,15 @@ def procesar_mensaje_voz(
             services.log_ai_interaction(
                 conn,
                 user_id,
-                proveedor="google",
+                proveedor=ai.proveedor_preferido(),
                 modelo=ai.modelo(),
                 version_prompt=ai.PROMPT_TRANSCRIPCION,
                 entrada={"mime_type": mime, "duracion_s": info.duracion_s, "idioma": idioma},
-                salida={"error": exc.codigo, "mensaje": exc.mensaje},
+                salida={
+                    "error": exc.codigo,
+                    "mensaje": exc.mensaje,
+                    "detalles": exc.detalles,
+                },
                 mensaje_id=None,
             )
             raise ErrorSolicitud(exc.codigo, exc.mensaje, exc.estado_http, exc.detalles) from exc
@@ -141,14 +145,18 @@ def procesar_mensaje_voz(
             origen=origen,
             audio_duration_s=info.duracion_s,
         )
+        salida_ia = {"texto": resultado["texto"]}
+        if resultado.get("motivo_fallback"):
+            salida_ia["caida_de_proveedor"] = resultado.get("error_proveedor")
+            salida_ia["motivo"] = resultado["motivo_fallback"]
         services.log_ai_interaction(
             conn,
             user_id,
-            proveedor=resultado.get("proveedor") or "google",
+            proveedor=resultado.get("proveedor") or "gemini",
             modelo=resultado.get("modelo"),
             version_prompt=ai.PROMPT_TRANSCRIPCION,
             entrada={"mime_type": mime, "duracion_s": info.duracion_s, "idioma": idioma},
-            salida={"texto": resultado["texto"]},
+            salida=salida_ia,
             latencia_ms=resultado.get("latencia_ms"),
             tokens_entrada=resultado.get("tokens_entrada"),
             tokens_salida=resultado.get("tokens_salida"),
@@ -156,6 +164,10 @@ def procesar_mensaje_voz(
         )
         payload.setdefault("duplicado", False)
         payload.setdefault("puntos_otorgados", 0)
+        payload["proveedor_stt"] = resultado.get("proveedor")
+        payload["modelo_stt"] = resultado.get("modelo")
+        if resultado.get("motivo_fallback"):
+            payload["stt_caida"] = resultado["motivo_fallback"]
         return payload, 201
 
     texto = (texto or "").strip()

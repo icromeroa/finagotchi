@@ -1,17 +1,27 @@
-"""Proveedor de transcripcion de audio con Gemini.
+"""Proveedor de transcripcion de audio.
 
 Reglas del proyecto:
 - El backend es el unico que ve la API key.
 - La key vive FUERA del repositorio, en ``%USERPROFILE%/.finagotchi/gemini.env``.
   Asi un ``git clean -xdf`` no puede borrarla.
 - El audio se procesa en memoria y nunca se guarda en disco ni en la base.
-- Gemini solo transcribe. La interpretacion de montos, categorias y cuentas
-  sigue a cargo de ``backend/nlp.py`` por reglas.
+- El proveedor solo transcribe. La interpretacion de montos, categorias y
+  cuentas sigue a cargo de ``backend/nlp.py`` por reglas.
+
+Proveedores:
+
+- ``gemini``: API de Google. Necesita ``GEMINI_API_KEY``.
+- ``local``: faster-whisper corriendo en el PC del backend. No necesita clave,
+  ni cuota, ni conexion a Internet.
+- ``auto`` (por defecto): usa Gemini si hay clave y responde; si la clave
+  esta rota, no hay cuota o el proveedor falla, cae al modelo local.
 """
 
 import base64
+import io
 import os
 import time
+import wave
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -25,6 +35,12 @@ MAX_INTENTOS = 2
 PLAZO_TOTAL_S = 90
 ESPERA_INICIAL_S = 1.5
 MAX_TEXTO = 2000
+
+PROVEEDOR_GEMINI = "gemini"
+PROVEEDOR_LOCAL = "local"
+PROVEEDOR_AUTO = "auto"
+MODELOS_LOCALES = ("tiny", "base", "small", "medium", "large-v3")
+IDIOMA_WHISPER = {"es-CO": "es", "es": "es"}
 
 PROMPT_TRANSCRIPCION = (
     "Transcribe literalmente el audio en espanol colombiano. "
@@ -64,8 +80,27 @@ class STTCuota(ErrorSTT):
     estado_http = 429
 
 
+class STTKeyInvalida(ErrorSTT):
+    """Google rechazo la credencial.
+
+    Desde el 28 de mayo de 2026 AI Studio emite "Auth keys" (``AQ.Ab...``) en
+    lugar de las estandar (``AIza...``). Hay un problema abierto de
+    compatibilidad: esas claves responden ``401 UNAUTHENTICATED`` con motivo
+    ``ACCESS_TOKEN_TYPE_UNSUPPORTED`` en ``generativelanguage.googleapis.com``.
+    """
+
+    codigo = "STT_KEY_INVALIDA"
+    estado_http = 502
+
+
+class STTSinPermisos(ErrorSTT):
+    """La credencial es valida pero no tiene acceso al modelo."""
+
+    codigo = "STT_SIN_PERMISOS"
+    estado_http = 502
+
+
 class STTNoDisponible(ErrorSTT):
-    """El proveedor no esta disponible en este momento."""
 
     codigo = "STT_NO_DISPONIBLE"
     estado_http = 502
@@ -158,6 +193,24 @@ def plazo_total_s():
 
 def esta_configurado():
     return bool(api_key())
+
+
+def proveedor_preferido():
+    """Proveedor de transcripcion elegido por configuracion."""
+    return (os.environ.get("STT_PROVEEDOR") or PROVEEDOR_AUTO).strip().lower()
+
+
+def modelo_local():
+    return (os.environ.get("STT_MODELO_LOCAL") or "base").strip()
+
+
+def local_disponible():
+    """True si faster-whisper esta instalado en el equipo."""
+    try:
+        import faster_whisper  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 def _cliente():
@@ -272,19 +325,149 @@ def transcribe_audio(
 ):
     """Transcribe el audio y devuelve un diccionario con la trazabilidad.
 
-    Lanza una subclase de ``ErrorSTT`` si el proveedor no esta disponible o no
-    devuelve texto utilizable.
+    Con ``STT_PROVEEDOR=auto`` usa Gemini cuando hay clave y, si la clave esta
+    rota o el proveedor no responde, cae al modelo local del PC.
+
+    Lanza una subclase de ``ErrorSTT`` si ningun proveedor puede transcribir.
     """
-    if not api_key():
-        raise STTNoConfigurado(
-            "Falta configurar GEMINI_API_KEY en el backend",
-            detalles={"archivo": "backend/.env"},
-        )
     if not audio_bytes:
         raise STTNoConfigurado("No se recibio audio para transcribir")
 
-    cliente = _cliente()
+    proveedor = proveedor_preferido()
     idioma = (language or IDIOMA_POR_DEFECTO).strip()
+
+    if proveedor == PROVEEDOR_LOCAL:
+        return transcribe_local(audio_bytes, idioma)
+    if proveedor == PROVEEDOR_GEMINI:
+        return transcribe_gemini(audio_bytes, mime_type, idioma, model)
+
+    # Modo automatico.
+    if not esta_configurado():
+        if local_disponible():
+            return transcribe_local(audio_bytes, idioma)
+        raise STTNoConfigurado(
+            "No hay API key de Gemini ni faster-whisper instalado. "
+            "Configura la clave con tools/configurar_api_key.py o instala "
+            "faster-whisper para usar el modelo local.",
+            detalles={"proveedor_local_disponible": False},
+        )
+
+    try:
+        return transcribe_gemini(audio_bytes, mime_type, idioma, model)
+    except (
+        STTKeyInvalida,
+        STTSinPermisos,
+        STTNoConfigurado,
+        STTNoDisponible,
+        STTCuota,
+    ) as exc:
+        if not local_disponible():
+            raise
+        resultado = transcribe_local(audio_bytes, idioma)
+        resultado["motivo_fallback"] = exc.mensaje
+        resultado["error_proveedor"] = exc.codigo
+        return resultado
+
+
+def _wav_a_float32(audio_bytes):
+    """Convierte un WAV 16 bits mono en un arreglo float32 para whisper."""
+    import numpy as np
+
+    with wave.open(io.BytesIO(audio_bytes), "rb") as wav_file:
+        frames = wav_file.readframes(wav_file.getnframes())
+    return np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
+
+
+def transcribe_local(audio_bytes, language=IDIOMA_POR_DEFECTO):
+    """Transcribe el audio con faster-whisper corriendo en el PC.
+
+    No necesita clave de API, ni cuota, ni conexion a Internet. El modelo se
+    descarga la primera vez y queda en la cache de HuggingFace.
+    """
+    if not local_disponible():
+        raise STTNoConfigurado(
+            "faster-whisper no esta instalado. Instalalo con: "
+            "py -3 -m pip install faster-whisper",
+            detalles={"proveedor": PROVEEDOR_LOCAL},
+        )
+
+    started = time.perf_counter()
+    try:
+        import numpy as np
+        from faster_whisper import WhisperModel
+    except ImportError as exc:  # pragma: no cover - depende del entorno
+        raise STTNoConfigurado(
+            "faster-whisper no esta instalado", detalles={"motivo": str(exc)}
+        ) from exc
+
+    try:
+        muestras = _wav_a_float32(audio_bytes)
+    except wave.Error as exc:
+        raise ErrorSTT(
+            "El audio no se pudo leer para la transcripcion local",
+            detalles={"motivo": str(exc)},
+        ) from exc
+
+    idioma = IDIOMA_WHISPER.get(language, "es")
+
+    try:
+        modelo = _modelo_whisper()
+        segmentos, _info = modelo.transcribe(
+            muestras, language=idioma, beam_size=1, vad_filter=True
+        )
+        texto = " ".join(segmento.text for segmento in segmentos)
+    except Exception as exc:  # noqa: BLE001
+        raise ErrorSTT(
+            "El modelo local fallo al transcribir",
+            detalles={"modelo": modelo_local(), "motivo": str(exc)[:300]},
+        ) from exc
+
+    latencia_ms = int((time.perf_counter() - started) * 1000)
+    limpio = _limpiar_texto(texto)
+    if not limpio:
+        raise STTSinTexto(
+            "El modelo local no devolvio texto para este audio",
+            detalles={"modelo": modelo_local(), "latencia_ms": latencia_ms},
+        )
+    return {
+        "texto": limpio,
+        "modelo": f"whisper-{modelo_local()}",
+        "proveedor": PROVEEDOR_LOCAL,
+        "latencia_ms": latencia_ms,
+        "tokens_entrada": None,
+        "tokens_salida": None,
+        "idioma": idioma,
+    }
+
+
+_MODELO_WHISPER = None
+
+
+def _modelo_whisper():
+    """Carga el modelo una sola vez y lo reutiliza entre peticiones."""
+    global _MODELO_WHISPER
+    if _MODELO_WHISPER is None:
+        from faster_whisper import WhisperModel
+
+        tamano = modelo_local()
+        _MODELO_WHISPER = WhisperModel(tamano, device="cpu", compute_type="int8")
+    return _MODELO_WHISPER
+
+
+def transcribe_gemini(
+    audio_bytes,
+    mime_type="audio/wav",
+    language=IDIOMA_POR_DEFECTO,
+    model=None,
+):
+    """Transcribe el audio con Gemini Flash."""
+    if not api_key():
+        raise STTNoConfigurado(
+            "Falta configurar GEMINI_API_KEY en el backend",
+            detalles={"archivo": str(ARCHIVO_EXTERNO)},
+        )
+
+    cliente = _cliente()
     cadena = cadena_modelos(model)
 
     started = time.perf_counter()
@@ -302,7 +485,7 @@ def transcribe_audio(
             modelo_usado = candidato
             try:
                 interaccion = _intentar_modelo(
-                    cliente, audio_bytes, mime_type, idioma, candidato
+                    cliente, audio_bytes, mime_type, language, candidato
                 )
             except Exception as exc:  # noqa: BLE001 - se clasifica mas abajo
                 ultimo_error = exc
@@ -330,11 +513,11 @@ def transcribe_audio(
     return {
         "texto": texto,
         "modelo": modelo_usado,
-        "proveedor": "google",
+        "proveedor": PROVEEDOR_GEMINI,
         "latencia_ms": latencia_ms,
         "tokens_entrada": tokens_entrada,
         "tokens_salida": tokens_salida,
-        "idioma": idioma,
+        "idioma": language,
     }
 
 
@@ -345,17 +528,40 @@ def _esperar(intento):
 
 def _convertir_error(exc, modelo_usado):
     codigo = getattr(exc, "code", None)
-    if codigo == 429 or "RESOURCE_EXHAUSTED" in str(exc).upper():
+    texto = str(exc).upper()
+    motivo = getattr(exc, "message", None) or str(exc)[:300]
+
+    if codigo == 401 or "UNAUTHENTICATED" in texto:
+        prefijo = api_key()[:4]
+        raise STTKeyInvalida(
+            "Google rechazo la API key (401). Las claves AQ.Ab que crea AI Studio "
+            "desde mayo de 2026 estan fallando con ACCESS_TOKEN_TYPE_UNSUPPORTED. "
+            "Opciones: usar una clave Standard (AIza) de otro proyecto, pedir "
+            "revision de la cuenta a Google, o activar el proveedor local.",
+            detalles={
+                "modelo": modelo_usado,
+                "motivo": str(motivo)[:300],
+                "prefijo_clave": prefijo,
+                "formato_clave": "AQ" if prefijo.startswith("AQ") else "AIza",
+            },
+        ) from exc
+    if codigo == 403 or "PERMISSION_DENIED" in texto:
+        raise STTSinPermisos(
+            "La API key no tiene permiso para usar el modelo. Revisa que la "
+            "Generative Language API este habilitada en el proyecto de Google.",
+            detalles={"modelo": modelo_usado, "motivo": str(motivo)[:300]},
+        ) from exc
+    if codigo == 429 or "RESOURCE_EXHAUSTED" in texto:
         raise STTCuota(
             "El proveedor alcanzo su limite de peticiones",
             detalles={"modelo": modelo_usado},
         ) from exc
-    if codigo in (500, 502, 503, 504) or "UNAVAILABLE" in str(exc).upper():
+    if codigo in (500, 502, 503, 504) or "UNAVAILABLE" in texto:
         raise STTNoDisponible(
             "El proveedor de transcripcion no esta disponible",
             detalles={"modelo": modelo_usado},
         ) from exc
     raise ErrorSTT(
         "El proveedor de transcripcion fallo",
-        detalles={"modelo": modelo_usado, "motivo": str(exc)[:300]},
+        detalles={"modelo": modelo_usado, "motivo": str(motivo)[:300]},
     ) from exc

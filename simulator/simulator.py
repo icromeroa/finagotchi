@@ -280,6 +280,12 @@ def handle_message(client, message, last_notification_id=0):
     texto = message.get("texto_transcrito")
     if texto:
         print(f'[VOZ TRANSCRITA]: "{texto}"')
+    if message.get("proveedor_stt"):
+        proveedor = message["proveedor_stt"]
+        modelo = message.get("modelo_stt") or ""
+        print(f"[TRANSCRIPTO POR]: {proveedor} {modelo}".rstrip())
+    if message.get("stt_caida"):
+        print(f"[AVISO] {message['stt_caida']}")
 
     if intent == "cerrar_dia":
         print_closure(client.close_day())

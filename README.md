@@ -93,6 +93,17 @@ py -3 tools/probar_flujo_voz.py ruta\al\audio.wav
 - El audio se procesa en memoria y **no se guarda** ni en la base ni en disco.
 - El backend guarda el texto, la duración y la auditoría de la llamada en `interacciones_ia`.
 
+### Proveedores de transcripción
+
+| Proveedor | Clave | Cuota | Latencia | Cuándo usarlo |
+|---|---|---|---|---|
+| `gemini` | sí | 3 peticiones/min en la capa gratuita | 3–5 s | Cuentas con una API key Standard (`AIza`). |
+| `local` | no | ninguna | ~1 s | Siempre disponible, funciona sin internet. |
+
+`STT_PROVEEDOR=auto` (por defecto) intenta Gemini y, si la clave está rota, no hay cuota o el proveedor falla, cae al modelo local de `faster-whisper` corriendo en el PC del backend. La caída queda registrada en `interacciones_ia` y la respuesta indica qué proveedor se usó.
+
+El modelo local no necesita clave, ni cuota, ni conexión a internet: es la vía garantizada para una demo.
+
 ## Dataset de evaluación
 
 `datasets/eval_audio/manifest.csv` define 30 casos de prueba: montos en cifras y en palabras, millones, ingresos, gastos, ahorro, consultas, frases sin monto, ruido y acentos.

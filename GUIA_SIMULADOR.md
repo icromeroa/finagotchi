@@ -35,6 +35,24 @@ Sin clave, el backend responde `STT_NO_CONFIGURADO` cuando llega audio.
 
 > No copies la clave a `backend/.env.example`: ese archivo está versionado en git.
 
+### Si la clave de Gemini no funciona
+
+Google está cambiando el formato de sus claves: desde el 28 de mayo de 2026 AI Studio solo emite "Auth keys" (`AQ.Ab...`) y hay un problema abierto por el que devuelven `401 ACCESS_TOKEN_TYPE_UNSUPPORTED`.
+
+El simulador funciona igual gracias al **proveedor local**: `faster-whisper` corriendo en tu PC, sin clave, sin cuota y sin internet. Para activarlo:
+
+```powershell
+py -3 -m pip install faster-whisper
+```
+
+Con `STT_PROVEEDOR=auto` (el valor por defecto) no hay que hacer nada: el backend intenta Gemini y cae al modelo local si la clave falla. El simulador muestra con qué proveedor se transcribió:
+
+```
+[TRANSCRIPTO POR]: local whisper-base
+```
+
+Para forzar siempre el modelo local, pon `STT_PROVEEDOR=local` en `%USERPROFILE%\.finagotchi\gemini.env`.
+
 ## Configuración
 
 Edita `simulator/config.json`:

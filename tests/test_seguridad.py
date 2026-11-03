@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RAIZ = Path(__file__).resolve().parent
 
-PATRON_KEY_GOOGLE = re.compile(r"AIza[0-9A-Za-z\-_]{20,}")
+PATRON_KEY_GOOGLE = re.compile(r"(?:AIza|AQ\.Ab)[0-9A-Za-z\-_]{20,}")
 PATRON_KEY_ENTORNO = re.compile(
     r"^\s*(GEMINI_API_KEY|FINAGOTCHI_SECRET)\s*=\s*(\S+)\s*$", re.MULTILINE
 )
@@ -56,6 +56,33 @@ class SeguridadRepoTests(unittest.TestCase):
             + ", ".join(ofensores)
             + ". Quitala de inmediato y rota la clave en Google AI Studio.",
         )
+
+    def test_la_clave_externa_no_esta_en_el_repo(self):
+        """La clave real debe vivir en %USERPROFILE%/.finagotchi/gemini.env."""
+        from backend import ai
+
+        externo = ai.ARCHIVO_EXTERNO
+        if not externo.exists():
+            self.skipTest("Todavia no se ha configurado la clave externa")
+
+        clave = ""
+        for linea in externo.read_text(encoding="utf-8-sig").splitlines():
+            if linea.strip().startswith("GEMINI_API_KEY="):
+                clave = linea.split("=", 1)[1].strip()
+        if not clave:
+            self.skipTest("El archivo externo no tiene clave")
+        self.assertGreater(len(clave), 20, "La clave externa parece incompleta")
+
+        for ruta in archivos_textuales():
+            try:
+                contenido = ruta.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+            self.assertNotIn(
+                clave,
+                contenido,
+                f"La clave de {externo} tambien aparece en {ruta}",
+            )
 
     def test_env_example_no_tiene_valores_reales(self):
         ejemplo = ROOT / "backend" / ".env.example"

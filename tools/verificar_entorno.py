@@ -86,6 +86,17 @@ def revisar_base():
 
 def revisar_ia():
     print("Proveedor de transcripcion")
+    print(f"  Modo configurado: {ai.proveedor_preferido()}")
+
+    local_ok = ai.local_disponible()
+    if local_ok:
+        ok(f"Proveedor local disponible (faster-whisper, modelo {ai.modelo_local()})")
+    else:
+        aviso(
+            "Proveedor local no disponible: falta faster-whisper "
+            "(py -3 -m pip install faster-whisper)"
+        )
+
     origen = ai.origen_de_la_key()
     if not ai.esta_configurado():
         error("No hay API key de Gemini")
@@ -93,7 +104,11 @@ def revisar_ia():
             "Genera una key en https://aistudio.google.com y ejecuta: "
             "py -3 tools/configurar_api_key.py"
         )
+        if local_ok:
+            aviso("Igual se puede transcribir con el modelo local.")
+            return True
         return False
+
     ok(f"Key cargada desde: {origen}")
     ok(f"Modelo principal: {ai.modelo()}")
     ok(f"Cadena de modelos: {', '.join(ai.cadena_modelos())}")
@@ -109,8 +124,29 @@ def revisar_ia():
             aviso(f"  {candidato}: {marca}")
         return True
     except Exception as exc:  # noqa: BLE001
-        error(f"La API no responde: {type(exc).__name__}: {str(exc)[:200]}")
-        aviso("Puede ser cuota agotada (429) o una clave invalida.")
+        codigo = getattr(exc, "code", None)
+        if codigo == 401:
+            error("Google rechazo la API key (401)")
+            prefijo = ai.api_key()[:4]
+            if prefijo.startswith("AQ"):
+                aviso(
+                    "Es una 'Auth key' (AQ.Ab). Desde el 28 de mayo de 2026 AI Studio "
+                    "solo emite claves AQ y hay un problema abierto de compatibilidad: "
+                    "devuelven 401 ACCESS_TOKEN_TYPE_UNSUPPORTED."
+                )
+            aviso(
+                "Opciones: usar una clave Standard (AIza) de otro proyecto, "
+                "pedir revision de la cuenta a Google, o dejar STT_PROVEEDOR=local."
+            )
+        elif codigo == 403:
+            error("La clave no tiene permiso (403). Revisa la Generative Language API.")
+        elif codigo == 429:
+            aviso("Cuota agotada (429). Es temporal.")
+        else:
+            error(f"La API no responde: {type(exc).__name__}: {str(exc)[:200]}")
+        if local_ok:
+            aviso("El modelo local puede transcribir igual: no hay bloqueo.")
+            return True
         return False
 
 

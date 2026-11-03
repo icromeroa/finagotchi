@@ -32,6 +32,8 @@ PLANTILLA = """# Configuracion de FinaGotchi fuera del repositorio.
 GEMINI_API_KEY={clave}
 GEMINI_MODEL={modelo}
 GEMINI_MODEL_FALLBACKS={respaldos}
+STT_PROVEEDOR=auto
+STT_MODELO_LOCAL=base
 """
 
 
@@ -115,8 +117,25 @@ def main():
                 f"{', '.join(n for n in modelos if 'flash' in n)[:200]}"
             )
     except Exception as exc:  # noqa: BLE001
-        print(f"No se pudo verificar la key contra la API: {type(exc).__name__}: {exc}")
-        print("Revisa que la clave sea correcta y que la cuota este activa.")
+        codigo = getattr(exc, "code", None)
+        print(f"La API no acepto la key: {type(exc).__name__} ({codigo})")
+        if codigo == 401 and clave.startswith("AQ"):
+            print()
+            print("Es una 'Auth key' (AQ.Ab). Desde el 28 de mayo de 2026 AI Studio")
+            print("solo emite ese formato y hay un problema abierto de compatibilidad:")
+            print("esas claves devuelven 401 ACCESS_TOKEN_TYPE_UNSUPPORTED.")
+            print()
+            print("Opciones:")
+            print("  1. Usar el modelo local del PC (no necesita clave ni cuota):")
+            print("     py -3 -m pip install faster-whisper")
+            print("     y dejar STT_PROVEEDOR=local en la configuracion.")
+            print("  2. Conseguir una clave Standard (AIza) de otro proyecto.")
+            print("  3. Pedir a Google la revision de la cuenta.")
+        else:
+            print("Revisa que la clave sea correcta y que la cuota este activa.")
+        if codigo == 401:
+            print()
+            print("La key se guardo igual, pero no sirve hasta que Google la acepte.")
         return 1
 
     print("\nListo. Reinicia el backend para que tome la configuracion:")

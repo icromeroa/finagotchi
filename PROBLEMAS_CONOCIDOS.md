@@ -16,6 +16,8 @@ Estado al cierre de la Fase A (audio real con IA).
 | El audio podía quedar almacenado | Resuelto | El audio se procesa en memoria y no se persiste en disco ni en la base. |
 | La clave de Gemini podía subirse al repositorio | Resuelto | `.gitignore` excluye `backend/.env` y `*.db`. |
 | Un `git clean -xdf` borró `backend/.env` y se perdió la clave | Resuelto | La clave ahora vive en `%USERPROFILE%\.finagotchi/gemini.env`, fuera del repo, con `tools/configurar_api_key.py`. `tests/test_seguridad.py` falla si una clave real entra al repo. |
+| Se pegó la clave real en `backend/.env.example`, que sí está versionado | Resuelto | La prueba de seguridad lo detectó y lo limpió. La clave real solo puede vivir en el archivo externo o en una variable de entorno. |
+| Google devolvió `401 ACCESS_TOKEN_TYPE_UNSUPPORTED` con la clave `AQ.Ab` | Resuelto con alternativa | Problema abierto de Google: desde el 28 de mayo de 2026 AI Studio solo emite "Auth keys" y hay incompatibilidades con `generativelanguage.googleapis.com`. Se agregó el proveedor local con faster-whisper, que no necesita clave ni cuota, y `STT_PROVEEDOR=auto` cae a él automáticamente. |
 
 ## Abiertos
 
