@@ -19,16 +19,32 @@ import time
 import uuid
 from pathlib import Path
 
-import keyboard
 import requests
 import scipy.io.wavfile as wav
-import sounddevice as sd
 
 RAIZ = Path(__file__).resolve().parent.parent
 if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
 from simulator import pantallas  # noqa: E402
+
+# El teclado y el microfono son opcionales: si falta alguno, el simulador
+# avisa que instalar y sigue funcionando con la alternativa disponible.
+try:
+    import keyboard
+
+    TECLADO_DISPONIBLE = True
+except Exception:  # noqa: BLE001 - la libreria puede fallar al importar
+    keyboard = None
+    TECLADO_DISPONIBLE = False
+
+try:
+    import sounddevice as sd
+
+    MICROFONO_DISPONIBLE = True
+except Exception:  # noqa: BLE001 - falta PortAudio o no hay microfono
+    sd = None
+    MICROFONO_DISPONIBLE = False
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
 DEFAULT_CONFIG = {
@@ -215,14 +231,32 @@ class FinaGotchiClient:
 def capture_voice(duracion_maxima=40):
     """Graba el microfono mientras se mantenga la tecla ESPACIO.
 
+    Si el hook de teclado no esta disponible (en Windows suele hacer falta
+    ejecutar como administrador), se graba con la tecla ENTER: una pulsacion
+    empieza a grabar y la siguiente la detiene.
+
     Devuelve los bytes WAV y la duracion. El simulador no transcribe: solo
     captura y envia el audio al backend, igual que hara el firmware.
     """
-    print("\n  Mantén presionada la tecla [ESPACIO] y habla.")
-    print("  Suelta para enviar. [Atrás para cancelar]")
+    if not MICROFONO_DISPONIBLE:
+        print()
+        print("  No se pudo cargar el microfono (falta PortAudio o sounddevice).")
+        print("  Instala las dependencias del simulador:")
+        print("      py -3 -m pip install -r requirements-simulator.txt")
+        return b"", 0.0
 
-    while not keyboard.is_pressed("space"):
-        time.sleep(0.05)
+    usar_teclado = TECLADO_DISPONIBLE
+    if usar_teclado:
+        print("\n  Mantén presionada la tecla [ESPACIO] y habla.")
+        print("  Suelta para enviar. [Atrás para cancelar]")
+    else:
+        print("\n  El hook de teclado no esta disponible (se necesita ejecutar")
+        print("  como administrador). Se graba con la tecla ENTER:")
+        print("  una pulsacion empieza a grabar y la siguiente la detiene.")
+
+    if usar_teclado:
+        while not keyboard.is_pressed("space"):
+            time.sleep(0.05)
 
     bloques = []
     inicio = time.time()
@@ -233,11 +267,21 @@ def capture_voice(duracion_maxima=40):
     with sd.InputStream(
         samplerate=CONFIG["sample_rate"], channels=1, dtype="int16", callback=callback
     ):
-        while keyboard.is_pressed("space"):
-            time.sleep(0.05)
-            if time.time() - inicio > duracion_maxima:
-                print(f"  Tiempo máximo alcanzado ({duracion_maxima}s).")
-                break
+        if usar_teclado:
+            while keyboard.is_pressed("space"):
+                time.sleep(0.05)
+                if time.time() - inicio > duracion_maxima:
+                    print(f"  Tiempo máximo alcanzado ({duracion_maxima}s).")
+                    break
+        else:
+            input("  [ENTER] para empezar a grabar... ")
+            while True:
+                time.sleep(0.05)
+                if time.time() - inicio > duracion_maxima:
+                    print(f"  Tiempo máximo alcanzado ({duracion_maxima}s).")
+                    break
+                if not input("  [ENTER] para detener la grabación: ").strip():
+                    break
 
     duracion = round(time.time() - inicio, 1)
     if not bloques:
@@ -355,7 +399,38 @@ class Simulador:
         self.ultimo_home = self.client.home()
 
 
+def verificar_backend():
+    """Comprueba que el backend responda y explica que hacer si no."""
+    try:
+        respuesta = requests.get(f"{BASE_URL}/health", timeout=5)
+        if respuesta.status_code == 200:
+            return True
+    except requests.RequestException:
+        pass
+    print()
+    print("  ! No se pudo conectar con el backend.")
+    print(f"    Direccion: {BASE_URL}")
+    print()
+    print("  Levanta el backend en otra terminal, desde la raiz del proyecto:")
+    print("      py -3 backend/server.py")
+    print()
+    print("  Si el backend esta en otra maquina, cambia la direccion en")
+    print("  simulator/config.json o en la variable FINAGOTCHI_BASE_URL.")
+    return False
+
+
 def main():
+    print("  ==============================================")
+    print("     SIMULADOR FINAGOTCHI (dispositivo virtual)")
+    print("  ==============================================")
+    print(f"  Backend: {BASE_URL}")
+    if not TECLADO_DISPONIBLE:
+        print("  Teclado: sin hook (usa ENTER para grabar). Ejecuta como administrador para la ESPACIO.")
+    if not MICROFONO_DISPONIBLE:
+        print("  Microfono: NO disponible. Instala requirements-simulator.txt")
+    if not verificar_backend():
+        return 1
+
     client = FinaGotchiClient(CONFIG)
     user = client.login_or_register()
     print(f"  Sesión iniciada como {user['correo']}")

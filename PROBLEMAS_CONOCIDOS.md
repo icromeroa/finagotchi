@@ -1,39 +1,62 @@
 # Problemas conocidos
 
-Estado al cierre de la Fase A (audio real con IA).
+Registro de los errores encontrados durante el desarrollo, como se resolvieron y los que siguen abiertos.
 
-## Resueltos en esta fase
+Estado al cierre de la Fase A y la fase del simulador por menús.
 
-| Problema | Estado | Solución |
+## Errores encontrados y resueltos
+
+### El simulador no arrancaba
+
+| Síntoma | Causa | Resolución |
 |---|---|---|
-| El simulador transcribía en el PC con Google Speech Recognition | Resuelto | El simulador graba el WAV y lo envía al backend; transcribe Gemini Flash. |
-| El backend no aceptaba audio | Resuelto | `POST /messages` y `POST /device/messages` aceptan `multipart/form-data` con el campo `audio`. |
-| `STT_NO_CONFIGURADO` sin proveedor | Resuelto | `backend/ai.py` con Gemini Flash, configurable por `backend/.env`. |
-| El límite de audio era de 30 segundos | Resuelto | Esquema v4 con CHECK de 0,5 a 40 segundos en `mensajes_dispositivo` y `dispositivos_telemetria`. |
-| Los montos en palabras no se entendían | Resuelto | `backend/nlp.py` interpreta cifras y palabras, de `catorce mil` a `dos millones quinientos mil`. |
-| Los montos en millones no se detectaban | Resuelto | El intérprete reconoce `millones` y `1.5 millones`. |
-| El mensaje duplicado se procesaba dos veces | Resuelto | La idempotencia se valida antes de llamar al proveedor de transcripción. |
-| El audio podía quedar almacenado | Resuelto | El audio se procesa en memoria y no se persiste en disco ni en la base. |
-| La clave de Gemini podía subirse al repositorio | Resuelto | `.gitignore` excluye `backend/.env` y `*.db`. |
-| Un `git clean -xdf` borró `backend/.env` y se perdió la clave | Resuelto | La clave ahora vive en `%USERPROFILE%\.finagotchi/gemini.env`, fuera del repo, con `tools/configurar_api_key.py`. `tests/test_seguridad.py` falla si una clave real entra al repo. |
-| Se pegó la clave real en `backend/.env.example`, que sí está versionado | Resuelto | La prueba de seguridad lo detectó y lo limpió. La clave real solo puede vivir en el archivo externo o en una variable de entorno. |
-| Google devolvió `401 ACCESS_TOKEN_TYPE_UNSUPPORTED` con la clave `AQ.Ab` | Resuelto con alternativa | Problema abierto de Google: desde el 28 de mayo de 2026 AI Studio solo emite "Auth keys" y hay incompatibilidades con `generativelanguage.googleapis.com`. Se agregó el proveedor local con faster-whisper, que no necesita clave ni cuota, y `STT_PROVEEDOR=auto` cae a él automáticamente. |
-| La transcripción escribía las marcas mal ("por Nike", "con David Plata") | Resuelto | El backend manda los nombres de las cuentas y categorías del usuario como hotwords del modelo de transcripción. |
-| Las reglas por palabra clave no alcanzaban para asignar categoría y cuenta | Resuelto | Se agregó la interpretación con modelo de lenguaje (Ollama con `qwen3:4b`, o Gemini). La respuesta del modelo se valida contra el catálogo real del usuario y lo que no cuadra se completa con las reglas. |
-| La interpretación por IA dejaba movimientos sin categoría y violaba el CHECK del esquema | Resuelto | Todo movimiento distinto de ahorro recibe la categoría de último recurso ("Otros" / "Otros ingresos"). Además la API ya responde JSON en el error 500 en vez de la página de depuración de Flask. |
+| `ImportError: cannot import name 'pantallas' from 'simulator'` al ejecutar `py -3 simulator/simulator.py` | El archivo de entrada se llamaba igual que el paquete que lo contenía. Al ejecutarlo directamente, Python pone el directorio del script primero en `sys.path`, encuentra `simulator.py` y lo carga como el módulo `simulator`, que no tiene el atributo `pantallas`. | La entrada pasó a `simulator/main.py` y el paquete tiene `__init__.py`. Se dejó además `simulator/simulator.py` como atajo para que el comando viejo siga funcionando. |
+| La falla no la detectaban las pruebas | El módulo se probaba importándolo, que sí funciona. La falla solo aparece al ejecutar el comando. | Se agregó `tests/test_comandos.py`: levanta el backend en un puerto libre y ejecuta los comandos documentados. |
+| `ConnectionResetError` al enviar el audio | El servidor de Flask arrancaba con `debug=True`, que activa el reinicio automático. Cualquier cambio de archivo reiniciaba el proceso y cortaba la petición en vuelo. | El reinicio automático quedó desactivado por defecto. Se activa con `FLASK_DEBUG=1`. |
+| `UnicodeEncodeError: 'charmap' codec` al imprimir las pantallas | La consola de Windows usa cp1252 y no puede imprimir los caracteres de cuadro de las líneas. | Las pantallas se dibujan con caracteres ASCII. |
+| El simulador no mostraba los ingresos del día | La API siempre devolvió ingresos, gastos, ahorro y balance. El bug estaba en el simulador, que solo pintaba gastos y cupo. | La pantalla D08 "Así vas hoy" muestra el balance completo. |
+| El backend respondía con la página de depuración de HTML en vez de JSON | No había manejador para errores inesperados. | Se agregó un manejador que responde JSON en el error 500. |
+| `CHECK constraint failed` al guardar una transacción | El esquema exige categoría en todo movimiento distinto de ahorro, y la interpretación por IA podía devolverla nula. | Todo movimiento recibe la categoría de último recurso ("Otros" u "Otros ingresos"). |
 
-## Abiertos
+### La API key de Gemini
+
+| Síntoma | Causa | Resolución |
+|---|---|---|
+| `503 STT_NO_CONFIGURADO` con la clave puesta | El archivo `backend/.env` se había borrado. | La clave se guarda ahora fuera del repositorio, en `%USERPROFILE%/.finagotchi/gemini.env`, con `tools/configurar_api_key.py`. |
+| `401 UNAUTHENTICATED` / `ACCESS_TOKEN_TYPE_UNSUPPORTED` | La clave empezaba con `AQ.Ab` (Auth key). Desde el 28 de mayo de 2026 AI Studio solo emite Auth keys y hay un problema abierto de compatibilidad con `generativelanguage.googleapis.com`. No es un error del código. | Se agregó el proveedor local de transcripción (faster-whisper) que no necesita clave, ni cuota ni internet, y `STT_PROVEEDOR=auto` cae a él automáticamente. |
+| La clave podía quedar versionada | `backend/.env.example` sí está versionado en git. | `tests/test_seguridad.py` falla si una clave con formato de Google aparece en cualquier archivo del repo, y se limpió el archivo. |
+
+### La transcripción y la IA
+
+| Síntoma | Causa | Resolución |
+|---|---|---|
+| "gasté por nequi" no detectaba la cuenta | El modelo de ASR escribe las marcas de forma aproximada: "por Nike", "con David Plata", "a la cuenta no". | El backend manda los nombres de las cuentas y categorías del usuario como *hotwords* al modelo de transcripción. |
+| La categoría y la cuenta no se asignaban bien | Las reglas por palabra clave no alcanzan para decidir el contexto ("en el almacén" no está en ninguna lista). | Se agregó la interpretación con modelo de lenguaje (Ollama con `qwen3:4b`), con validación de la respuesta contra el catálogo real del usuario. |
+| La transcripción tardaba 38 segundos | Qwen3 viene con "modo pensar" activado. | La llamada a Ollama usa `think: false`. La misma llamada bajó a 2,6 segundos. |
+| `qwen3:1.7b` clasifica mal | Es más rápido (4,5 s) pero dice que un almuerzo es Transporte y que ahorrar es un ingreso. | Se usa `qwen3:4b` por defecto: 4 de 4 frases correctas con 7,2 segundos. |
+| Las categorías del usuario no se respetaban | La IA podía inventar una categoría que no existe. | La respuesta se valida contra la base: lo que no existe se descarta y se usa el valor por defecto. |
+
+### Los montos
+
+| Síntoma | Causa | Resolución |
+|---|---|---|
+| "catorce mil" no se entendía | El intérprete solo tenía una lista fija de frases en palabras. | Se reescribió el intérprete: entiende cifras y palabras, de "catorce mil" a "dos millones quinientos mil". |
+| Los millones no se detectaban | El patrón no contemplaba "millones". | Se reconoce "millones" y "1.5 millones". |
+| "5 mil" se perdía | El modelo de transcripción lo escribe "5.000". | El intérprete entiende las dos formas. |
+
+## Errores abiertos
 
 | Problema | Impacto | Plan |
 |---|---|---|
-| El modelo `gemini-3.8-flash` responde `503` por demanda alta | Transcripción intermitente | Cadena de modelos de respaldo (`GEMINI_MODEL_FALLBACKS`) y reintento con backoff. Implementado. |
-| La capa gratuita limita a 3 peticiones por minuto y por modelo | El dataset de 500 clips necesita pausas | `tools/evaluar_dataset.py` espera entre clips y reintenta ante `429`. |
-| La capa gratuita sube la latencia de transcripción a 16–18 s cuando se agota la cuota | El usuario espera demasiado ante el dispositivo | Con la API en reposo la latencia es de 3–5 s. Para producción se recomienda cuenta de pago o un STT dedicado. |
-| Un mensaje con dos transacciones solo genera una | Se pierde parte de la información | El esquema ya soporta varias transacciones por mensaje; falta la segmentación en `backend/nlp.py`. |
-| La app Flutter no tiene capa HTTP | El frontend no consume la API | Fase B: cliente HTTP, tokens, login, onboarding y pantalla de voz. |
-| No existe firmware de la ESP32 | El dispositivo físico no funciona | Fase C: grabación I2S, envío por Wi-Fi, polling de notificaciones y pantalla. |
-| La ESP32 no puede guardar 40 s de WAV en SRAM | Límite físico | Streaming por Wi-Fi o cola temporal en flash. Decisión de firmware pendiente. |
+| El mensaje con dos transacciones solo genera una | Se pierde parte de la información | El esquema ya soporta varias transacciones por mensaje; falta la segmentación en `backend/nlp.py`. |
+| La app Flutter no tiene capa HTTP | El frontend no consume la API | Fase B: cliente HTTP, tokens, login, onboarding, home y voz. |
+| Flutter no está en el PATH de las terminales abiertas | Flutter 3.47.9 está instalado en `C:\Users\ASUS\Downloads\flutter`, pero las terminales abiertas antes de la instalación no lo ven | Cerrar y abrir la terminal, o usar la ruta completa: `C:\Users\ASUS\Downloads\flutter\bin\flutter.bat` |
+| La base de datos es versionada en git | Cada cambio de esquema aparece en el diff | Dejarla así durante el desarrollo; sacarla del índice antes de publicar. |
+| El dataset de 500 casos es sintético | No hay línea base con voz humana | `tools/grabar_dataset.py` graba los clips con el micrófono y `tools/evaluar_dataset.py` mide el WER, los montos y la latencia. |
+| El endpoint `/metrics/diagnosis` de la documentación no existe | El backend expone `/metrics/diagnostics` | Corregir la documentación en la fase B. |
+| Endpoints de app documentados pero no implementados | `/notifications`, `/notification-preferences`, `/trash`, `/transactions/bulk-confirm`, `/device/commands` | Fase B: implementarlos o retirarlos de la documentación. |
+| No existe firmware de la ESP32 | El dispositivo físico no funciona | Fase D: grabación I2S, envío por Wi-Fi, polling de notificaciones y pantalla. |
+| La ESP32 no puede guardar 40 s de WAV en SRAM | Límite físico de 512 KB | Streaming por Wi-Fi o cola temporal en flash. Decisión de firmware pendiente. |
+| El modelo de IA vive en el PC del desarrollador | Solo funciona en la red local | Hoy el backend corre en el PC y la ESP32 apunta a su IP. Cuando pase a un servidor solo cambia la URL: el firmware no cambia. |
 | BLE sin implementar | Solo configuración | El MVP usa Wi-Fi; BLE queda para la vinculación inicial. |
-| Endpoints de app documentados pero no implementados | `/notifications`, `/trash`, `/transactions/bulk-confirm`, `/device/commands` | Fase B: implementarlos o retirarlos de la documentación. |
-| `docs/ESPECIFICACIONES.md` usa `/metrics/diagnosis` | El backend expone `/metrics/diagnostics` | Corregir la documentación en la fase B. |
-| El dataset real todavía no está grabado | No hay línea base con voz humana | `tools/grabar_dataset.py` graba los 500 clips del manifiesto. |
+| `qwen3:4b` tarda 7 segundos en interpretar | La espera después de hablar | Se puede bajar a `qwen3:1.7b` con `OLLAMA_MODEL`, pero clasifica peor. Aceptable: la pantalla D05 muestra "Entendiendo tu mensaje". |

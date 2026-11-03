@@ -85,8 +85,15 @@ class ComandosDocumentadosTests(unittest.TestCase):
 
     def test_el_simulador_arranca_en_el_comando_documentado(self):
         """Ejecuta 'py -3 simulator/main.py' y sale del menu con 'S'."""
+        self._comprobar_comando("simulator/main.py")
+
+    def test_el_comando_antiguo_del_simulador_tambien_funciona(self):
+        """El atajo 'py -3 simulator/simulator.py' debe seguir sirviendo."""
+        self._comprobar_comando("simulator/simulator.py")
+
+    def _comprobar_comando(self, ruta):
         resultado = subprocess.run(
-            [sys.executable, "simulator/main.py"],
+            [sys.executable, ruta],
             cwd=str(RAIZ),
             env=self.entorno,
             input="s\n",
@@ -98,22 +105,30 @@ class ComandosDocumentadosTests(unittest.TestCase):
         self.assertEqual(
             resultado.returncode,
             0,
-            f"Falló 'py -3 simulator/main.py':\n{salida[-3000:]}",
+            f"Falló 'py -3 {ruta}':\n{salida[-3000:]}",
         )
         self.assertNotIn("ImportError", salida)
         self.assertNotIn("Traceback", salida)
         self.assertIn("Dispositivo vinculado", salida)
         self.assertIn("[H] Hablar", salida)
 
-    def test_el_modulo_del_simulador_no_se_sombrea_a_si_mismo(self):
-        """El archivo de entrada no puede llamarse igual que el paquete."""
-        entrada = RAIZ / "simulator" / "main.py"
-        self.assertTrue(entrada.exists(), "Falta simulator/main.py")
-        self.assertFalse(
-            (RAIZ / "simulator" / "simulator.py").exists(),
-            "simulator/simulator.py se sombrea a si mismo al ejecutarlo "
-            "directamente: el import de las pantallas falla.",
+    def test_el_simulador_explica_cuando_el_backend_no_responde(self):
+        """Sin backend debe decir que levantarlo, no soltar una excepcion."""
+        entorno = dict(self.entorno)
+        entorno["FINAGOTCHI_BASE_URL"] = "http://127.0.0.1:5999/api/v1"
+        resultado = subprocess.run(
+            [sys.executable, "simulator/main.py"],
+            cwd=str(RAIZ),
+            env=entorno,
+            input="s\n",
+            capture_output=True,
+            text=True,
+            timeout=TIEMPO_MAXIMO,
         )
+        salida = resultado.stdout + resultado.stderr
+        self.assertNotIn("Traceback", salida)
+        self.assertIn("No se pudo conectar con el backend", salida)
+        self.assertIn("py -3 backend/server.py", salida)
 
     def test_el_paquete_simulador_se_importa_desde_la_raiz(self):
         resultado = subprocess.run(
