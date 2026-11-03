@@ -49,10 +49,14 @@ Estado al cierre de la Fase A y la fase del simulador por menús.
 | Problema | Impacto | Plan |
 |---|---|---|
 | El mensaje con dos transacciones solo genera una | Se pierde parte de la información | El esquema ya soporta varias transacciones por mensaje; falta la segmentación en `backend/nlp.py`. |
-| La app Flutter no tiene capa HTTP | El frontend no consume la API | Fase B: cliente HTTP, tokens, login, onboarding, home y voz. |
+| La app Flutter no tiene capa HTTP | El frontend no consumía la API | **Resuelto en la fase B:** `frontend/lib/api/` con el cliente HTTP, la pantalla de acceso y la pantalla principal ya hablan con el backend. Falta conectar el onboarding (15 pantallas). |
+| En web no se puede grabar la voz | El navegador solo ofrece webm/opus y el backend acepta WAV | La app lo detecta y ofrece escribir la frase a mano. La voz funciona en Android e iOS. |
+| Flutter 3.47.9 está en `C:\Users\ASUS\Downloads\flutter` pero no en el PATH de las terminales abiertas | Flutter no se encuentra | Cerrar y abrir la terminal, o usar `C:\Users\ASUS\Downloads\flutter\bin\flutter.bat` |
+| La carpeta `frontend/assets/animations/` no existía | `flutter test` y `flutter build` fallaban al leer el pubspec | Se creó la carpeta con su `.gitkeep`. |
 | Flutter no está en el PATH de las terminales abiertas | Flutter 3.47.9 está instalado en `C:\Users\ASUS\Downloads\flutter`, pero las terminales abiertas antes de la instalación no lo ven | Cerrar y abrir la terminal, o usar la ruta completa: `C:\Users\ASUS\Downloads\flutter\bin\flutter.bat` |
 | La base de datos es versionada en git | Cada cambio de esquema aparece en el diff | Dejarla así durante el desarrollo; sacarla del índice antes de publicar. |
 | El dataset de 500 casos es sintético | No hay línea base con voz humana | `tools/grabar_dataset.py` graba los clips con el micrófono y `tools/evaluar_dataset.py` mide el WER, los montos y la latencia. |
+| `flutter test` intercepta las peticiones HTTP | Las pruebas contra el backend real fallaban con "respuesta que no se pudo leer" | En `frontend/test/api_client_test.dart` se anula `HttpOverrides.global` para que las peticiones salgan de verdad. |
 | El endpoint `/metrics/diagnosis` de la documentación no existe | El backend expone `/metrics/diagnostics` | Corregir la documentación en la fase B. |
 | Endpoints de app documentados pero no implementados | `/notifications`, `/notification-preferences`, `/trash`, `/transactions/bulk-confirm`, `/device/commands` | Fase B: implementarlos o retirarlos de la documentación. |
 | No existe firmware de la ESP32 | El dispositivo físico no funciona | Fase D: grabación I2S, envío por Wi-Fi, polling de notificaciones y pantalla. |

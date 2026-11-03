@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../api/api_client.dart';
+import '../api/servicios.dart';
 import '../theme/app_colors.dart';
+import 'home_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool showPassword = false;
   bool showErrors = false;
+  bool cargando = false;
 
   bool get emailIsValid =>
       RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
@@ -27,14 +31,33 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void login() {
-    setState(() => showErrors = true);
+  Future<void> login() async {
+    setState(() {
+      showErrors = true;
+      cargando = true;
+    });
 
     if (!emailIsValid || passwordController.text.isEmpty) {
+      setState(() => cargando = false);
       return;
     }
 
-    _message('Inicio de sesión de demostración.');
+    try {
+      await api.login(emailController.text.trim(), passwordController.text);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } on ApiError catch (e) {
+      if (!mounted) return;
+      setState(() => cargando = false);
+      _message(e.mensaje);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => cargando = false);
+      _message('No se pudo iniciar sesion: $e');
+    }
   }
 
   void _message(String message) {
@@ -245,8 +268,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 15),
                           Center(
                             child: _LimeButton(
-                              text: 'Entrar a mi Finagotchi',
-                              onTap: login,
+                              text: cargando ? 'Entrando...' : 'Entrar a mi Finagotchi',
+                              onTap: cargando ? null : login,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -590,7 +613,7 @@ class _LimeButton extends StatelessWidget {
   });
 
   final String text;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -602,6 +625,7 @@ class _LimeButton extends StatelessWidget {
           backgroundColor: AppColors.lime,
           foregroundColor: AppColors.darkGreen,
           elevation: 0,
+          disabledBackgroundColor: AppColors.lime.withValues(alpha: 0.5),
           padding: const EdgeInsets.symmetric(horizontal: 20),
           shape: const StadiumBorder(),
         ),

@@ -155,6 +155,40 @@ El manifiesto se actualiza con la duración de cada clip. Los audios no se versi
 
 Objetivos de la evaluación: WER menor a 15 %, montos exactos en al menos 90 % de los casos y latencia p95 menor a 5 segundos.
 
+## App Flutter
+
+La app ya habla con el backend: la capa HTTP está en `frontend/lib/api/`.
+
+```powershell
+cd frontend
+flutter pub get
+flutter run
+```
+
+La dirección del backend se resuelve sola (`127.0.0.1` en web y escritorio, `10.0.2.2` en el emulador de Android). Para apuntar a otro equipo:
+
+```powershell
+flutter run --dart-define=API_BASE_URL=http://192.168.1.7:5000/api/v1
+```
+
+Qué ya está conectado:
+
+| Parte | Qué hace |
+|---|---|
+| `frontend/lib/api/api_client.dart` | Cliente HTTP con token, refresco automático y manejo de errores del backend. |
+| `frontend/lib/api/grabador.dart` | Graba PCM de 16 kHz mono y lo envuelve en un WAV, que es lo que acepta el backend. |
+| `frontend/lib/screens/login_screen.dart` | Inicio de sesión y registro reales contra la API. |
+| `frontend/lib/screens/home_screen.dart` | Carga el resumen del día real y manda la voz al backend para que la transcriba e interprete. |
+
+En web el navegador solo ofrece webm/opus, que el backend no acepta: ahí la app lo avisa y ofrece escribir la frase a mano. La voz funciona en Android e iOS.
+
+Pruebas de la app (necesitan el backend levantado):
+
+```powershell
+cd frontend
+flutter test
+```
+
 ## Base de datos
 
 - SQLite con `PRAGMA foreign_keys = ON`.
