@@ -182,6 +182,10 @@ Qué ya está conectado:
 
 En web el navegador solo ofrece webm/opus, que el backend no acepta: ahí la app lo avisa y ofrece escribir la frase a mano. La voz funciona en Android e iOS.
 
+El paso de **vincular el dispositivo** se puede saltar con el botón "Ahora no", que lleva directo al home. El vínculo se puede hacer después.
+
+Si la app en Chrome no se conecta, revisa que el backend esté corriendo. El backend responde con el permiso de red privada que Chrome exige para hablar con un servidor local.
+
 Pruebas de la app (necesitan el backend levantado):
 
 ```powershell

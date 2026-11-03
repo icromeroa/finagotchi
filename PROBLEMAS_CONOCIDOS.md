@@ -49,6 +49,8 @@ Estado al cierre de la Fase A y la fase del simulador por menús.
 | Problema | Impacto | Plan |
 |---|---|---|
 | El mensaje con dos transacciones solo genera una | Se pierde parte de la información | El esquema ya soporta varias transacciones por mensaje; falta la segmentación en `backend/nlp.py`. |
+| La app en Chrome no podía iniciar sesión aunque el backend estuviera bien | **Error de CORS por "red privada".** Desde Chrome 115, una página web que pide datos a un servidor de la red local envía `Access-Control-Request-Private-Network: true` en el preflight. El backend no respondía con `Access-Control-Allow-Private-Network: true`, así que **el navegador bloqueaba la petición y nunca llegaba al servidor**. | El backend responde ahora ese permiso cuando el navegador lo pide, con `tests/test_cors.py` como prueba. |
+| La app no dejaba llegar al home sin vincular el dispositivo | El paso de enlace era obligatorio | Se agregó el botón "Ahora no" en `device_link_screen.dart`, que lleva directo al home. |
 | La app Flutter no tiene capa HTTP | El frontend no consumía la API | **Resuelto en la fase B:** `frontend/lib/api/` con el cliente HTTP, la pantalla de acceso y la pantalla principal ya hablan con el backend. Falta conectar el onboarding (15 pantallas). |
 | En web no se puede grabar la voz | El navegador solo ofrece webm/opus y el backend acepta WAV | La app lo detecta y ofrece escribir la frase a mano. La voz funciona en Android e iOS. |
 | Flutter 3.47.9 está en `C:\Users\ASUS\Downloads\flutter` pero no en el PATH de las terminales abiertas | Flutter no se encuentra | Cerrar y abrir la terminal, o usar `C:\Users\ASUS\Downloads\flutter\bin\flutter.bat` |

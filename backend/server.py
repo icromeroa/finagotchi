@@ -223,6 +223,11 @@ def create_app(database=None):
             "Content-Type, Authorization, X-Device-Token"
         )
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
+        # Chrome (desde la version 115) exige este permiso cuando la app web
+        # le pide al backend que esta en la red local. Sin esta linea el
+        # navegador bloquea la peticion y ni siquiera llega al servidor.
+        if request.headers.get("Access-Control-Request-Private-Network") == "true":
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
         return response
 
     @app.errorhandler(ValueError)
