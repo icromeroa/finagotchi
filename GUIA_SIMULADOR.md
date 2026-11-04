@@ -1,181 +1,102 @@
-# 🕹️ Guía de Uso e Instalación: Simulador FinaGotchi (PC)
+# Simulador FinaGotchi (PC)
 
-Este documento detalla los requisitos, pasos de instalación y el procedimiento paso a paso para ejecutar el servidor local y el simulador de hardware por voz del proyecto **FinaGotchi**.
+El simulador representa el dispositivo físico: inicia sesión con un usuario de prueba, vincula un dispositivo virtual, captura voz, envía el texto al backend y confirma el registro propuesto.
 
----
+> **Cambio pendiente:** el flujo objetivo es que el simulador envíe audio a `POST /api/v1/device/messages` y que la IA del backend haga la transcripción y la clasificación. El endpoint ya existe, pero mientras no haya proveedor STT configurado el simulador transcribe en el PC con Google Speech Recognition y envía `texto` como fallback.
 
-## 📋 Requisitos Previos
+## Requisitos
 
-1. **Python 3.10 o superior** instalado en el sistema.
-2. Micrófono operativo conectado a la computadora.
-3. Conexión a Internet (requerida por el servicio Google Speech Recognition para transcribir el audio).
+- Python 3.10 o superior.
+- Micrófono.
+- Conexión a Internet para Google Speech Recognition.
+- Backend v2 iniciado.
+- Permisos de administrador para que `keyboard` capture la tecla ESPACIO.
 
----
-
-## 🛠️ Instalación de Dependencias
-
-Abre una terminal de PowerShell y ejecuta el siguiente comando para instalar las librerías necesarias (mantenimiento optimizado con `sounddevice` para evitar errores de compilación C++):
+## Instalación
 
 ```powershell
-py -m pip install flask requests keyboard SpeechRecognition sounddevice scipy numpy
+py -3 -m pip install flask requests keyboard SpeechRecognition sounddevice scipy numpy
 ```
 
-### Paquetes instalados
+## Configuración
 
-- `flask`: Framework web para la API REST del servidor backend.
-- `requests`: Cliente HTTP para el envío de peticiones JSON desde el simulador.
-- `keyboard`: Detección del evento de presionar/soltar la tecla ESPACIO.
-- `sounddevice` & `scipy`: Captura de audio del micrófono en tiempo real.
-- `SpeechRecognition`: Procesamiento e interpretación de voz a texto en español (`es-CO`).
-
----
-
-## 🔓 Cómo abrir PowerShell en Modo Administrador
-
-El simulador requiere permisos de administrador para capturar globalmente la tecla ESPACIO mediante la librería `keyboard`.
-
-### Opción A: Desde Visual Studio Code (Recomendada)
-
-Abre tu terminal integrada en VS Code (`Ctrl + Shift + ~`).
-
-Ejecuta el comando:
-
-```powershell
-Start-Process powershell -Verb RunAs
-```
-
-Acepta el mensaje emergente de confirmación de Windows (UAC).
-
-### Opción B: Desde el Menú Inicio de Windows
-
-Presiona la tecla Windows y busca PowerShell.
-
-Haz clic derecho sobre Windows PowerShell y selecciona **Ejecutar como administrador**.
-
----
-
-## 🚀 Guía de Ejecución Paso a Paso
-
-Para probar el flujo completo necesitas tener dos terminales abiertas simultáneamente.
-
-### Paso 1: Iniciar el Servidor Backend (`server.py`)
-
-Abre tu Terminal 1 (no requiere permisos de administrador).
-
-Navega a la carpeta de tu proyecto:
-
-```powershell
-cd "ruta/a/tu/proyecto/finagotchi"
-```
-
-Ejecuta el servidor Flask:
-
-```powershell
-py backend/server.py
-```
-
-Deberás ver el mensaje que confirma que el backend escucha en `http://127.0.0.1:5000`.
-
-### Paso 2: Iniciar el Simulador de Hardware (`simulador.py`)
-
-Abre la Terminal 2 (Ejecutada como Administrador).
-
-Navega a la carpeta del proyecto:
-
-```powershell
-cd "ruta/a/tu/proyecto/finagotchi"
-```
-
-Ejecuta el archivo del simulador:
-
-```powershell
-py simulator/simulator.py
-```
-
----
-
-## 🎙️ Interacción y Comandos de Voz
-
-Una vez cargado el simulador, puedes interactuar manteniendo presionada la barra espaciadora.
-
-### Modo de Uso
-
-- Mantén presionada la barra espaciadora **[ESPACIO]**.   
-- Habla al micrófono pronunciando una frase de prueba, por ejemplo:   
-    - Gasto: "Gasté 14000 pesos en el almuerzo"   
-    - Ingreso: "Me pagaron 50000 por un trabajo"   
-    - Balance: "¿Cómo me fue el día de hoy?"   
-- Suelta la barra espaciadora **[ESPACIO]** para finalizar la grabación.
-El simulador transcribirá el audio y enviará la telemetría vía HTTP POST al servidor, donde verás reflejada la transacción y el estado de la mascota.
-
----
-
-## 💬 Ejemplos de Frases Soportadas
-
-### Registro de Gasto
-
-*(Disminuye presupuesto / Afecta salud si se excede)*
-
-- "Gasté 14000 en el almuerzo"
-- "Pagué 8000 pesos de transporte"
-- "Compré un café por 5 mil"
-
-### Registro de Ingreso
-
-*(Aumenta saldo / Restaura salud del Tamagotchi)*
-
-- "Me pagaron 24000 por un trabajo"
-- "Recibí 50000 pesos de mesada"
-- "Ingresaron 15k a mi cuenta"
-
-### Consulta de Balance General
-
-*(Muestra totales del día y estado de la mascota)*
-
-- "¿Cómo me fue el día de hoy?"
-- "Dame mi balance"
-- "¿Cuánto me queda?"
-
----
-
-## 📂 Estructura de Datos (Contrato HTTP POST API)
-
-El simulador empaqueta el evento capturado y transmite la siguiente estructura JSON a `http://127.0.0.1:5000/api/v1/finagotchi/telemetry`:
+Edita `simulator/config.json`:
 
 ```json
 {
-  "device_info": {
-    "device_id": "FINAGOTCHI-PC-SIMULATOR-01",
-    "firmware_version": "v1.0-SIM",
-    "battery_level_pct": 95,
-    "timestamp": "2026-09-14 00:00:00"
-  },
-  "telemetry_hardware": {
-    "button_state": true,
-    "audio_duration_sec": 3.5,
-    "device_status": "transmitting"
-  },
-  "audio_payload": {
-    "raw_voice_text": "Me pagaron 24000 por un trabajo",
-    "tipo_detectado": "ingreso",
-    "monto_detectado": 24000.0,
-    "categoria_detectada": "ingresos"
-  }
+  "http_base_url": "http://127.0.0.1:5000/api/v1",
+  "device_uid": "FINAGOTCHI-PC-SIMULATOR-01",
+  "email": "simulador@finagotchi.local",
+  "password": "simulador123",
+  "nombre": "Simulador",
+  "auto_confirm": true,
+  "sample_rate": 16000,
+  "language": "es-CO"
 }
 ```
 
----
+- `auto_confirm: true` guarda las propuestas sin pedir confirmación.
+- `auto_confirm: false` muestra la propuesta y pide `[S/n]`.
+- Si el usuario no existe, el simulador lo registra automáticamente.
+- Si el dispositivo ya está vinculado a esa cuenta, lo desvincula y lo vuelve a vincular.
 
-## ❓ Solución de Problemas Frecuentes
+## Ejecución
 
-### Error: `[Errno 2] No such file or directory`
+Terminal 1, desde la raíz del proyecto:
 
-Ocurre porque la terminal no está posicionada en la carpeta del proyecto. Usa el comando `cd "ruta_de_tu_carpeta"` antes de ejecutar `py simulador.py`.
+```powershell
+py -3 backend/server.py
+```
 
-### Error: `PermissionError` o `keyboard` no detecta la tecla Espacio
+Terminal 2, ejecutada como administrador:
 
-Asegúrate de abrir la ventana de PowerShell en **Modo Administrador**.
+```powershell
+py -3 simulator/simulator.py
+```
 
-### La app reconoce montos pequeños o incorrectos
+Mantén presionada la tecla ESPACIO mientras hablas. Al soltarla, el simulador transcribe y envía el texto al dispositivo virtual.
 
-El reconocedor entiende modismos colombianos como "10k" o "10 mil". Si pronuncias un número menor a 100 (ej. "15"), la lógica lo interpretará automáticamente en contexto de miles de pesos ($15,000 COP).
+## Frases de prueba
+
+Gastos:
+
+- "Gasté 12.000 en el almuerzo"
+- "Pagué 8.000 de transporte"
+- "Compré un café por 5 mil"
+
+Ingresos:
+
+- "Me pagaron 50.000 por un trabajo"
+- "Recibí 20.000 de mesada"
+
+Ahorro:
+
+- "Ahorré 30.000 para el portátil"
+
+Consultas y cierre:
+
+- "¿Cómo voy hoy?"
+- "Dame mi balance"
+- "Cierra el día"
+
+## Flujo técnico
+
+1. `POST /auth/login`; si falla, `POST /auth/register`.
+2. `POST /device/register` para obtener un PIN.
+3. `POST /device/pair` para obtener `device_token`.
+4. `POST /device/telemetry` como latido.
+5. `POST /device/messages` con el texto transcrito.
+6. Si hay una propuesta, `POST /device/messages/{id}/confirm`.
+7. Tras confirmar, `GET /device/notifications?after_id=N` cada 3–5 segundos y `POST /device/notifications/{id}/ack`.
+8. Para cierre, `POST /device/close-day`.
+9. Para consultas, `GET /home`.
+
+El simulador envía `texto`, `message_id` y `audio_duracion_s`. El backend crea transacciones en estado `pendiente`; solo la confirmación las vuelve `confirmado`, otorga puntos y afecta el saldo. La confirmación de un mensaje originado en el dispositivo crea una notificación `movimiento_registrado` que el simulador puede consultar por polling.
+
+## Problemas frecuentes
+
+- `ERROR DE CONEXIÓN`: verifica que el backend escuche en `http://127.0.0.1:5000`.
+- `401` o `403`: el dispositivo está vinculado a otra cuenta; usa otro `device_uid` o desvincula el dispositivo desde la app.
+- `keyboard` no detecta ESPACIO: ejecuta la terminal como administrador.
+- No hay transcripción: revisa el micrófono, la conexión a Internet y el idioma `es-CO`.
+- El backend no arranca: verifica `py -3 database/init_db.py` y que `finagotchi.db` no sea una base legacy.
