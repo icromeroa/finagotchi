@@ -1,0 +1,133 @@
+id,dispositivo_id,usuario_id,mensaje_id,transaccion_id,tipo,titulo,mensaje,payload_json,estado,creado_en,entregado_en,leido_en
+1,1,1,1,1,movimiento_registrado,Movimiento registrado,regalo,"{""monto"":129000,""tipo"":""ingreso""}",leida,2026-07-08T17:16:05Z,2026-07-08T17:25:05Z,2026-07-08T18:24:05Z
+2,1,1,3,3,movimiento_registrado,Movimiento registrado,desayuno,"{""monto"":62500,""tipo"":""gasto""}",leida,2026-07-11T17:25:05Z,2026-07-11T17:27:05Z,2026-07-11T19:13:05Z
+3,1,1,10,10,movimiento_registrado,Movimiento registrado,detalle de cumpleanos,"{""monto"":76000,""tipo"":""gasto""}",leida,2026-09-01T23:24:05Z,2026-09-01T23:28:05Z,2026-09-02T01:20:05Z
+4,1,1,11,11,movimiento_registrado,Movimiento registrado,Spotify,"{""monto"":23500,""tipo"":""gasto""}",pendiente,2026-09-26T20:43:05Z,,
+5,1,1,12,12,movimiento_registrado,Movimiento registrado,almuerzo,"{""monto"":43000,""tipo"":""gasto""}",leida,2026-09-29T19:38:05Z,2026-09-29T19:47:05Z,2026-09-29T21:39:05Z
+6,1,1,13,13,movimiento_registrado,Movimiento registrado,panaderia,"{""monto"":27000,""tipo"":""gasto""}",pendiente,2026-10-04T02:29:05Z,,
+7,1,1,14,14,movimiento_registrado,Movimiento registrado,desayuno,"{""monto"":43000,""tipo"":""gasto""}",entregada,2026-10-07T02:24:05Z,2026-10-07T02:27:05Z,
+8,1,1,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FINAGOTCHI-PC-SIMULATOR-01""}",leida,2026-04-25T22:00:00Z,2026-04-25T22:00:30Z,2026-04-25T22:02:00Z
+9,2,2,18,25,movimiento_registrado,Movimiento registrado,varios,"{""monto"":7500,""tipo"":""gasto""}",leida,2026-07-20T15:11:05Z,2026-07-20T15:18:05Z,2026-07-20T17:06:05Z
+10,2,2,19,26,movimiento_registrado,Movimiento registrado,cine,"{""monto"":17000,""tipo"":""gasto""}",entregada,2026-07-24T15:50:05Z,2026-07-24T15:52:05Z,
+11,2,2,21,28,movimiento_registrado,Movimiento registrado,administracion,"{""monto"":136000,""tipo"":""gasto""}",leida,2026-08-11T23:49:05Z,2026-08-11T23:57:05Z,2026-08-12T01:04:05Z
+12,2,2,22,29,movimiento_registrado,Movimiento registrado,cafe,"{""monto"":6500,""tipo"":""gasto""}",leida,2026-08-19T13:41:05Z,2026-08-19T13:47:05Z,2026-08-19T15:36:05Z
+13,2,2,23,30,movimiento_registrado,Movimiento registrado,cuota de la tarjeta,"{""monto"":56000,""tipo"":""gasto""}",leida,2026-09-19T12:15:05Z,2026-09-19T12:18:05Z,2026-09-19T12:21:05Z
+14,2,2,26,33,movimiento_registrado,Movimiento registrado,arena del gato,"{""monto"":21000,""tipo"":""gasto""}",leida,2026-10-11T15:21:05Z,2026-10-11T15:23:05Z,2026-10-11T15:44:05Z
+15,2,2,27,34,movimiento_registrado,Movimiento registrado,servicios publicos,"{""monto"":141000,""tipo"":""gasto""}",pendiente,2026-10-16T13:35:05Z,,
+16,2,2,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0001""}",leida,2025-07-17T18:00:00Z,2025-07-17T18:00:30Z,2025-07-17T18:02:00Z
+17,3,3,36,51,movimiento_registrado,Movimiento registrado,compra pequena,"{""monto"":18000,""tipo"":""gasto""}",pendiente,2026-09-02T15:16:05Z,,
+18,3,3,37,52,movimiento_registrado,Movimiento registrado,ayuda familiar,"{""monto"":286000,""tipo"":""ingreso""}",leida,2026-09-05T21:07:05Z,2026-09-05T21:12:05Z,2026-09-05T21:58:05Z
+19,3,3,39,54,movimiento_registrado,Movimiento registrado,Spotify,"{""monto"":40500,""tipo"":""gasto""}",pendiente,2026-09-15T22:37:05Z,,
+20,3,3,41,56,movimiento_registrado,Movimiento registrado,mercado,"{""monto"":17500,""tipo"":""gasto""}",pendiente,2026-09-20T19:32:05Z,,
+21,3,3,42,57,movimiento_registrado,Movimiento registrado,almuerzo,"{""monto"":26000,""tipo"":""gasto""}",leida,2026-09-25T18:28:05Z,2026-09-25T18:31:05Z,2026-09-25T19:01:05Z
+22,3,3,43,58,movimiento_registrado,Movimiento registrado,desayuno,"{""monto"":24500,""tipo"":""gasto""}",pendiente,2026-10-05T12:12:05Z,,
+23,3,3,46,61,movimiento_registrado,Movimiento registrado,ahorro para Ahorro navideno,"{""monto"":80500,""tipo"":""ahorro""}",leida,2026-10-19T18:48:05Z,2026-10-19T18:51:05Z,2026-10-19T19:20:05Z
+24,3,3,47,62,movimiento_registrado,Movimiento registrado,concierto,"{""monto"":34000,""tipo"":""gasto""}",entregada,2026-10-27T20:41:05Z,2026-10-27T20:45:05Z,
+25,3,3,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0002""}",leida,2025-08-09T16:00:00Z,2025-08-09T16:00:30Z,2025-08-09T16:02:00Z
+26,4,4,50,70,movimiento_registrado,Movimiento registrado,jabon,"{""monto"":77500,""tipo"":""gasto""}",leida,2026-08-12T14:21:05Z,2026-08-12T14:31:05Z,2026-08-12T15:33:05Z
+27,4,4,51,71,movimiento_registrado,Movimiento registrado,mercado,"{""monto"":69500,""tipo"":""gasto""}",leida,2026-08-12T20:43:05Z,2026-08-12T20:44:05Z,2026-08-12T22:06:05Z
+28,4,4,52,72,movimiento_registrado,Movimiento registrado,cafe,"{""monto"":62000,""tipo"":""gasto""}",entregada,2026-08-31T02:41:05Z,2026-08-31T02:51:05Z,
+29,4,4,54,74,movimiento_registrado,Movimiento registrado,mercado,"{""monto"":61500,""tipo"":""gasto""}",entregada,2026-09-11T22:36:05Z,2026-09-11T22:42:05Z,
+30,4,4,57,77,movimiento_registrado,Movimiento registrado,apoyo de mis papas,"{""monto"":230000,""tipo"":""ingreso""}",leida,2026-10-03T14:40:05Z,2026-10-03T14:47:05Z,2026-10-03T16:42:05Z
+31,4,4,58,78,movimiento_registrado,Movimiento registrado,internet,"{""monto"":154000,""tipo"":""gasto""}",leida,2026-10-10T17:38:05Z,2026-10-10T17:42:05Z,2026-10-10T18:44:05Z
+32,4,4,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0003""}",leida,2025-11-12T19:00:00Z,2025-11-12T19:00:30Z,2025-11-12T19:02:00Z
+33,5,5,62,88,movimiento_registrado,Movimiento registrado,gasolina,"{""monto"":5000,""tipo"":""gasto""}",entregada,2026-07-11T01:55:05Z,2026-07-11T01:58:05Z,
+34,5,5,65,91,movimiento_registrado,Movimiento registrado,mercado,"{""monto"":15500,""tipo"":""gasto""}",entregada,2026-08-24T15:05:05Z,2026-08-24T15:06:05Z,
+35,5,5,67,93,movimiento_registrado,Movimiento registrado,Spotify,"{""monto"":17500,""tipo"":""gasto""}",leida,2026-09-22T17:45:05Z,2026-09-22T17:49:05Z,2026-09-22T19:29:05Z
+36,5,5,69,95,movimiento_registrado,Movimiento registrado,concierto,"{""monto"":23000,""tipo"":""gasto""}",entregada,2026-09-28T16:42:05Z,2026-09-28T16:51:05Z,
+37,5,5,71,97,movimiento_registrado,Movimiento registrado,comision bancaria,"{""monto"":12500,""tipo"":""gasto""}",pendiente,2026-10-15T20:01:05Z,,
+38,5,5,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0004""}",leida,2025-10-28T21:00:00Z,2025-10-28T21:00:30Z,2025-10-28T21:02:00Z
+39,6,6,74,105,movimiento_registrado,Movimiento registrado,internet,"{""monto"":196000,""tipo"":""gasto""}",leida,2026-07-27T17:15:05Z,2026-07-27T17:18:05Z,2026-07-27T17:25:05Z
+40,6,6,75,106,movimiento_registrado,Movimiento registrado,domicilio de comida,"{""monto"":63000,""tipo"":""gasto""}",pendiente,2026-07-28T13:50:05Z,,
+41,6,6,79,110,movimiento_registrado,Movimiento registrado,restaurante,"{""monto"":19000,""tipo"":""gasto""}",pendiente,2026-08-08T15:18:05Z,,
+42,6,6,80,111,movimiento_registrado,Movimiento registrado,domicilio de comida,"{""monto"":21500,""tipo"":""gasto""}",leida,2026-08-29T17:13:05Z,2026-08-29T17:22:05Z,2026-08-29T18:39:05Z
+43,6,6,81,112,movimiento_registrado,Movimiento registrado,gimnasio,"{""monto"":62000,""tipo"":""gasto""}",entregada,2026-08-31T02:21:05Z,2026-08-31T02:22:05Z,
+44,6,6,82,113,movimiento_registrado,Movimiento registrado,compra,"{""monto"":159500,""tipo"":""gasto""}",leida,2026-09-01T23:22:05Z,2026-09-01T23:30:05Z,2026-09-02T00:09:05Z
+45,6,6,85,116,movimiento_registrado,Movimiento registrado,pago de freelance,"{""monto"":5132000,""tipo"":""ingreso""}",leida,2026-10-06T15:07:05Z,2026-10-06T15:15:05Z,2026-10-06T17:06:05Z
+46,6,6,86,117,movimiento_registrado,Movimiento registrado,ahorro para Moto,"{""monto"":313500,""tipo"":""ahorro""}",pendiente,2026-10-18T00:46:05Z,,
+47,6,6,88,119,movimiento_registrado,Movimiento registrado,compra,"{""monto"":84000,""tipo"":""gasto""}",entregada,2026-10-24T23:05:05Z,2026-10-24T23:12:05Z,
+48,6,6,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0005""}",leida,2025-12-19T18:00:00Z,2025-12-19T18:00:30Z,2025-12-19T18:02:00Z
+49,7,7,90,123,movimiento_registrado,Movimiento registrado,cuota de la tarjeta,"{""monto"":52000,""tipo"":""gasto""}",entregada,2026-07-11T15:23:05Z,2026-07-11T15:26:05Z,
+50,7,7,101,134,movimiento_registrado,Movimiento registrado,Netflix,"{""monto"":20500,""tipo"":""gasto""}",leida,2026-09-21T02:00:05Z,2026-09-21T02:04:05Z,2026-09-21T03:42:05Z
+51,7,7,104,137,movimiento_registrado,Movimiento registrado,pago de credito,"{""monto"":113000,""tipo"":""gasto""}",entregada,2026-10-18T22:18:05Z,2026-10-18T22:23:05Z,
+52,7,7,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0006""}",leida,2026-03-01T20:00:00Z,2026-03-01T20:00:30Z,2026-03-01T20:02:00Z
+53,8,8,107,149,movimiento_registrado,Movimiento registrado,taxi,"{""monto"":8000,""tipo"":""gasto""}",leida,2026-07-10T17:58:05Z,2026-07-10T18:03:05Z,2026-07-10T18:27:05Z
+54,8,8,109,151,movimiento_registrado,Movimiento registrado,domicilio de comida,"{""monto"":12500,""tipo"":""gasto""}",entregada,2026-07-23T23:49:05Z,2026-07-23T23:56:05Z,
+55,8,8,111,153,movimiento_registrado,Movimiento registrado,detalle de cumpleanos,"{""monto"":31000,""tipo"":""gasto""}",pendiente,2026-08-29T21:41:05Z,,
+56,8,8,112,154,movimiento_registrado,Movimiento registrado,desayuno,"{""monto"":7500,""tipo"":""gasto""}",leida,2026-09-02T14:03:05Z,2026-09-02T14:11:05Z,2026-09-02T15:48:05Z
+57,8,8,115,157,movimiento_registrado,Movimiento registrado,pedido de comida,"{""monto"":17000,""tipo"":""gasto""}",leida,2026-09-20T15:52:05Z,2026-09-20T16:01:05Z,2026-09-20T17:26:05Z
+58,8,8,120,162,movimiento_registrado,Movimiento registrado,taxi,"{""monto"":7500,""tipo"":""gasto""}",entregada,2026-10-22T23:34:05Z,2026-10-22T23:43:05Z,
+59,8,8,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0007""}",leida,2026-01-31T19:00:00Z,2026-01-31T19:00:30Z,2026-01-31T19:02:00Z
+60,9,9,123,170,movimiento_registrado,Movimiento registrado,ahorro para Fondo de emergencia,"{""monto"":34000,""tipo"":""ahorro""}",leida,2026-08-04T19:17:05Z,2026-08-04T19:26:05Z,2026-08-04T20:19:05Z
+61,9,9,124,171,movimiento_registrado,Movimiento registrado,ahorro para Concierto,"{""monto"":166000,""tipo"":""ahorro""}",leida,2026-08-28T01:23:05Z,2026-08-28T01:27:05Z,2026-08-28T02:43:05Z
+62,9,9,129,176,movimiento_registrado,Movimiento registrado,Uber,"{""monto"":12500,""tipo"":""gasto""}",pendiente,2026-09-28T18:32:05Z,,
+63,9,9,130,177,movimiento_registrado,Movimiento registrado,pasaje de bus,"{""monto"":8500,""tipo"":""gasto""}",leida,2026-09-29T13:40:05Z,2026-09-29T13:42:05Z,2026-09-29T13:58:05Z
+64,9,9,135,182,movimiento_registrado,Movimiento registrado,ahorro para Viaje a Santa Marta,"{""monto"":200000,""tipo"":""ahorro""}",leida,2026-10-22T21:26:05Z,2026-10-22T21:32:05Z,2026-10-22T23:03:05Z
+65,9,9,136,183,movimiento_registrado,Movimiento registrado,desayuno,"{""monto"":9000,""tipo"":""gasto""}",entregada,2026-10-29T21:22:05Z,2026-10-29T21:31:05Z,
+66,9,9,142,189,movimiento_registrado,Movimiento registrado,concierto,"{""monto"":30000,""tipo"":""gasto""}",leida,2026-11-04T14:51:05Z,2026-11-04T14:56:05Z,2026-11-04T16:12:05Z
+67,9,9,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0008""}",leida,2026-02-02T15:00:00Z,2026-02-02T15:00:30Z,2026-02-02T15:02:00Z
+68,10,10,145,196,movimiento_registrado,Movimiento registrado,desayuno,"{""monto"":22000,""tipo"":""gasto""}",leida,2026-08-31T14:10:05Z,2026-08-31T14:18:05Z,2026-08-31T15:17:05Z
+69,10,10,146,197,movimiento_registrado,Movimiento registrado,farmacia,"{""monto"":37000,""tipo"":""gasto""}",leida,2026-09-13T01:39:05Z,2026-09-13T01:45:05Z,2026-09-13T02:56:05Z
+70,10,10,150,201,movimiento_registrado,Movimiento registrado,cine,"{""monto"":79000,""tipo"":""gasto""}",leida,2026-11-02T16:32:05Z,2026-11-02T16:36:05Z,2026-11-02T17:13:05Z
+71,10,10,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0009""}",leida,2025-12-04T18:00:00Z,2025-12-04T18:00:30Z,2025-12-04T18:02:00Z
+72,11,11,154,209,movimiento_registrado,Movimiento registrado,comision bancaria,"{""monto"":5000,""tipo"":""gasto""}",entregada,2026-08-03T16:32:05Z,2026-08-03T16:37:05Z,
+73,11,11,155,210,movimiento_registrado,Movimiento registrado,mercado,"{""monto"":7500,""tipo"":""gasto""}",entregada,2026-08-18T20:00:05Z,2026-08-18T20:10:05Z,
+74,11,11,156,211,movimiento_registrado,Movimiento registrado,libro,"{""monto"":16500,""tipo"":""gasto""}",pendiente,2026-09-02T02:17:05Z,,
+75,11,11,157,212,movimiento_registrado,Movimiento registrado,regalo para mama,"{""monto"":28000,""tipo"":""gasto""}",leida,2026-09-05T00:26:05Z,2026-09-05T00:28:05Z,2026-09-05T00:40:05Z
+76,11,11,159,214,movimiento_registrado,Movimiento registrado,cine,"{""monto"":16000,""tipo"":""gasto""}",leida,2026-09-20T22:27:05Z,2026-09-20T22:34:05Z,2026-09-20T23:50:05Z
+77,11,11,160,215,movimiento_registrado,Movimiento registrado,ahorro para Fondo de emergencia,"{""monto"":47000,""tipo"":""ahorro""}",entregada,2026-09-26T13:40:05Z,2026-09-26T13:43:05Z,
+78,11,11,161,216,movimiento_registrado,Movimiento registrado,desayuno,"{""monto"":11000,""tipo"":""gasto""}",leida,2026-09-30T19:49:05Z,2026-09-30T19:58:05Z,2026-09-30T20:34:05Z
+79,11,11,162,217,movimiento_registrado,Movimiento registrado,mercado,"{""monto"":5500,""tipo"":""gasto""}",entregada,2026-10-06T20:47:05Z,2026-10-06T20:57:05Z,
+80,11,11,163,218,movimiento_registrado,Movimiento registrado,arena del gato,"{""monto"":12000,""tipo"":""gasto""}",leida,2026-11-01T17:19:05Z,2026-11-01T17:24:05Z,2026-11-01T18:37:05Z
+81,11,11,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0010""}",leida,2026-03-05T16:00:00Z,2026-03-05T16:00:30Z,2026-03-05T16:02:00Z
+82,12,12,167,224,movimiento_registrado,Movimiento registrado,cafe,"{""monto"":54000,""tipo"":""gasto""}",entregada,2026-08-11T12:39:05Z,2026-08-11T12:47:05Z,
+83,12,12,168,225,movimiento_registrado,Movimiento registrado,compra pequena,"{""monto"":35500,""tipo"":""gasto""}",leida,2026-09-22T14:40:05Z,2026-09-22T14:46:05Z,2026-09-22T15:18:05Z
+84,12,12,172,229,movimiento_registrado,Movimiento registrado,pago de freelance,"{""monto"":7305000,""tipo"":""ingreso""}",entregada,2026-11-03T21:15:05Z,2026-11-03T21:20:05Z,
+85,12,12,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0011""}",leida,2025-10-07T21:00:00Z,2025-10-07T21:00:30Z,2025-10-07T21:02:00Z
+86,13,13,180,247,movimiento_registrado,Movimiento registrado,pago de freelance,"{""monto"":3713000,""tipo"":""ingreso""}",leida,2026-08-31T19:24:05Z,2026-08-31T19:26:05Z,2026-08-31T19:45:05Z
+87,13,13,183,250,movimiento_registrado,Movimiento registrado,TransMilenio,"{""monto"":18000,""tipo"":""gasto""}",pendiente,2026-09-14T02:28:05Z,,
+88,13,13,187,254,movimiento_registrado,Movimiento registrado,cine familiar,"{""monto"":29000,""tipo"":""gasto""}",pendiente,2026-10-17T21:54:05Z,,
+89,13,13,189,256,movimiento_registrado,Movimiento registrado,cine familiar,"{""monto"":30500,""tipo"":""gasto""}",pendiente,2026-10-20T21:19:05Z,,
+90,13,13,190,257,movimiento_registrado,Movimiento registrado,taxi,"{""monto"":16500,""tipo"":""gasto""}",leida,2026-10-25T14:36:05Z,2026-10-25T14:38:05Z,2026-10-25T15:17:05Z
+91,13,13,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0012""}",leida,2026-01-21T17:00:00Z,2026-01-21T17:00:30Z,2026-01-21T17:02:00Z
+92,14,14,193,269,movimiento_registrado,Movimiento registrado,mercado de la casa,"{""monto"":22000,""tipo"":""gasto""}",leida,2026-07-17T16:14:05Z,2026-07-17T16:22:05Z,2026-07-17T16:42:05Z
+93,14,14,195,271,movimiento_registrado,Movimiento registrado,comida del gato,"{""monto"":13000,""tipo"":""gasto""}",entregada,2026-08-03T17:36:05Z,2026-08-03T17:42:05Z,
+94,14,14,197,273,movimiento_registrado,Movimiento registrado,libros,"{""monto"":47500,""tipo"":""gasto""}",pendiente,2026-08-11T01:59:05Z,,
+95,14,14,198,274,movimiento_registrado,Movimiento registrado,cita medica,"{""monto"":10000,""tipo"":""gasto""}",pendiente,2026-08-19T00:11:05Z,,
+96,14,14,200,276,movimiento_registrado,Movimiento registrado,mercado,"{""monto"":15500,""tipo"":""gasto""}",entregada,2026-09-06T17:59:05Z,2026-09-06T18:06:05Z,
+97,14,14,202,278,movimiento_registrado,Movimiento registrado,domicilio de comida,"{""monto"":10000,""tipo"":""gasto""}",leida,2026-09-24T17:08:05Z,2026-09-24T17:09:05Z,2026-09-24T19:00:05Z
+98,14,14,203,279,movimiento_registrado,Movimiento registrado,reparacion,"{""monto"":118000,""tipo"":""gasto""}",pendiente,2026-09-30T20:14:05Z,,
+99,14,14,205,281,movimiento_registrado,Movimiento registrado,desayuno,"{""monto"":19000,""tipo"":""gasto""}",leida,2026-10-12T19:51:05Z,2026-10-12T19:57:05Z,2026-10-12T21:44:05Z
+100,14,14,210,286,movimiento_registrado,Movimiento registrado,parqueadero,"{""monto"":9000,""tipo"":""gasto""}",pendiente,2026-11-03T02:50:05Z,,
+101,14,14,211,287,movimiento_registrado,Movimiento registrado,ahorro para Beca de intercambio,"{""monto"":93000,""tipo"":""ahorro""}",leida,2026-11-04T21:44:05Z,2026-11-04T21:45:05Z,2026-11-04T23:41:05Z
+102,14,14,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0013""}",leida,2025-10-10T19:00:00Z,2025-10-10T19:00:30Z,2025-10-10T19:02:00Z
+103,14,14,,,bateria_baja,Bateria baja,Conecta tu FinaGotchi para cargarla.,"{""bateria"":2}",pendiente,2026-11-03T23:00:00Z,,
+104,15,15,213,294,movimiento_registrado,Movimiento registrado,cine familiar,"{""monto"":28000,""tipo"":""gasto""}",entregada,2026-07-23T17:28:05Z,2026-07-23T17:35:05Z,
+105,15,15,214,295,movimiento_registrado,Movimiento registrado,pago de freelance,"{""monto"":2669000,""tipo"":""ingreso""}",entregada,2026-08-09T13:53:05Z,2026-08-09T13:55:05Z,
+106,15,15,215,296,movimiento_registrado,Movimiento registrado,almuerzo,"{""monto"":22000,""tipo"":""gasto""}",leida,2026-08-09T17:13:05Z,2026-08-09T17:22:05Z,2026-08-09T17:56:05Z
+107,15,15,216,297,movimiento_registrado,Movimiento registrado,cafe,"{""monto"":28500,""tipo"":""gasto""}",entregada,2026-08-24T16:43:05Z,2026-08-24T16:48:05Z,
+108,15,15,217,298,movimiento_registrado,Movimiento registrado,domicilio de comida,"{""monto"":15500,""tipo"":""gasto""}",entregada,2026-09-10T16:47:05Z,2026-09-10T16:48:05Z,
+109,15,15,218,299,movimiento_registrado,Movimiento registrado,envio de dinero,"{""monto"":20500,""tipo"":""gasto""}",entregada,2026-09-10T18:52:05Z,2026-09-10T18:56:05Z,
+110,15,15,219,300,movimiento_registrado,Movimiento registrado,panaderia,"{""monto"":37500,""tipo"":""gasto""}",entregada,2026-09-11T18:30:05Z,2026-09-11T18:33:05Z,
+111,15,15,222,303,movimiento_registrado,Movimiento registrado,ahorro para Concierto,"{""monto"":16000,""tipo"":""ahorro""}",leida,2026-09-18T00:17:05Z,2026-09-18T00:25:05Z,2026-09-18T01:51:05Z
+112,15,15,229,310,movimiento_registrado,Movimiento registrado,mercado,"{""monto"":12000,""tipo"":""gasto""}",entregada,2026-11-02T00:51:05Z,2026-11-02T00:56:05Z,
+113,15,15,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0014""}",leida,2026-06-09T17:00:00Z,2026-06-09T17:00:30Z,2026-06-09T17:02:00Z
+114,15,15,,,bateria_baja,Bateria baja,Conecta tu FinaGotchi para cargarla.,"{""bateria"":23}",entregada,2026-11-03T23:00:00Z,2026-11-03T23:03:00Z,
+115,16,16,234,319,movimiento_registrado,Movimiento registrado,salida con amigos,"{""monto"":17000,""tipo"":""gasto""}",pendiente,2026-07-21T00:54:05Z,,
+116,16,16,237,322,movimiento_registrado,Movimiento registrado,restaurante,"{""monto"":15000,""tipo"":""gasto""}",leida,2026-08-29T17:00:05Z,2026-08-29T17:07:05Z,2026-08-29T18:07:05Z
+117,16,16,243,328,movimiento_registrado,Movimiento registrado,almuerzo,"{""monto"":17000,""tipo"":""gasto""}",pendiente,2026-09-24T23:19:05Z,,
+118,16,16,245,330,movimiento_registrado,Movimiento registrado,domicilio de comida,"{""monto"":15500,""tipo"":""gasto""}",pendiente,2026-10-11T13:18:05Z,,
+119,16,16,247,332,movimiento_registrado,Movimiento registrado,ahorro para Mudanza,"{""monto"":32000,""tipo"":""ahorro""}",leida,2026-10-24T16:15:05Z,2026-10-24T16:17:05Z,2026-10-24T18:01:05Z
+120,16,16,249,334,movimiento_registrado,Movimiento registrado,domicilio de comida,"{""monto"":9500,""tipo"":""gasto""}",pendiente,2026-11-02T02:49:05Z,,
+121,16,16,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0015""}",leida,2025-12-03T21:00:00Z,2025-12-03T21:00:30Z,2025-12-03T21:02:00Z
+122,17,17,251,342,movimiento_registrado,Movimiento registrado,desayuno,"{""monto"":19500,""tipo"":""gasto""}",leida,2026-07-23T21:49:05Z,2026-07-23T21:55:05Z,2026-07-23T21:58:05Z
+123,17,17,254,345,movimiento_registrado,Movimiento registrado,salida con amigos,"{""monto"":25000,""tipo"":""gasto""}",leida,2026-08-13T14:31:05Z,2026-08-13T14:38:05Z,2026-08-13T15:56:05Z
+124,17,17,255,346,movimiento_registrado,Movimiento registrado,pasaje de bus,"{""monto"":12500,""tipo"":""gasto""}",entregada,2026-08-21T14:07:05Z,2026-08-21T14:16:05Z,
+125,17,17,262,353,movimiento_registrado,Movimiento registrado,compra pequena,"{""monto"":13500,""tipo"":""gasto""}",pendiente,2026-11-04T22:05:05Z,,
+126,17,17,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0016""}",leida,2026-01-12T17:00:00Z,2026-01-12T17:00:30Z,2026-01-12T17:02:00Z
+127,18,18,265,363,movimiento_registrado,Movimiento registrado,libro,"{""monto"":113000,""tipo"":""gasto""}",entregada,2026-08-22T20:06:05Z,2026-08-22T20:07:05Z,
+128,18,18,267,365,movimiento_registrado,Movimiento registrado,venta de algo,"{""monto"":118000,""tipo"":""ingreso""}",leida,2026-09-02T14:56:05Z,2026-09-02T15:01:05Z,2026-09-02T15:43:05Z
+129,18,18,273,371,movimiento_registrado,Movimiento registrado,Uber,"{""monto"":9500,""tipo"":""gasto""}",entregada,2026-10-05T16:28:05Z,2026-10-05T16:36:05Z,
+130,18,18,274,372,movimiento_registrado,Movimiento registrado,compra pequena,"{""monto"":28000,""tipo"":""gasto""}",pendiente,2026-10-07T14:10:05Z,,
+131,18,18,278,376,movimiento_registrado,Movimiento registrado,almuerzo,"{""monto"":68000,""tipo"":""gasto""}",pendiente,2026-10-21T14:55:05Z,,
+132,18,18,,,dispositivo_vinculado,FinaGotchi vinculado,Ya puedes hablarle a Nancy desde el dispositivo.,"{""device_uid"":""FG-0017""}",leida,2025-06-26T21:00:00Z,2025-06-26T21:00:30Z,2025-06-26T21:02:00Z

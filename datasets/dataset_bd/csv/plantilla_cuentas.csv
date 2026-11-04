@@ -1,0 +1,6 @@
+id,nombre,tipo_cuenta,icono,es_por_defecto,orden
+1,Efectivo,efectivo,💵,1,1
+2,Nequi,billetera_digital,📱,0,2
+3,Daviplata,billetera_digital,📱,0,3
+4,Nu,cuenta_ahorros,💜,0,4
+5,Bancolombia,cuenta_ahorros,🏦,0,5

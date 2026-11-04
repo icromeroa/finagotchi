@@ -1,0 +1,174 @@
+id,usuario_id,tipo,severidad,titulo,mensaje,fecha_local,transaccion_id,categoria_id,meta_id,dispositivo_id,valor_actual,valor_limite,datos_json,leida,leida_en,is_deleted,deleted_at,creado_en
+1,1,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 398000 y tu presupuesto era 45000.,2026-11-04,,,,,398000,45000,,1,2026-11-05T03:49:00Z,0,,2026-11-04T20:00:00Z
+2,1,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 47500 y tu presupuesto era 45000.,2026-07-29,,,,,47500,45000,,1,2026-07-30T02:27:00Z,0,,2026-07-29T11:00:00Z
+3,1,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 81000 y tu presupuesto era 45000.,2026-09-04,,,,,81000,45000,,1,2026-09-05T03:11:00Z,0,,2026-09-04T11:00:00Z
+4,1,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 62500 y tu presupuesto era 45000.,2026-07-11,,,,,62500,45000,,1,2026-07-12T23:40:00Z,0,,2026-07-12T03:00:00Z
+5,1,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 64000 y tu presupuesto era 45000.,2026-10-19,,,,,64000,45000,,0,,0,,2026-10-19T19:00:00Z
+6,1,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 69000 y tu presupuesto era 45000.,2026-08-29,,,,,69000,45000,,1,2026-08-29T23:57:00Z,0,,2026-08-29T16:00:00Z
+7,1,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 76000 y tu presupuesto era 45000.,2026-09-01,,,,,76000,45000,,1,2026-09-01T23:50:00Z,0,,2026-09-01T22:00:00Z
+8,1,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 122000 y tu presupuesto era 45000.,2026-10-09,,,,,122000,45000,,1,2026-10-10T00:02:00Z,0,,2026-10-09T17:00:00Z
+9,1,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 46000 y tu presupuesto era 45000.,2026-07-09,,,,,46000,45000,,0,,0,,2026-07-09T12:00:00Z
+10,1,presupuesto_categoria_excedido,advertencia,Categoria por encima del limite,Superaste el limite mensual de la categoria.,2026-09-30,,12,,,51000,34000,,1,2026-09-30T23:10:00Z,0,,2026-09-30T20:00:00Z
+11,1,meta_cumplida,info,Meta cumplida,Completaste la meta Viaje a Santa Marta.,2026-10-18,,,1,,67500,,,1,2026-10-19T03:14:00Z,0,,2026-10-19T00:00:00Z
+12,1,recordatorio_diario,info,Recuerda registrar tus gastos,Un minuto hoy te ahorra sustos manana.,2026-11-03,,,,,,,,0,,0,,2026-11-04T02:00:00Z
+13,1,perfil_incompleto,advertencia,Completa tu perfil,Con unas preguntas mas Nancy entiende mejor tus finanzas.,2026-11-01,,,,,,,,1,2026-11-03T00:21:00Z,0,,2026-11-01T15:00:00Z
+14,1,racha_en_riesgo,advertencia,Tu racha esta en riesgo,Registra un movimiento hoy para no perderla.,2026-11-03,,,,,,,,0,,0,,2026-11-03T17:00:00Z
+15,2,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 70500 y tu presupuesto era 25000.,2026-09-19,,,,,70500,25000,,1,2026-09-21T03:48:00Z,0,,2026-09-19T11:00:00Z
+16,2,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 43500 y tu presupuesto era 25000.,2026-08-25,,,,,43500,25000,,1,2026-08-27T04:37:00Z,0,,2026-08-25T20:00:00Z
+17,2,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 53500 y tu presupuesto era 25000.,2026-11-01,,,,,53500,25000,,1,2026-11-03T01:40:00Z,0,,2026-11-01T17:00:00Z
+18,2,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 145500 y tu presupuesto era 25000.,2026-08-11,,,,,145500,25000,,1,2026-08-12T03:55:00Z,0,,2026-08-11T12:00:00Z
+19,2,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 132000 y tu presupuesto era 25000.,2026-09-29,,,,,132000,25000,,0,,0,,2026-09-29T19:00:00Z
+20,2,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 141000 y tu presupuesto era 25000.,2026-10-16,,,,,141000,25000,,1,2026-10-17T03:11:00Z,0,,2026-10-16T13:00:00Z
+21,2,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 27000 y tu presupuesto era 25000.,2026-10-28,,,,,27000,25000,,1,2026-10-29T03:59:00Z,0,,2026-10-28T21:00:00Z
+22,2,meta_atrasada,advertencia,Tu meta necesita un empujon,La meta Curso de ingles va atrasada.,2026-10-28,,,5,,,,,1,2026-10-30T03:52:00Z,0,,2026-10-28T23:00:00Z
+23,2,meta_atrasada,advertencia,Tu meta necesita un empujon,La meta Moto va atrasada.,2026-11-03,,,6,,,,,1,2026-11-04T01:34:00Z,0,,2026-11-03T22:00:00Z
+24,2,dispositivo_desconectado,advertencia,Tu FinaGotchi esta sin conexion,Los registros quedan guardados y se sincronizan despues.,2026-11-03,,,,2,,,,1,2026-11-04T02:07:00Z,0,,2026-11-04T02:00:00Z
+25,2,dispositivo_vinculado,info,Dispositivo vinculado,Tu FinaGotchi quedo vinculado a tu cuenta.,2025-07-17,,,,2,,,,0,,0,,2025-07-17T12:00:00Z
+26,3,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 70000 y tu presupuesto era 53000.,2026-11-04,,,,,70000,53000,,0,,0,,2026-11-05T02:00:00Z
+27,3,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 62000 y tu presupuesto era 53000.,2026-08-29,,,,,62000,53000,,0,,0,,2026-08-29T23:00:00Z
+28,3,presupuesto_categoria_excedido,advertencia,Categoria por encima del limite,Superaste el limite mensual de la categoria.,2026-08-31,,42,,,62000,31000,,1,2026-09-01T04:35:00Z,0,,2026-08-31T23:00:00Z
+29,3,recordatorio_diario,info,Recuerda registrar tus gastos,Un minuto hoy te ahorra sustos manana.,2026-11-03,,,,,,,,1,2026-11-05T00:05:00Z,0,,2026-11-03T17:00:00Z
+30,3,racha_en_riesgo,advertencia,Tu racha esta en riesgo,Registra un movimiento hoy para no perderla.,2026-11-03,,,,,,,,1,2026-11-04T01:51:00Z,0,,2026-11-03T19:00:00Z
+31,4,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 154000 y tu presupuesto era 153000.,2026-10-10,,,,,154000,153000,,1,2026-10-11T23:14:00Z,0,,2026-10-10T22:00:00Z
+32,4,meta_cumplida,info,Meta cumplida,Completaste la meta Viaje a Santa Marta.,2026-11-03,,,13,,600000,,,1,2026-11-04T04:18:00Z,1,2026-11-05T15:00:00Z,2026-11-03T23:00:00Z
+33,4,dispositivo_vinculado,info,Dispositivo vinculado,Tu FinaGotchi quedo vinculado a tu cuenta.,2025-11-12,,,,4,,,,1,2025-11-13T23:15:00Z,0,,2025-11-12T20:00:00Z
+34,5,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 24500 y tu presupuesto era 18000.,2026-07-24,,,,,24500,18000,,0,,0,,2026-07-24T18:00:00Z
+35,5,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 23000 y tu presupuesto era 18000.,2026-09-28,,,,,23000,18000,,1,2026-09-29T03:11:00Z,0,,2026-09-29T03:00:00Z
+36,5,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 21500 y tu presupuesto era 18000.,2026-10-15,,,,,21500,18000,,1,2026-10-17T00:42:00Z,0,,2026-10-16T03:00:00Z
+37,5,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 81000 y tu presupuesto era 18000.,2026-09-20,,,,,81000,18000,,1,2026-09-22T02:03:00Z,0,,2026-09-21T02:00:00Z
+38,5,presupuesto_categoria_excedido,advertencia,Categoria por encima del limite,Superaste el limite mensual de la categoria.,2026-08-31,,70,,,15500,15000,,0,,0,,2026-08-31T23:00:00Z
+39,5,presupuesto_categoria_excedido,advertencia,Categoria por encima del limite,Superaste el limite mensual de la categoria.,2026-09-30,,70,,,17500,15000,,0,,1,2026-10-02T15:00:00Z,2026-09-30T18:00:00Z
+40,5,meta_atrasada,advertencia,Tu meta necesita un empujon,La meta Fondo para estudiar va atrasada.,2026-10-20,,,15,,,,,1,2026-10-21T02:16:00Z,0,,2026-10-20T19:00:00Z
+41,5,meta_atrasada,advertencia,Tu meta necesita un empujon,La meta Nuevo celular va atrasada.,2026-10-23,,,16,,,,,0,,1,2026-10-25T15:00:00Z,2026-10-23T22:00:00Z
+42,6,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 419500 y tu presupuesto era 166000.,2026-09-01,,,,,419500,166000,,0,,0,,2026-09-02T01:00:00Z
+43,6,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 194000 y tu presupuesto era 166000.,2026-09-26,,,,,194000,166000,,0,,0,,2026-09-26T18:00:00Z
+44,6,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 196000 y tu presupuesto era 166000.,2026-07-27,,,,,196000,166000,,0,,0,,2026-07-27T15:00:00Z
+45,6,meta_cumplida,info,Meta cumplida,Completaste la meta Moto.,2026-10-18,,,21,,313500,,,0,,0,,2026-10-18T15:00:00Z
+46,6,perfil_incompleto,advertencia,Completa tu perfil,Con unas preguntas mas Nancy entiende mejor tus finanzas.,2026-11-01,,,,,,,,1,2026-11-01T23:21:00Z,0,,2026-11-01T15:00:00Z
+47,7,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 113000 y tu presupuesto era 62000.,2026-10-18,,,,,113000,62000,,0,,0,,2026-10-19T01:00:00Z
+48,7,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 68000 y tu presupuesto era 62000.,2026-09-17,,,,,68000,62000,,1,2026-09-18T03:37:00Z,0,,2026-09-17T11:00:00Z
+49,7,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 174000 y tu presupuesto era 62000.,2026-08-21,,,,,174000,62000,,1,2026-08-22T03:39:00Z,0,,2026-08-21T16:00:00Z
+50,7,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 194000 y tu presupuesto era 62000.,2026-08-07,,,,,194000,62000,,0,,0,,2026-08-08T00:00:00Z
+51,7,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 82000 y tu presupuesto era 62000.,2026-08-11,,,,,82000,62000,,0,,0,,2026-08-11T11:00:00Z
+52,7,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 74000 y tu presupuesto era 62000.,2026-10-24,,,,,74000,62000,,1,2026-10-25T04:53:00Z,0,,2026-10-24T20:00:00Z
+53,7,meta_atrasada,advertencia,Tu meta necesita un empujon,La meta Viaje a Santa Marta va atrasada.,2026-10-20,,,25,,,,,0,,0,,2026-10-20T11:00:00Z
+54,7,recordatorio_diario,info,Recuerda registrar tus gastos,Un minuto hoy te ahorra sustos manana.,2026-11-03,,,,,,,,0,,0,,2026-11-03T15:00:00Z
+55,7,resumen_semanal,info,Resumen de la semana,Mira como te fue esta semana con Nancy.,2026-11-02,,,,,,,,1,2026-11-03T23:51:00Z,0,,2026-11-02T14:00:00Z
+56,7,dispositivo_vinculado,info,Dispositivo vinculado,Tu FinaGotchi quedo vinculado a tu cuenta.,2026-03-01,,,,7,,,,1,2026-03-03T03:52:00Z,0,,2026-03-01T23:00:00Z
+57,7,sincronizacion,info,Sincronizacion completada,Los registros pendientes ya llegaron a la nube.,2026-11-02,,,,7,,,,0,,0,,2026-11-03T01:00:00Z
+58,7,racha_en_riesgo,advertencia,Tu racha esta en riesgo,Registra un movimiento hoy para no perderla.,2026-11-03,,,,,,,,1,2026-11-04T00:42:00Z,0,,2026-11-04T01:00:00Z
+59,8,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 17500 y tu presupuesto era 17000.,2026-08-18,,,,,17500,17000,,1,2026-08-19T04:47:00Z,0,,2026-08-18T18:00:00Z
+60,8,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 27000 y tu presupuesto era 17000.,2026-10-04,,,,,27000,17000,,0,,0,,2026-10-04T15:00:00Z
+61,8,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 19500 y tu presupuesto era 17000.,2026-09-14,,,,,19500,17000,,1,2026-09-16T00:20:00Z,0,,2026-09-15T01:00:00Z
+62,8,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 19500 y tu presupuesto era 17000.,2026-09-21,,,,,19500,17000,,0,,0,,2026-09-21T20:00:00Z
+63,8,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 27500 y tu presupuesto era 17000.,2026-10-03,,,,,27500,17000,,0,,0,,2026-10-04T03:00:00Z
+64,8,movimiento_eliminado,info,Movimiento eliminado,Se movio a la papelera: mercado.,2026-08-29,166,,,,,,,1,2026-08-31T04:49:00Z,0,,2026-08-29T18:00:00Z
+65,8,movimiento_eliminado,info,Movimiento eliminado,Se movio a la papelera: ahorro para Viaje a Santa Marta.,2026-08-28,152,,,,,,,1,2026-08-30T02:50:00Z,0,,2026-08-28T18:00:00Z
+66,8,resumen_semanal,info,Resumen de la semana,Mira como te fue esta semana con Nancy.,2026-11-02,,,,,,,,0,,0,,2026-11-02T22:00:00Z
+67,9,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 55500 y tu presupuesto era 42000.,2026-10-05,,,,,55500,42000,,0,,0,,2026-10-06T00:00:00Z
+68,9,meta_cumplida,info,Meta cumplida,Completaste la meta Concierto.,2026-10-15,,,30,,166000,,,1,2026-10-17T00:31:00Z,0,,2026-10-16T01:00:00Z
+69,9,meta_cumplida,info,Meta cumplida,Completaste la meta Viaje a Santa Marta.,2026-10-28,,,31,,287000,,,0,,0,,2026-10-28T23:00:00Z
+70,9,recordatorio_diario,info,Recuerda registrar tus gastos,Un minuto hoy te ahorra sustos manana.,2026-11-03,,,,,,,,0,,0,,2026-11-03T12:00:00Z
+71,9,resumen_semanal,info,Resumen de la semana,Mira como te fue esta semana con Nancy.,2026-11-02,,,,,,,,0,,0,,2026-11-02T15:00:00Z
+72,9,dispositivo_desconectado,advertencia,Tu FinaGotchi esta sin conexion,Los registros quedan guardados y se sincronizan despues.,2026-11-03,,,,9,,,,1,2026-11-04T23:15:00Z,0,,2026-11-04T03:00:00Z
+73,10,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 118000 y tu presupuesto era 73000.,2026-11-01,,,,,118000,73000,,1,2026-11-02T23:26:00Z,0,,2026-11-02T00:00:00Z
+74,10,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 234000 y tu presupuesto era 73000.,2026-08-07,,,,,234000,73000,,0,,0,,2026-08-07T21:00:00Z
+75,10,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 79000 y tu presupuesto era 73000.,2026-11-02,,,,,79000,73000,,0,,0,,2026-11-02T23:00:00Z
+76,10,meta_cumplida,info,Meta cumplida,Completaste la meta Ahorro navideno.,2026-11-04,,,32,,106500,,,1,2026-11-06T01:08:00Z,0,,2026-11-04T19:00:00Z
+77,10,meta_cumplida,info,Meta cumplida,Completaste la meta Viaje a Santa Marta.,2026-10-22,,,34,,145500,,,1,2026-10-22T23:30:00Z,0,,2026-10-22T20:00:00Z
+78,10,perfil_incompleto,advertencia,Completa tu perfil,Con unas preguntas mas Nancy entiende mejor tus finanzas.,2026-11-01,,,,,,,,0,,0,,2026-11-02T00:00:00Z
+79,10,dispositivo_desconectado,advertencia,Tu FinaGotchi esta sin conexion,Los registros quedan guardados y se sincronizan despues.,2026-11-03,,,,10,,,,0,,0,,2026-11-04T02:00:00Z
+80,10,sincronizacion,info,Sincronizacion completada,Los registros pendientes ya llegaron a la nube.,2026-10-31,,,,10,,,,0,,0,,2026-10-31T15:00:00Z
+81,11,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 30000 y tu presupuesto era 24000.,2026-09-20,,,,,30000,24000,,1,2026-09-21T23:57:00Z,0,,2026-09-21T00:00:00Z
+82,11,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 28000 y tu presupuesto era 24000.,2026-09-04,,,,,28000,24000,,0,,0,,2026-09-04T19:00:00Z
+83,11,recordatorio_diario,info,Recuerda registrar tus gastos,Un minuto hoy te ahorra sustos manana.,2026-11-03,,,,,,,,0,,0,,2026-11-03T22:00:00Z
+84,11,dispositivo_vinculado,info,Dispositivo vinculado,Tu FinaGotchi quedo vinculado a tu cuenta.,2026-03-05,,,,11,,,,0,,0,,2026-03-05T14:00:00Z
+85,12,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 182000 y tu presupuesto era 150000.,2026-10-19,,,,,182000,150000,,1,2026-10-20T04:10:00Z,0,,2026-10-19T20:00:00Z
+86,12,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 435000 y tu presupuesto era 150000.,2026-10-29,,,,,435000,150000,,0,,0,,2026-10-30T00:00:00Z
+87,12,movimiento_eliminado,info,Movimiento eliminado,Se movio a la papelera: desayuno.,2026-08-11,233,,,,,,,0,,1,2026-08-13T15:00:00Z,2026-08-11T17:00:00Z
+88,12,dispositivo_desconectado,advertencia,Tu FinaGotchi esta sin conexion,Los registros quedan guardados y se sincronizan despues.,2026-11-03,,,,12,,,,1,2026-11-04T03:55:00Z,0,,2026-11-03T22:00:00Z
+89,13,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 395500 y tu presupuesto era 79000.,2026-11-04,,,,,395500,79000,,1,2026-11-06T04:56:00Z,0,,2026-11-04T16:00:00Z
+90,13,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 352000 y tu presupuesto era 79000.,2026-07-26,,,,,352000,79000,,0,,0,,2026-07-27T02:00:00Z
+91,13,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 207000 y tu presupuesto era 79000.,2026-08-05,,,,,207000,79000,,1,2026-08-07T03:33:00Z,0,,2026-08-05T12:00:00Z
+92,13,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 95500 y tu presupuesto era 79000.,2026-09-03,,,,,95500,79000,,0,,0,,2026-09-03T12:00:00Z
+93,13,presupuesto_categoria_excedido,advertencia,Categoria por encima del limite,Superaste el limite mensual de la categoria.,2026-11-03,,197,,,350000,243000,,0,,0,,2026-11-03T12:00:00Z
+94,13,presupuesto_categoria_excedido,advertencia,Categoria por encima del limite,Superaste el limite mensual de la categoria.,2026-07-31,,197,,,352000,243000,,1,2026-08-01T03:11:00Z,0,,2026-07-31T15:00:00Z
+95,13,meta_cumplida,info,Meta cumplida,Completaste la meta Bicicleta.,2026-11-03,,,41,,455000,,,1,2026-11-04T03:04:00Z,0,,2026-11-04T00:00:00Z
+96,13,recordatorio_diario,info,Recuerda registrar tus gastos,Un minuto hoy te ahorra sustos manana.,2026-11-03,,,,,,,,0,,0,,2026-11-03T23:00:00Z
+97,13,dispositivo_desconectado,advertencia,Tu FinaGotchi esta sin conexion,Los registros quedan guardados y se sincronizan despues.,2026-11-03,,,,13,,,,0,,0,,2026-11-03T23:00:00Z
+98,13,racha_en_riesgo,advertencia,Tu racha esta en riesgo,Registra un movimiento hoy para no perderla.,2026-11-03,,,,,,,,1,2026-11-05T04:27:00Z,0,,2026-11-03T12:00:00Z
+99,14,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 52500 y tu presupuesto era 36000.,2026-08-10,,,,,52500,36000,,0,,0,,2026-08-11T01:00:00Z
+100,14,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 52500 y tu presupuesto era 36000.,2026-10-27,,,,,52500,36000,,0,,0,,2026-10-27T21:00:00Z
+101,14,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 118000 y tu presupuesto era 36000.,2026-09-30,,,,,118000,36000,,1,2026-09-30T23:35:00Z,0,,2026-10-01T00:00:00Z
+102,14,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 83000 y tu presupuesto era 36000.,2026-07-23,,,,,83000,36000,,0,,0,,2026-07-23T19:00:00Z
+103,14,presupuesto_categoria_excedido,advertencia,Categoria por encima del limite,Superaste el limite mensual de la categoria.,2026-09-30,,213,,,118000,79000,,1,2026-10-01T04:54:00Z,0,,2026-09-30T20:00:00Z
+104,14,presupuesto_categoria_excedido,advertencia,Categoria por encima del limite,Superaste el limite mensual de la categoria.,2026-07-31,,213,,,83000,79000,,0,,0,,2026-08-01T01:00:00Z
+105,14,meta_cumplida,info,Meta cumplida,Completaste la meta Beca de intercambio.,2026-10-27,,,46,,93000,,,0,,0,,2026-10-28T00:00:00Z
+106,14,bateria_baja,advertencia,Bateria baja en tu FinaGotchi,Conecta el dispositivo para que no pierda el hilo.,2026-11-03,,,,14,2,100,,0,,0,,2026-11-03T11:00:00Z
+107,14,dispositivo_vinculado,info,Dispositivo vinculado,Tu FinaGotchi quedo vinculado a tu cuenta.,2025-10-10,,,,14,,,,1,2025-10-12T02:05:00Z,0,,2025-10-10T18:00:00Z
+108,15,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 69500 y tu presupuesto era 48000.,2026-11-01,,,,,69500,48000,,0,,0,,2026-11-01T11:00:00Z
+109,15,meta_atrasada,advertencia,Tu meta necesita un empujon,La meta Moto va atrasada.,2026-10-28,,,48,,,,,1,2026-10-29T02:24:00Z,0,,2026-10-28T14:00:00Z
+110,15,meta_cumplida,info,Meta cumplida,Completaste la meta Laptop.,2026-10-17,,,50,,179000,,,1,2026-10-18T02:02:00Z,0,,2026-10-17T23:00:00Z
+111,15,confirmar_entendimiento,info,Falta confirmar un movimiento,Nancy entendio un movimiento y espera tu confirmacion.,2026-11-03,312,,,,,,,0,,0,,2026-11-03T20:00:00Z
+112,15,confirmar_entendimiento,info,Falta confirmar un movimiento,Nancy entendio un movimiento y espera tu confirmacion.,2026-10-24,308,,,,,,,1,2026-10-26T03:58:00Z,0,,2026-10-24T16:00:00Z
+113,15,bateria_baja,advertencia,Bateria baja en tu FinaGotchi,Conecta el dispositivo para que no pierda el hilo.,2026-11-03,,,,15,23,100,,0,,0,,2026-11-04T01:00:00Z
+114,15,dispositivo_vinculado,info,Dispositivo vinculado,Tu FinaGotchi quedo vinculado a tu cuenta.,2026-06-09,,,,15,,,,1,2026-06-10T23:12:00Z,0,,2026-06-10T00:00:00Z
+115,15,sincronizacion,info,Sincronizacion completada,Los registros pendientes ya llegaron a la nube.,2026-11-03,,,,15,,,,0,,0,,2026-11-04T02:00:00Z
+116,15,racha_en_riesgo,advertencia,Tu racha esta en riesgo,Registra un movimiento hoy para no perderla.,2026-11-03,,,,,,,,1,2026-11-04T03:45:00Z,0,,2026-11-03T21:00:00Z
+117,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 22000 y tu presupuesto era 13000.,2026-11-01,,,,,22000,13000,,1,2026-11-02T04:41:00Z,0,,2026-11-01T15:00:00Z
+118,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 38000 y tu presupuesto era 13000.,2026-08-16,,,,,38000,13000,,0,,0,,2026-08-16T13:00:00Z
+119,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 28500 y tu presupuesto era 13000.,2026-09-24,,,,,28500,13000,,0,,0,,2026-09-24T23:00:00Z
+120,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 15500 y tu presupuesto era 13000.,2026-10-11,,,,,15500,13000,,1,2026-10-12T00:35:00Z,0,,2026-10-11T18:00:00Z
+121,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 19500 y tu presupuesto era 13000.,2026-10-31,,,,,19500,13000,,1,2026-11-01T02:44:00Z,0,,2026-10-31T16:00:00Z
+122,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 96500 y tu presupuesto era 13000.,2026-08-10,,,,,96500,13000,,1,2026-08-12T04:46:00Z,0,,2026-08-11T00:00:00Z
+123,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 17500 y tu presupuesto era 13000.,2026-09-11,,,,,17500,13000,,1,2026-09-12T03:35:00Z,0,,2026-09-11T13:00:00Z
+124,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 24000 y tu presupuesto era 13000.,2026-09-10,,,,,24000,13000,,1,2026-09-11T03:45:00Z,0,,2026-09-10T20:00:00Z
+125,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 17000 y tu presupuesto era 13000.,2026-07-20,,,,,17000,13000,,0,,0,,2026-07-20T23:00:00Z
+126,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 15000 y tu presupuesto era 13000.,2026-08-29,,,,,15000,13000,,1,2026-08-31T04:14:00Z,0,,2026-08-29T15:00:00Z
+127,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 16500 y tu presupuesto era 13000.,2026-10-25,,,,,16500,13000,,1,2026-10-27T00:05:00Z,0,,2026-10-25T17:00:00Z
+128,16,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 18500 y tu presupuesto era 13000.,2026-09-12,,,,,18500,13000,,0,,0,,2026-09-13T01:00:00Z
+129,16,presupuesto_categoria_excedido,advertencia,Categoria por encima del limite,Superaste el limite mensual de la categoria.,2026-09-30,,246,,,18500,7000,,0,,0,,2026-09-30T16:00:00Z
+130,16,meta_atrasada,advertencia,Tu meta necesita un empujon,La meta Curso de ingles va atrasada.,2026-10-30,,,51,,,,,0,,0,,2026-10-30T18:00:00Z
+131,16,meta_atrasada,advertencia,Tu meta necesita un empujon,La meta Moto va atrasada.,2026-10-20,,,54,,,,,1,2026-10-21T23:30:00Z,0,,2026-10-20T14:00:00Z
+132,16,dispositivo_vinculado,info,Dispositivo vinculado,Tu FinaGotchi quedo vinculado a tu cuenta.,2025-12-03,,,,16,,,,1,2025-12-04T00:59:00Z,0,,2025-12-03T17:00:00Z
+133,17,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 39000 y tu presupuesto era 28000.,2026-09-01,,,,,39000,28000,,1,2026-09-02T03:26:00Z,0,,2026-09-01T11:00:00Z
+134,17,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 82000 y tu presupuesto era 28000.,2026-07-31,,,,,82000,28000,,0,,0,,2026-07-31T21:00:00Z
+135,17,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 100000 y tu presupuesto era 28000.,2026-09-16,,,,,100000,28000,,1,2026-09-17T01:14:00Z,0,,2026-09-16T22:00:00Z
+136,17,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 101000 y tu presupuesto era 28000.,2026-09-03,,,,,101000,28000,,0,,0,,2026-09-04T02:00:00Z
+137,17,meta_cumplida,info,Meta cumplida,Completaste la meta Viaje a Santa Marta.,2026-10-17,,,58,,94000,,,1,2026-10-18T23:11:00Z,0,,2026-10-17T12:00:00Z
+138,17,recordatorio_diario,info,Recuerda registrar tus gastos,Un minuto hoy te ahorra sustos manana.,2026-11-03,,,,,,,,1,2026-11-05T03:54:00Z,0,,2026-11-03T23:00:00Z
+139,17,dispositivo_desconectado,advertencia,Tu FinaGotchi esta sin conexion,Los registros quedan guardados y se sincronizan despues.,2026-11-03,,,,17,,,,0,,0,,2026-11-03T13:00:00Z
+140,18,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 298000 y tu presupuesto era 123000.,2026-10-13,,,,,298000,123000,,0,,0,,2026-10-13T19:00:00Z
+141,18,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 448000 y tu presupuesto era 123000.,2026-10-11,,,,,448000,123000,,1,2026-10-12T23:44:00Z,0,,2026-10-12T01:00:00Z
+142,18,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 126500 y tu presupuesto era 123000.,2026-08-26,,,,,126500,123000,,0,,0,,2026-08-26T21:00:00Z
+143,18,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 227000 y tu presupuesto era 123000.,2026-09-13,,,,,227000,123000,,1,2026-09-15T01:28:00Z,0,,2026-09-13T21:00:00Z
+144,18,meta_cumplida,info,Meta cumplida,Completaste la meta Muebles para el cuarto.,2026-10-22,,,61,,247500,,,1,2026-10-24T02:42:00Z,0,,2026-10-22T13:00:00Z
+145,18,perfil_incompleto,advertencia,Completa tu perfil,Con unas preguntas mas Nancy entiende mejor tus finanzas.,2026-11-01,,,,,,,,0,,0,,2026-11-01T17:00:00Z
+146,19,meta_atrasada,advertencia,Tu meta necesita un empujon,La meta Muebles para el cuarto va atrasada.,2026-10-30,,,62,,,,,0,,0,,2026-10-30T21:00:00Z
+147,19,confirmar_entendimiento,info,Falta confirmar un movimiento,Nancy entendio un movimiento y espera tu confirmacion.,2026-10-31,396,,,,,,,0,,0,,2026-11-01T03:00:00Z
+148,19,resumen_semanal,info,Resumen de la semana,Mira como te fue esta semana con Nancy.,2026-11-02,,,,,,,,0,,0,,2026-11-02T16:00:00Z
+149,19,perfil_incompleto,advertencia,Completa tu perfil,Con unas preguntas mas Nancy entiende mejor tus finanzas.,2026-11-01,,,,,,,,0,,0,,2026-11-01T21:00:00Z
+150,19,sincronizacion,info,Sincronizacion completada,Los registros pendientes ya llegaron a la nube.,2026-11-03,,,,,,,,1,2026-11-05T03:12:00Z,0,,2026-11-03T20:00:00Z
+151,19,racha_en_riesgo,advertencia,Tu racha esta en riesgo,Registra un movimiento hoy para no perderla.,2026-11-03,,,,,,,,0,,1,2026-11-05T15:00:00Z,2026-11-03T23:00:00Z
+152,20,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 72000 y tu presupuesto era 43000.,2026-07-09,,,,,72000,43000,,1,2026-07-11T00:38:00Z,0,,2026-07-09T21:00:00Z
+153,20,confirmar_entendimiento,info,Falta confirmar un movimiento,Nancy entendio un movimiento y espera tu confirmacion.,2026-11-02,414,,,,,,,1,2026-11-04T00:06:00Z,0,,2026-11-02T15:00:00Z
+154,21,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 136000 y tu presupuesto era 100000.,2026-11-04,,,,,136000,100000,,0,,0,,2026-11-05T01:00:00Z
+155,21,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 142000 y tu presupuesto era 100000.,2026-07-12,,,,,142000,100000,,1,2026-07-13T23:09:00Z,0,,2026-07-13T00:00:00Z
+156,21,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 109000 y tu presupuesto era 100000.,2026-08-05,,,,,109000,100000,,0,,0,,2026-08-05T15:00:00Z
+157,21,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 125000 y tu presupuesto era 100000.,2026-08-10,,,,,125000,100000,,1,2026-08-11T04:14:00Z,0,,2026-08-10T19:00:00Z
+158,21,confirmar_entendimiento,info,Falta confirmar un movimiento,Nancy entendio un movimiento y espera tu confirmacion.,2026-10-29,427,,,,,,,1,2026-10-31T00:02:00Z,0,,2026-10-29T18:00:00Z
+159,21,recordatorio_diario,info,Recuerda registrar tus gastos,Un minuto hoy te ahorra sustos manana.,2026-11-03,,,,,,,,0,,0,,2026-11-03T21:00:00Z
+160,22,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 30000 y tu presupuesto era 28000.,2026-10-19,,,,,30000,28000,,0,,0,,2026-10-20T00:00:00Z
+161,22,meta_cumplida,info,Meta cumplida,Completaste la meta Concierto.,2026-11-03,,,71,,127000,,,0,,0,,2026-11-03T14:00:00Z
+162,23,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 124500 y tu presupuesto era 94000.,2026-10-23,,,,,124500,94000,,1,2026-10-25T02:31:00Z,0,,2026-10-23T22:00:00Z
+163,23,racha_en_riesgo,advertencia,Tu racha esta en riesgo,Registra un movimiento hoy para no perderla.,2026-11-03,,,,,,,,1,2026-11-05T04:00:00Z,0,,2026-11-03T13:00:00Z
+164,24,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 97000 y tu presupuesto era 36000.,2026-08-25,,,,,97000,36000,,0,,0,,2026-08-26T01:00:00Z
+165,24,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 174000 y tu presupuesto era 36000.,2026-10-07,,,,,174000,36000,,1,2026-10-08T03:31:00Z,0,,2026-10-07T20:00:00Z
+166,24,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 58000 y tu presupuesto era 36000.,2026-08-04,,,,,58000,36000,,1,2026-08-06T04:42:00Z,0,,2026-08-04T14:00:00Z
+167,24,movimiento_eliminado,info,Movimiento eliminado,Se movio a la papelera: ahorro para Beca de intercambio.,2026-08-11,477,,,,,,,1,2026-08-12T03:15:00Z,0,,2026-08-11T16:00:00Z
+168,24,resumen_semanal,info,Resumen de la semana,Mira como te fue esta semana con Nancy.,2026-11-02,,,,,,,,1,2026-11-04T03:16:00Z,0,,2026-11-02T13:00:00Z
+169,24,racha_en_riesgo,advertencia,Tu racha esta en riesgo,Registra un movimiento hoy para no perderla.,2026-11-03,,,,,,,,1,2026-11-03T23:43:00Z,0,,2026-11-03T21:00:00Z
+170,25,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 146000 y tu presupuesto era 99000.,2026-08-22,,,,,146000,99000,,0,,0,,2026-08-23T00:00:00Z
+171,25,presupuesto_diario_excedido,advertencia,Te pasaste del presupuesto del dia,Gastaste 105500 y tu presupuesto era 99000.,2026-09-04,,,,,105500,99000,,0,,0,,2026-09-04T13:00:00Z
+172,25,meta_cumplida,info,Meta cumplida,Completaste la meta Nuevo celular.,2026-10-19,,,79,,133000,,,0,,0,,2026-10-19T15:00:00Z
+173,25,meta_cumplida,info,Meta cumplida,Completaste la meta Laptop.,2026-10-18,,,81,,236000,,,1,2026-10-19T00:06:00Z,0,,2026-10-18T12:00:00Z

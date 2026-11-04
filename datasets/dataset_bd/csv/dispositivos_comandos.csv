@@ -1,0 +1,39 @@
+id,dispositivo_id,usuario_id,tipo,payload_json,estado,idempotency_key,error,creado_en,enviado_en,confirmado_en
+1,1,1,desvincular,"{""device_uid"":""FINAGOTCHI-PC-SIMULATOR-01""}",confirmado,FINAGOTCHI-PC-SIMULATOR-01-cmd-1,,2026-10-17T12:32:00Z,2026-10-17T12:32:56Z,2026-10-17T12:33:30Z
+2,2,2,actualizar_firmware,"{""device_uid"":""FG-0001""}",confirmado,FG-0001-cmd-1,,2026-10-13T12:05:00Z,2026-10-13T12:05:48Z,2026-10-13T12:06:59Z
+3,3,3,sincronizar,"{""device_uid"":""FG-0002""}",enviado,FG-0002-cmd-1,,2026-10-15T20:03:00Z,2026-10-15T20:04:22Z,
+4,3,3,reiniciar,"{""device_uid"":""FG-0002""}",enviado,FG-0002-cmd-2,,2026-10-20T14:34:00Z,2026-10-20T14:34:23Z,
+5,3,3,sincronizar,"{""device_uid"":""FG-0002""}",confirmado,FG-0002-cmd-3,,2026-10-25T19:06:00Z,2026-10-25T19:07:05Z,2026-10-25T19:07:46Z
+6,4,4,desvincular,"{""device_uid"":""FG-0003""}",error,FG-0003-cmd-1,Sin respuesta del dispositivo,2026-10-31T00:54:00Z,2026-10-31T00:54:35Z,
+7,4,4,reiniciar,"{""device_uid"":""FG-0003""}",enviado,FG-0003-cmd-2,,2026-10-14T19:20:00Z,2026-10-14T19:21:25Z,
+8,5,5,desvincular,"{""device_uid"":""FG-0004""}",pendiente,FG-0004-cmd-1,,2026-10-21T17:48:00Z,,
+9,6,6,sincronizar,"{""device_uid"":""FG-0005""}",confirmado,FG-0005-cmd-1,,2026-10-30T01:49:00Z,2026-10-30T01:49:10Z,2026-10-30T01:50:35Z
+10,6,6,sincronizar,"{""device_uid"":""FG-0005""}",enviado,FG-0005-cmd-2,,2026-10-20T17:27:00Z,2026-10-20T17:27:52Z,
+11,7,7,actualizar_firmware,"{""device_uid"":""FG-0006""}",error,FG-0006-cmd-1,Sin respuesta del dispositivo,2026-11-02T22:50:00Z,2026-11-02T22:50:57Z,
+12,7,7,silenciar,"{""device_uid"":""FG-0006""}",confirmado,FG-0006-cmd-2,,2026-10-31T00:54:00Z,2026-10-31T00:54:48Z,2026-10-31T00:56:39Z
+13,8,8,sincronizar,"{""device_uid"":""FG-0007""}",confirmado,FG-0007-cmd-1,,2026-10-27T18:10:00Z,2026-10-27T18:10:18Z,2026-10-27T18:11:28Z
+14,8,8,reiniciar,"{""device_uid"":""FG-0007""}",confirmado,FG-0007-cmd-2,,2026-10-13T19:02:00Z,2026-10-13T19:02:20Z,2026-10-13T19:03:54Z
+15,8,8,reiniciar,"{""device_uid"":""FG-0007""}",confirmado,FG-0007-cmd-3,,2026-11-01T17:35:00Z,2026-11-01T17:36:01Z,2026-11-01T17:37:26Z
+16,9,9,actualizar_firmware,"{""device_uid"":""FG-0008""}",confirmado,FG-0008-cmd-1,,2026-10-21T14:17:00Z,2026-10-21T14:17:31Z,2026-10-21T14:18:55Z
+17,9,9,sincronizar,"{""device_uid"":""FG-0008""}",confirmado,FG-0008-cmd-2,,2026-11-02T22:12:00Z,2026-11-02T22:12:34Z,2026-11-02T22:13:52Z
+18,10,10,desvincular,"{""device_uid"":""FG-0009""}",confirmado,FG-0009-cmd-1,,2026-10-31T16:23:00Z,2026-10-31T16:24:13Z,2026-10-31T16:25:35Z
+19,10,10,desvincular,"{""device_uid"":""FG-0009""}",error,FG-0009-cmd-2,Sin respuesta del dispositivo,2026-10-07T12:43:00Z,2026-10-07T12:43:33Z,
+20,11,11,desvincular,"{""device_uid"":""FG-0010""}",confirmado,FG-0010-cmd-1,,2026-10-25T19:38:00Z,2026-10-25T19:39:27Z,2026-10-25T19:40:20Z
+21,11,11,silenciar,"{""device_uid"":""FG-0010""}",enviado,FG-0010-cmd-2,,2026-10-05T15:59:00Z,2026-10-05T15:59:13Z,
+22,12,12,desvincular,"{""device_uid"":""FG-0011""}",confirmado,FG-0011-cmd-1,,2026-10-08T02:19:00Z,2026-10-08T02:20:18Z,2026-10-08T02:21:35Z
+23,12,12,desvincular,"{""device_uid"":""FG-0011""}",confirmado,FG-0011-cmd-2,,2026-10-18T20:49:00Z,2026-10-18T20:50:25Z,2026-10-18T20:50:30Z
+24,12,12,silenciar,"{""device_uid"":""FG-0011""}",confirmado,FG-0011-cmd-3,,2026-10-31T17:47:00Z,2026-10-31T17:48:02Z,2026-10-31T17:48:32Z
+25,13,13,sincronizar,"{""device_uid"":""FG-0012""}",confirmado,FG-0012-cmd-1,,2026-10-19T22:50:00Z,2026-10-19T22:50:53Z,2026-10-19T22:52:04Z
+26,13,13,reiniciar,"{""device_uid"":""FG-0012""}",error,FG-0012-cmd-2,Sin respuesta del dispositivo,2026-10-07T00:37:00Z,2026-10-07T00:37:58Z,
+27,14,14,sincronizar,"{""device_uid"":""FG-0013""}",pendiente,FG-0013-cmd-1,,2026-10-24T16:10:00Z,,
+28,15,15,actualizar_firmware,"{""device_uid"":""FG-0014""}",confirmado,FG-0014-cmd-1,,2026-10-09T01:55:00Z,2026-10-09T01:56:05Z,2026-10-09T01:56:21Z
+29,15,15,actualizar_firmware,"{""device_uid"":""FG-0014""}",enviado,FG-0014-cmd-2,,2026-11-04T22:16:00Z,2026-11-04T22:16:22Z,
+30,15,15,silenciar,"{""device_uid"":""FG-0014""}",enviado,FG-0014-cmd-3,,2026-10-06T02:43:00Z,2026-10-06T02:44:23Z,
+31,16,16,desvincular,"{""device_uid"":""FG-0015""}",confirmado,FG-0015-cmd-1,,2026-10-25T15:14:00Z,2026-10-25T15:14:33Z,2026-10-25T15:16:25Z
+32,16,16,desvincular,"{""device_uid"":""FG-0015""}",pendiente,FG-0015-cmd-2,,2026-10-22T14:36:00Z,,
+33,17,17,actualizar_firmware,"{""device_uid"":""FG-0016""}",enviado,FG-0016-cmd-1,,2026-10-05T17:17:00Z,2026-10-05T17:18:04Z,
+34,17,17,actualizar_firmware,"{""device_uid"":""FG-0016""}",confirmado,FG-0016-cmd-2,,2026-10-10T22:29:00Z,2026-10-10T22:29:25Z,2026-10-10T22:31:15Z
+35,17,17,silenciar,"{""device_uid"":""FG-0016""}",enviado,FG-0016-cmd-3,,2026-10-23T14:59:00Z,2026-10-23T14:59:56Z,
+36,18,18,silenciar,"{""device_uid"":""FG-0017""}",enviado,FG-0017-cmd-1,,2026-10-14T00:05:00Z,2026-10-14T00:05:08Z,
+37,18,18,desvincular,"{""device_uid"":""FG-0017""}",confirmado,FG-0017-cmd-2,,2026-10-28T22:44:00Z,2026-10-28T22:44:24Z,2026-10-28T22:45:44Z
+38,18,18,silenciar,"{""device_uid"":""FG-0017""}",confirmado,FG-0017-cmd-3,,2026-10-24T12:20:00Z,2026-10-24T12:20:06Z,2026-10-24T12:21:30Z

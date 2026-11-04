@@ -44,6 +44,15 @@ Estado al cierre de la Fase A y la fase del simulador por menús.
 | Los millones no se detectaban | El patrón no contemplaba "millones". | Se reconoce "millones" y "1.5 millones". |
 | "5 mil" se perdía | El modelo de transcripción lo escribe "5.000". | El intérprete entiende las dos formas. |
 
+### El dataset de la base de datos
+
+| Síntoma | Causa | Resolución |
+|---|---|---|
+| `table dispositivos has no column named device_uid` con una copia de `finagotchi.db` | La copia real tenía `dispositivos.device_id`, mientras que `001_schema.sql` y el backend usan `device_uid`. La base se había creado con una versión anterior del esquema y nunca se migró la columna. | `tools/generar_dataset_bd.py` detecta la diferencia y ejecuta `ALTER TABLE dispositivos RENAME COLUMN device_id TO device_uid` antes de generar. Queda documentado y probado con una copia de la base real. |
+| Los CSV no coincidían con `PRAGMA table_info` | `cierres_dia.delta_salud`, `salud_log.delta` y `perfil_financiero.ingreso_total_mensual` son columnas generadas. `table_info` las oculta, pero `SELECT *` sí las devuelve. | La exportación y las pruebas usan `PRAGMA table_xinfo`. En el README del dataset se avisa que son de solo lectura. |
+| El generador dejaba la base a medias si fallaba | Los `INSERT` se confirmaban solo al final. | `ejecutar()` hace un único `commit` después de todas las inserciones y `_verificar()` corre `foreign_key_check` e `integrity_check` antes de exportar. Si algo falla, SQLite descarta el lote. |
+| Las fechas del dataset envejecen | El dataset se calcula respecto al día de ejecución. | Es reproducible con la misma semilla y el mismo `--hoy`; el manifest guarda la fecha de referencia. |
+
 ## Errores abiertos
 
 | Problema | Impacto | Plan |

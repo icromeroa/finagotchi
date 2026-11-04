@@ -83,6 +83,7 @@ Estos son los comandos del proyecto, verificados por `tests/test_comandos.py`, q
 | `py -3 database/init_db.py` | Crea o actualiza la base de datos. |
 | `py -3 -m unittest discover -s tests -v` | Corre todas las pruebas. |
 | `py -3 tools/verificar_entorno.py` | Revisa dependencias, base, clave, IA y micrófono. |
+| `py -3 tools/generar_dataset_bd.py` | Regenera los datos demo de `finagotchi.db` y exporta CSV. |
 | `py -3 tools/grabar_dataset.py` | Graba los clips del dataset con el micrófono. |
 | `py -3 tools/evaluar_dataset.py` | Evalúa el dataset (WER, montos, latencia). |
 | `py -3 tools/probar_flujo_voz.py audio.wav` | Prueba el flujo de voz con un WAV. |
@@ -154,6 +155,24 @@ py -3 tools/evaluar_dataset.py    # transcribe y calcula WER, montos y latencia
 El manifiesto se actualiza con la duración de cada clip. Los audios no se versionan. El reporte queda en `datasets/eval_audio/reporte.json`.
 
 Objetivos de la evaluación: WER menor a 15 %, montos exactos en al menos 90 % de los casos y latencia p95 menor a 5 segundos.
+
+## Dataset de la base de datos
+
+`finagotchi.db` viene cargada con un dataset sintético reproducible: 25 usuarios, 18 dispositivos (nunca más dispositivos que usuarios y máximo uno por usuario), 500 transacciones, metas, presupuestos, cierres, alertas, telemetría y casos límite.
+
+```powershell
+py -3 tools/generar_dataset_bd.py
+py -3 tools/generar_dataset_bd.py --semilla 1234 --transacciones 200
+py -3 tools/generar_dataset_bd.py --db C:\ruta\copia.db --no-exportar
+```
+
+El generador respalda la base en `backups/` antes de borrar los datos de prueba, conserva `plantilla_*` y `schema_migrations`, verifica `foreign_key_check`/`integrity_check` y deja el resultado en:
+
+- `datasets/dataset_bd/csv/`: un CSV por tabla (UTF-8, sin BOM).
+- `datasets/dataset_bd/manifest.json`: conteo, tamaño y SHA-256 de cada archivo.
+- `datasets/dataset_bd/README.md`: contenido y credenciales.
+
+Cuentas demo: `simulador@finagotchi.local` / `simulador123` y `demo01@finagotchi.local` … `demo24@finagotchi.local` / `Demo1234`.
 
 ## App Flutter
 

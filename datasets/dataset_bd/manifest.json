@@ -1,0 +1,354 @@
+{
+  "generado_en": "2026-11-04T17:18:14",
+  "semilla": 20261104,
+  "hoy": "2026-11-04",
+  "resumen": {
+    "usuarios": 25,
+    "usuarios_con_dispositivo": 18,
+    "usuarios_solo_app": 7,
+    "dispositivos": 18,
+    "transacciones": 500,
+    "transacciones_confirmadas": 481,
+    "transacciones_pendientes": 19,
+    "transacciones_eliminadas": 22,
+    "mensajes_dispositivo": 343,
+    "interacciones_ia": 575,
+    "metas": 81,
+    "metas_cumplidas": 15,
+    "puntos_total": 1151,
+    "salud_promedio": 95.48,
+    "cierres_dia": 151,
+    "alertas_log": 173,
+    "vistas": 15,
+    "rango_fechas": {
+      "desde": "2026-07-08",
+      "hasta": "2026-11-04"
+    },
+    "tablas": {
+      "alertas_log": 173,
+      "categoria_palabras": 1408,
+      "categorias": 425,
+      "cierres_dia": 151,
+      "consentimientos": 75,
+      "cuenta_palabras": 369,
+      "cuentas": 147,
+      "dispositivos": 18,
+      "dispositivos_comandos": 38,
+      "dispositivos_notificaciones": 132,
+      "dispositivos_telemetria": 190,
+      "estado_mascota": 25,
+      "gastos_fijos": 71,
+      "interacciones_ia": 575,
+      "mensajes_dispositivo": 343,
+      "metas": 81,
+      "metas_eventos": 100,
+      "perfil_financiero": 25,
+      "perfil_secciones": 150,
+      "plantilla_categoria_palabras": 53,
+      "plantilla_categorias": 16,
+      "plantilla_cuenta_palabras": 13,
+      "plantilla_cuentas": 5,
+      "preferencias_notificacion": 25,
+      "presupuesto_categoria": 164,
+      "presupuesto_diario_historial": 43,
+      "presupuestos": 25,
+      "progreso_etapa": 25,
+      "puntos_log": 546,
+      "retos_respuestas": 34,
+      "salud_log": 151,
+      "schema_migrations": 1,
+      "sesiones_refresco": 55,
+      "solicitudes_eliminacion_cuenta": 3,
+      "tokens_recuperacion": 16,
+      "tokens_verificacion_correo": 23,
+      "transacciones": 500,
+      "transacciones_versiones": 22,
+      "usuarios": 25,
+      "vinculacion_codigos": 27
+    }
+  },
+  "total_archivos": 40,
+  "total_filas": 6268,
+  "archivos": [
+    {
+      "tabla": "alertas_log",
+      "archivo": "csv/alertas_log.csv",
+      "filas": 173,
+      "bytes": 30851,
+      "sha256": "9dc8526f5801985f247c904098cd2b129eb490ade3a85f4980e3222d9f9e0368"
+    },
+    {
+      "tabla": "categoria_palabras",
+      "archivo": "csv/categoria_palabras.csv",
+      "filas": 1408,
+      "bytes": 27495,
+      "sha256": "c9ba0d801dea8a5a3618685df0dbecdd280dd2faf43675212e91bd16093ac1fe"
+    },
+    {
+      "tabla": "categorias",
+      "archivo": "csv/categorias.csv",
+      "filas": 425,
+      "bytes": 26105,
+      "sha256": "bad6f221437a650c2b22cd5a26d5ab38ddcf26756ff5363fba98da6ea3ff6c45"
+    },
+    {
+      "tabla": "cierres_dia",
+      "archivo": "csv/cierres_dia.csv",
+      "filas": 151,
+      "bytes": 12987,
+      "sha256": "e15dce983b92dd30d3186866551a1779985f5d2c517df8b050b810e3bdde26e0"
+    },
+    {
+      "tabla": "consentimientos",
+      "archivo": "csv/consentimientos.csv",
+      "filas": 75,
+      "bytes": 3913,
+      "sha256": "8608c6cfdb2e79de35e7ed72233e90eb9da23bccc8c04f4f18b3487402362ddd"
+    },
+    {
+      "tabla": "cuenta_palabras",
+      "archivo": "csv/cuenta_palabras.csv",
+      "filas": 369,
+      "bytes": 8079,
+      "sha256": "5de6bca9de37ee24a13acec4581268d9f5761cba5b72911e8b04acdb9eb2499a"
+    },
+    {
+      "tabla": "cuentas",
+      "archivo": "csv/cuentas.csv",
+      "filas": 147,
+      "bytes": 13098,
+      "sha256": "93b29b67273f8a75a3f7c19dee208ce6fe91cfcc47473bb7993aef37bc1590b3"
+    },
+    {
+      "tabla": "dispositivos",
+      "archivo": "csv/dispositivos.csv",
+      "filas": 18,
+      "bytes": 5224,
+      "sha256": "335a4f938437893dd3e28248fde486b9fa5ea50edc8cfb7742340142c5c33a1b"
+    },
+    {
+      "tabla": "dispositivos_comandos",
+      "archivo": "csv/dispositivos_comandos.csv",
+      "filas": 38,
+      "bytes": 5198,
+      "sha256": "88247baf69170b72e316437d54b06f91205c9e4687e14cd55b6175f389e6e4e3"
+    },
+    {
+      "tabla": "dispositivos_notificaciones",
+      "archivo": "csv/dispositivos_notificaciones.csv",
+      "filas": 132,
+      "bytes": 22890,
+      "sha256": "7fac3bd40deb88b64ca23b3d8fca7ec7f4d5baaa98c562d24d38a4c063383563"
+    },
+    {
+      "tabla": "dispositivos_telemetria",
+      "archivo": "csv/dispositivos_telemetria.csv",
+      "filas": 190,
+      "bytes": 21141,
+      "sha256": "acc8a5df28164cebb4da99b1d2d9b21a4b1bde146858bc74750e2b992c1bd5cb"
+    },
+    {
+      "tabla": "estado_mascota",
+      "archivo": "csv/estado_mascota.csv",
+      "filas": 25,
+      "bytes": 900,
+      "sha256": "35fb3bc115c49ae421c2e475a83b89ef14cb53bd91fd67f23867840500f50114"
+    },
+    {
+      "tabla": "gastos_fijos",
+      "archivo": "csv/gastos_fijos.csv",
+      "filas": 71,
+      "bytes": 5203,
+      "sha256": "a8c67a7b8d1e28ddac13d7544739fbd3a4cc09525eddc89b2d40bba07aabcfa6"
+    },
+    {
+      "tabla": "interacciones_ia",
+      "archivo": "csv/interacciones_ia.csv",
+      "filas": 575,
+      "bytes": 127177,
+      "sha256": "86c0774ee39f21531208f46de1d7db58137793471a0ae2ddab8079032c7f0c88"
+    },
+    {
+      "tabla": "mensajes_dispositivo",
+      "archivo": "csv/mensajes_dispositivo.csv",
+      "filas": 343,
+      "bytes": 45827,
+      "sha256": "1e427ce3f73863229eced25ebb62714c31f3d44d4f792152a237e6117ffaafa6"
+    },
+    {
+      "tabla": "metas",
+      "archivo": "csv/metas.csv",
+      "filas": 81,
+      "bytes": 10432,
+      "sha256": "9eac37e64b12a08cda3e760d2a26f1a070b3eb89dbdb2e980540939e51624db1"
+    },
+    {
+      "tabla": "metas_eventos",
+      "archivo": "csv/metas_eventos.csv",
+      "filas": 100,
+      "bytes": 8343,
+      "sha256": "2eaab4caa36de0ca7896cbc62fe2630659551181eadf59d94902d87756739c3d"
+    },
+    {
+      "tabla": "perfil_financiero",
+      "archivo": "csv/perfil_financiero.csv",
+      "filas": 25,
+      "bytes": 5276,
+      "sha256": "9a34cd632b2216a5ea73f0ff0ffe10630974498dfbc405465b5b1e69a328bfd7"
+    },
+    {
+      "tabla": "perfil_secciones",
+      "archivo": "csv/perfil_secciones.csv",
+      "filas": 150,
+      "bytes": 7468,
+      "sha256": "a78987200025f4c488c609f1ed2398218d600b713103b7345f3805c02c86ca48"
+    },
+    {
+      "tabla": "plantilla_categoria_palabras",
+      "archivo": "csv/plantilla_categoria_palabras.csv",
+      "filas": 53,
+      "bytes": 1525,
+      "sha256": "e4ff8eb06260ebf3d76ba4907a824971f4728de54be9c1125b9c83ad2a2f7d8b"
+    },
+    {
+      "tabla": "plantilla_categorias",
+      "archivo": "csv/plantilla_categorias.csv",
+      "filas": 16,
+      "bytes": 556,
+      "sha256": "0286fea3088d8eee3aadd73cc395358105d2642c0d0bc042f7b4513ae56458f1"
+    },
+    {
+      "tabla": "plantilla_cuenta_palabras",
+      "archivo": "csv/plantilla_cuenta_palabras.csv",
+      "filas": 13,
+      "bytes": 287,
+      "sha256": "0baf7e6b7befaa757ae9c8ed98ea5ae212a3111df3e5ab67635fe6a4e26cd84b"
+    },
+    {
+      "tabla": "plantilla_cuentas",
+      "archivo": "csv/plantilla_cuentas.csv",
+      "filas": 5,
+      "bytes": 225,
+      "sha256": "095ee1eca219b68a43088f7582e6f72a58e4ba6d0edfafe2eb639b3a4da7970d"
+    },
+    {
+      "tabla": "preferencias_notificacion",
+      "archivo": "csv/preferencias_notificacion.csv",
+      "filas": 25,
+      "bytes": 942,
+      "sha256": "f28189a7ad04df0b6d3c76200ec4f7a71b8a357822651f68c9623cccfe2a67bb"
+    },
+    {
+      "tabla": "presupuesto_categoria",
+      "archivo": "csv/presupuesto_categoria.csv",
+      "filas": 164,
+      "bytes": 4317,
+      "sha256": "f2705a96f683d5dc71f8796476deb9d5f40e175bcde1292459b0ba32741eacaa"
+    },
+    {
+      "tabla": "presupuesto_diario_historial",
+      "archivo": "csv/presupuesto_diario_historial.csv",
+      "filas": 43,
+      "bytes": 3221,
+      "sha256": "4955cf4878c4a9c0ab2d59b48b2fa1c835a9a1f3347591375c7a2653cc5383b6"
+    },
+    {
+      "tabla": "presupuestos",
+      "archivo": "csv/presupuestos.csv",
+      "filas": 25,
+      "bytes": 1832,
+      "sha256": "f81d52bb1c08f8a7d7846db3aea321595f167f8832c00576ed428daea7bb52c9"
+    },
+    {
+      "tabla": "progreso_etapa",
+      "archivo": "csv/progreso_etapa.csv",
+      "filas": 25,
+      "bytes": 1969,
+      "sha256": "60a6d8e03b564d71a81fb615ef5dc10442ef067bd5a48d3aef686b183c8636aa"
+    },
+    {
+      "tabla": "puntos_log",
+      "archivo": "csv/puntos_log.csv",
+      "filas": 546,
+      "bytes": 51493,
+      "sha256": "c3af92a96b65616baa8760018f107fe252fc15b767cf05cb60d1265b1ea351d4"
+    },
+    {
+      "tabla": "retos_respuestas",
+      "archivo": "csv/retos_respuestas.csv",
+      "filas": 34,
+      "bytes": 1628,
+      "sha256": "4082c5d0571e7364d5c8d165f257787c9ac13564db6efd5f9a75c065ea87a1a9"
+    },
+    {
+      "tabla": "salud_log",
+      "archivo": "csv/salud_log.csv",
+      "filas": 151,
+      "bytes": 19106,
+      "sha256": "b717300cec2d836b726f8d674f6ae0804c4f199e70e05c351a22e43eff72037f"
+    },
+    {
+      "tabla": "schema_migrations",
+      "archivo": "csv/schema_migrations.csv",
+      "filas": 1,
+      "bytes": 112,
+      "sha256": "f7583c9035e6e271739811ebcec0105174bb6047c7ebda977e2b39619c30d044"
+    },
+    {
+      "tabla": "sesiones_refresco",
+      "archivo": "csv/sesiones_refresco.csv",
+      "filas": 55,
+      "bytes": 10059,
+      "sha256": "8ca595bd642a1993afbd468d73765d51d46cec344dd88d0108436cfd2111359d"
+    },
+    {
+      "tabla": "solicitudes_eliminacion_cuenta",
+      "archivo": "csv/solicitudes_eliminacion_cuenta.csv",
+      "filas": 3,
+      "bytes": 295,
+      "sha256": "36951eeab34bc8d2a0bf94dec95d6bc0160c9413e076679adaddf0b48384cc4b"
+    },
+    {
+      "tabla": "tokens_recuperacion",
+      "archivo": "csv/tokens_recuperacion.csv",
+      "filas": 16,
+      "bytes": 2060,
+      "sha256": "28100b7509e3e285af470bbc65f122c703cc3cb17224b1f27db04445e77d8883"
+    },
+    {
+      "tabla": "tokens_verificacion_correo",
+      "archivo": "csv/tokens_verificacion_correo.csv",
+      "filas": 23,
+      "bytes": 3062,
+      "sha256": "3219d338a669e1f4da674c089b0d2e9d6bfe9cfdfffe3bc3f19332cf1c3443a6"
+    },
+    {
+      "tabla": "transacciones",
+      "archivo": "csv/transacciones.csv",
+      "filas": 500,
+      "bytes": 99123,
+      "sha256": "9253f306c37a58a7cf4ecb46d1f28bb8adecd9c956481a601196ebc6f2504716"
+    },
+    {
+      "tabla": "transacciones_versiones",
+      "archivo": "csv/transacciones_versiones.csv",
+      "filas": 22,
+      "bytes": 2643,
+      "sha256": "c3888d242c3d2ea01c8a177594b7c14105388a47ca5bb124d14c70962a35487c"
+    },
+    {
+      "tabla": "usuarios",
+      "archivo": "csv/usuarios.csv",
+      "filas": 25,
+      "bytes": 8566,
+      "sha256": "e820bbfd07a6f83fd477b936c78d959e8ab4f0835ae49acc8d72a07a1f850b12"
+    },
+    {
+      "tabla": "vinculacion_codigos",
+      "archivo": "csv/vinculacion_codigos.csv",
+      "filas": 27,
+      "bytes": 3815,
+      "sha256": "5ffc969c1b7f978e51b507346eb548a57218f10c1784306ce124bab292ba97e2"
+    }
+  ]
+}

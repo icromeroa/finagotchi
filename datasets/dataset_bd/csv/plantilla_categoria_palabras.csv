@@ -1,0 +1,54 @@
+categoria_nombre,tipo,palabra
+Alimentación,gasto,almuerzo
+Alimentación,gasto,desayuno
+Alimentación,gasto,cena
+Alimentación,gasto,comida
+Alimentación,gasto,restaurante
+Alimentación,gasto,café
+Alimentación,gasto,cafe
+Alimentación,gasto,empanada
+Alimentación,gasto,mercado
+Alimentación,gasto,corrientazo
+Transporte,gasto,transporte
+Transporte,gasto,pasaje
+Transporte,gasto,bus
+Transporte,gasto,transmilenio
+Transporte,gasto,uber
+Transporte,gasto,taxi
+Transporte,gasto,viaje
+Transporte,gasto,gasolina
+Transporte,gasto,parqueadero
+Ocio y gustos,gasto,cine
+Ocio y gustos,gasto,fiesta
+Ocio y gustos,gasto,bar
+Ocio y gustos,gasto,cerveza
+Ocio y gustos,gasto,juego
+Ocio y gustos,gasto,salida
+Ocio y gustos,gasto,concierto
+Ocio y gustos,gasto,helado
+Salud y aseo,gasto,farmacia
+Salud y aseo,gasto,drogueria
+Salud y aseo,gasto,medicina
+Salud y aseo,gasto,medico
+Salud y aseo,gasto,salud
+Salud y aseo,gasto,gimnasio
+Vivienda y fijos,gasto,arriendo
+Vivienda y fijos,gasto,alquiler
+Vivienda y fijos,gasto,servicios
+Vivienda y fijos,gasto,luz
+Vivienda y fijos,gasto,agua
+Vivienda y fijos,gasto,gas
+Vivienda y fijos,gasto,internet
+Suscripciones,gasto,netflix
+Suscripciones,gasto,spotify
+Suscripciones,gasto,suscripción
+Suscripciones,gasto,suscripcion
+Trabajo,ingreso,sueldo
+Trabajo,ingreso,salario
+Trabajo,ingreso,trabajo
+Trabajo,ingreso,quincena
+Trabajo,ingreso,pagaron
+Trabajo,ingreso,honorarios
+Apoyo familiar,ingreso,mesada
+Apoyo familiar,ingreso,apoyo
+Beca,ingreso,beca

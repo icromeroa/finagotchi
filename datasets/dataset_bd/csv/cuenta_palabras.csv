@@ -1,0 +1,370 @@
+id,usuario_id,cuenta_id,palabra
+1,1,5,bancolombia
+2,1,5,con bancolombia
+3,1,5,por bancolombia
+4,1,3,con daviplata
+5,1,3,daviplata
+6,1,3,por daviplata
+7,1,1,efectivo
+8,1,1,en efectivo
+9,1,2,con nequi
+10,1,2,nequi
+11,1,2,por nequi
+12,1,4,con nu
+13,1,4,por nu
+14,2,10,bancolombia
+15,2,10,con bancolombia
+16,2,10,por bancolombia
+17,2,8,con daviplata
+18,2,8,daviplata
+19,2,8,por daviplata
+20,2,6,efectivo
+21,2,6,en efectivo
+22,2,7,con nequi
+23,2,7,nequi
+24,2,7,por nequi
+25,2,9,con nu
+26,2,9,por nu
+27,3,15,bancolombia
+28,3,15,con bancolombia
+29,3,15,por bancolombia
+30,3,13,con daviplata
+31,3,13,daviplata
+32,3,13,por daviplata
+33,3,11,efectivo
+34,3,11,en efectivo
+35,3,12,con nequi
+36,3,12,nequi
+37,3,12,por nequi
+38,3,14,con nu
+39,3,14,por nu
+40,4,20,bancolombia
+41,4,20,con bancolombia
+42,4,20,por bancolombia
+43,4,18,con daviplata
+44,4,18,daviplata
+45,4,18,por daviplata
+46,4,16,efectivo
+47,4,16,en efectivo
+48,4,17,con nequi
+49,4,17,nequi
+50,4,17,por nequi
+51,4,19,con nu
+52,4,19,por nu
+53,5,25,bancolombia
+54,5,25,con bancolombia
+55,5,25,por bancolombia
+56,5,23,con daviplata
+57,5,23,daviplata
+58,5,23,por daviplata
+59,5,21,efectivo
+60,5,21,en efectivo
+61,5,22,con nequi
+62,5,22,nequi
+63,5,22,por nequi
+64,5,24,con nu
+65,5,24,por nu
+66,6,30,bancolombia
+67,6,30,con bancolombia
+68,6,30,por bancolombia
+69,6,28,con daviplata
+70,6,28,daviplata
+71,6,28,por daviplata
+72,6,26,efectivo
+73,6,26,en efectivo
+74,6,27,con nequi
+75,6,27,nequi
+76,6,27,por nequi
+77,6,29,con nu
+78,6,29,por nu
+79,7,35,bancolombia
+80,7,35,con bancolombia
+81,7,35,por bancolombia
+82,7,33,con daviplata
+83,7,33,daviplata
+84,7,33,por daviplata
+85,7,31,efectivo
+86,7,31,en efectivo
+87,7,32,con nequi
+88,7,32,nequi
+89,7,32,por nequi
+90,7,34,con nu
+91,7,34,por nu
+92,8,40,bancolombia
+93,8,40,con bancolombia
+94,8,40,por bancolombia
+95,8,38,con daviplata
+96,8,38,daviplata
+97,8,38,por daviplata
+98,8,36,efectivo
+99,8,36,en efectivo
+100,8,37,con nequi
+101,8,37,nequi
+102,8,37,por nequi
+103,8,39,con nu
+104,8,39,por nu
+105,9,45,bancolombia
+106,9,45,con bancolombia
+107,9,45,por bancolombia
+108,9,43,con daviplata
+109,9,43,daviplata
+110,9,43,por daviplata
+111,9,41,efectivo
+112,9,41,en efectivo
+113,9,42,con nequi
+114,9,42,nequi
+115,9,42,por nequi
+116,9,44,con nu
+117,9,44,por nu
+118,10,50,bancolombia
+119,10,50,con bancolombia
+120,10,50,por bancolombia
+121,10,48,con daviplata
+122,10,48,daviplata
+123,10,48,por daviplata
+124,10,46,efectivo
+125,10,46,en efectivo
+126,10,47,con nequi
+127,10,47,nequi
+128,10,47,por nequi
+129,10,49,con nu
+130,10,49,por nu
+131,11,55,bancolombia
+132,11,55,con bancolombia
+133,11,55,por bancolombia
+134,11,53,con daviplata
+135,11,53,daviplata
+136,11,53,por daviplata
+137,11,51,efectivo
+138,11,51,en efectivo
+139,11,52,con nequi
+140,11,52,nequi
+141,11,52,por nequi
+142,11,54,con nu
+143,11,54,por nu
+144,12,60,bancolombia
+145,12,60,con bancolombia
+146,12,60,por bancolombia
+147,12,58,con daviplata
+148,12,58,daviplata
+149,12,58,por daviplata
+150,12,56,efectivo
+151,12,56,en efectivo
+152,12,57,con nequi
+153,12,57,nequi
+154,12,57,por nequi
+155,12,59,con nu
+156,12,59,por nu
+157,13,65,bancolombia
+158,13,65,con bancolombia
+159,13,65,por bancolombia
+160,13,63,con daviplata
+161,13,63,daviplata
+162,13,63,por daviplata
+163,13,61,efectivo
+164,13,61,en efectivo
+165,13,62,con nequi
+166,13,62,nequi
+167,13,62,por nequi
+168,13,64,con nu
+169,13,64,por nu
+170,14,70,bancolombia
+171,14,70,con bancolombia
+172,14,70,por bancolombia
+173,14,68,con daviplata
+174,14,68,daviplata
+175,14,68,por daviplata
+176,14,66,efectivo
+177,14,66,en efectivo
+178,14,67,con nequi
+179,14,67,nequi
+180,14,67,por nequi
+181,14,69,con nu
+182,14,69,por nu
+183,15,75,bancolombia
+184,15,75,con bancolombia
+185,15,75,por bancolombia
+186,15,73,con daviplata
+187,15,73,daviplata
+188,15,73,por daviplata
+189,15,71,efectivo
+190,15,71,en efectivo
+191,15,72,con nequi
+192,15,72,nequi
+193,15,72,por nequi
+194,15,74,con nu
+195,15,74,por nu
+196,16,80,bancolombia
+197,16,80,con bancolombia
+198,16,80,por bancolombia
+199,16,78,con daviplata
+200,16,78,daviplata
+201,16,78,por daviplata
+202,16,76,efectivo
+203,16,76,en efectivo
+204,16,77,con nequi
+205,16,77,nequi
+206,16,77,por nequi
+207,16,79,con nu
+208,16,79,por nu
+209,17,85,bancolombia
+210,17,85,con bancolombia
+211,17,85,por bancolombia
+212,17,83,con daviplata
+213,17,83,daviplata
+214,17,83,por daviplata
+215,17,81,efectivo
+216,17,81,en efectivo
+217,17,82,con nequi
+218,17,82,nequi
+219,17,82,por nequi
+220,17,84,con nu
+221,17,84,por nu
+222,18,90,bancolombia
+223,18,90,con bancolombia
+224,18,90,por bancolombia
+225,18,88,con daviplata
+226,18,88,daviplata
+227,18,88,por daviplata
+228,18,86,efectivo
+229,18,86,en efectivo
+230,18,87,con nequi
+231,18,87,nequi
+232,18,87,por nequi
+233,18,89,con nu
+234,18,89,por nu
+235,19,95,bancolombia
+236,19,95,con bancolombia
+237,19,95,por bancolombia
+238,19,93,con daviplata
+239,19,93,daviplata
+240,19,93,por daviplata
+241,19,91,efectivo
+242,19,91,en efectivo
+243,19,92,con nequi
+244,19,92,nequi
+245,19,92,por nequi
+246,19,94,con nu
+247,19,94,por nu
+248,20,100,bancolombia
+249,20,100,con bancolombia
+250,20,100,por bancolombia
+251,20,98,con daviplata
+252,20,98,daviplata
+253,20,98,por daviplata
+254,20,96,efectivo
+255,20,96,en efectivo
+256,20,97,con nequi
+257,20,97,nequi
+258,20,97,por nequi
+259,20,99,con nu
+260,20,99,por nu
+261,21,105,bancolombia
+262,21,105,con bancolombia
+263,21,105,por bancolombia
+264,21,103,con daviplata
+265,21,103,daviplata
+266,21,103,por daviplata
+267,21,101,efectivo
+268,21,101,en efectivo
+269,21,102,con nequi
+270,21,102,nequi
+271,21,102,por nequi
+272,21,104,con nu
+273,21,104,por nu
+274,22,110,bancolombia
+275,22,110,con bancolombia
+276,22,110,por bancolombia
+277,22,108,con daviplata
+278,22,108,daviplata
+279,22,108,por daviplata
+280,22,106,efectivo
+281,22,106,en efectivo
+282,22,107,con nequi
+283,22,107,nequi
+284,22,107,por nequi
+285,22,109,con nu
+286,22,109,por nu
+287,23,115,bancolombia
+288,23,115,con bancolombia
+289,23,115,por bancolombia
+290,23,113,con daviplata
+291,23,113,daviplata
+292,23,113,por daviplata
+293,23,111,efectivo
+294,23,111,en efectivo
+295,23,112,con nequi
+296,23,112,nequi
+297,23,112,por nequi
+298,23,114,con nu
+299,23,114,por nu
+300,24,120,bancolombia
+301,24,120,con bancolombia
+302,24,120,por bancolombia
+303,24,118,con daviplata
+304,24,118,daviplata
+305,24,118,por daviplata
+306,24,116,efectivo
+307,24,116,en efectivo
+308,24,117,con nequi
+309,24,117,nequi
+310,24,117,por nequi
+311,24,119,con nu
+312,24,119,por nu
+313,25,125,bancolombia
+314,25,125,con bancolombia
+315,25,125,por bancolombia
+316,25,123,con daviplata
+317,25,123,daviplata
+318,25,123,por daviplata
+319,25,121,efectivo
+320,25,121,en efectivo
+321,25,122,con nequi
+322,25,122,nequi
+323,25,122,por nequi
+324,25,124,con nu
+325,25,124,por nu
+326,2,126,tarjeta nu
+327,2,126,tarjetanu
+328,2,127,tarjeta davivienda
+329,2,127,tarjetadavivienda
+330,4,128,ahorros uvr
+331,4,128,ahorrosuvr
+332,5,129,caja menor
+333,5,129,cajamenor
+334,5,130,tarjeta nu
+335,5,130,tarjetanu
+336,6,131,ahorros uvr
+337,6,131,ahorrosuvr
+338,8,132,caja menor
+339,8,132,cajamenor
+340,8,133,ahorros uvr
+341,8,133,ahorrosuvr
+342,9,134,caja menor
+343,9,134,cajamenor
+344,9,135,tarjeta davivienda
+345,9,135,tarjetadavivienda
+346,10,136,tarjeta davivienda
+347,10,136,tarjetadavivienda
+348,12,137,ahorros uvr
+349,12,137,ahorrosuvr
+350,13,138,tarjeta nu
+351,13,138,tarjetanu
+352,15,139,tarjeta davivienda
+353,15,139,tarjetadavivienda
+354,15,140,tarjeta nu
+355,15,140,tarjetanu
+356,16,141,caja menor
+357,16,141,cajamenor
+358,17,142,ahorros uvr
+359,17,142,ahorrosuvr
+360,20,143,tarjeta davivienda
+361,20,143,tarjetadavivienda
+362,21,144,caja menor
+363,21,144,cajamenor
+364,21,145,tarjeta nu
+365,21,145,tarjetanu
+366,23,146,tarjeta davivienda
+367,23,146,tarjetadavivienda
+368,25,147,tarjeta nu
+369,25,147,tarjetanu

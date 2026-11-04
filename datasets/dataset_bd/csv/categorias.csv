@@ -1,0 +1,426 @@
+id,usuario_id,nombre,tipo,icono,es_sistema,es_fija,activa,orden,creado_en
+1,1,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+2,1,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+3,1,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+4,1,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+5,1,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+6,1,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+7,1,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+8,1,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+9,1,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+10,1,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+11,1,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+12,1,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+13,1,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+14,1,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+15,1,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+16,1,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+17,2,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+18,2,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+19,2,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+20,2,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+21,2,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+22,2,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+23,2,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+24,2,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+25,2,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+26,2,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+27,2,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+28,2,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+29,2,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+30,2,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+31,2,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+32,2,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+33,3,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+34,3,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+35,3,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+36,3,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+37,3,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+38,3,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+39,3,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+40,3,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+41,3,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+42,3,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+43,3,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+44,3,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+45,3,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+46,3,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+47,3,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+48,3,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+49,4,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+50,4,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+51,4,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+52,4,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+53,4,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+54,4,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+55,4,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+56,4,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+57,4,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+58,4,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+59,4,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+60,4,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+61,4,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+62,4,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+63,4,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+64,4,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+65,5,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+66,5,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+67,5,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+68,5,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+69,5,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+70,5,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+71,5,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+72,5,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+73,5,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+74,5,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+75,5,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+76,5,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+77,5,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+78,5,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+79,5,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+80,5,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+81,6,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+82,6,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+83,6,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+84,6,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+85,6,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+86,6,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+87,6,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+88,6,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+89,6,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+90,6,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+91,6,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+92,6,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+93,6,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+94,6,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+95,6,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+96,6,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+97,7,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+98,7,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+99,7,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+100,7,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+101,7,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+102,7,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+103,7,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+104,7,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+105,7,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+106,7,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+107,7,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+108,7,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+109,7,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+110,7,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+111,7,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+112,7,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+113,8,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+114,8,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+115,8,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+116,8,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+117,8,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+118,8,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+119,8,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+120,8,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+121,8,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+122,8,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+123,8,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+124,8,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+125,8,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+126,8,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+127,8,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+128,8,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+129,9,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+130,9,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+131,9,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+132,9,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+133,9,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+134,9,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+135,9,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+136,9,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+137,9,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+138,9,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+139,9,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+140,9,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+141,9,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+142,9,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+143,9,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+144,9,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+145,10,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+146,10,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+147,10,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+148,10,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+149,10,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+150,10,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+151,10,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+152,10,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+153,10,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+154,10,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+155,10,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+156,10,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+157,10,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+158,10,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+159,10,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+160,10,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+161,11,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+162,11,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+163,11,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+164,11,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+165,11,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+166,11,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+167,11,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+168,11,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+169,11,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+170,11,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+171,11,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+172,11,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+173,11,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+174,11,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+175,11,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+176,11,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+177,12,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+178,12,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+179,12,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+180,12,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+181,12,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+182,12,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+183,12,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+184,12,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+185,12,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+186,12,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+187,12,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+188,12,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+189,12,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+190,12,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+191,12,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+192,12,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+193,13,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+194,13,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+195,13,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+196,13,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+197,13,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+198,13,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+199,13,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+200,13,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+201,13,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+202,13,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+203,13,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+204,13,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+205,13,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+206,13,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+207,13,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+208,13,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+209,14,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+210,14,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+211,14,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+212,14,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+213,14,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+214,14,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+215,14,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+216,14,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+217,14,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+218,14,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+219,14,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+220,14,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+221,14,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+222,14,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+223,14,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+224,14,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+225,15,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+226,15,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+227,15,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+228,15,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+229,15,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+230,15,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+231,15,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+232,15,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+233,15,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+234,15,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+235,15,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+236,15,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+237,15,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+238,15,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+239,15,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+240,15,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+241,16,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+242,16,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+243,16,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+244,16,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+245,16,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+246,16,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+247,16,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+248,16,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+249,16,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+250,16,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+251,16,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+252,16,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+253,16,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+254,16,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+255,16,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+256,16,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+257,17,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+258,17,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+259,17,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+260,17,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+261,17,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+262,17,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+263,17,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+264,17,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+265,17,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+266,17,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+267,17,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+268,17,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+269,17,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+270,17,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+271,17,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+272,17,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+273,18,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+274,18,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+275,18,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+276,18,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+277,18,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+278,18,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+279,18,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+280,18,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+281,18,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+282,18,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+283,18,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+284,18,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+285,18,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+286,18,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+287,18,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+288,18,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+289,19,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+290,19,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+291,19,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+292,19,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+293,19,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+294,19,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+295,19,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+296,19,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+297,19,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+298,19,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+299,19,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+300,19,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+301,19,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+302,19,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+303,19,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+304,19,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+305,20,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+306,20,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+307,20,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+308,20,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+309,20,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+310,20,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+311,20,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+312,20,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+313,20,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+314,20,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+315,20,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+316,20,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+317,20,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+318,20,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+319,20,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+320,20,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+321,21,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+322,21,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+323,21,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+324,21,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+325,21,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+326,21,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+327,21,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+328,21,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+329,21,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+330,21,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+331,21,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+332,21,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+333,21,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+334,21,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+335,21,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+336,21,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+337,22,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+338,22,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+339,22,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+340,22,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+341,22,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+342,22,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+343,22,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+344,22,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+345,22,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+346,22,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+347,22,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+348,22,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+349,22,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+350,22,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+351,22,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+352,22,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+353,23,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+354,23,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+355,23,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+356,23,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+357,23,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+358,23,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+359,23,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+360,23,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+361,23,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+362,23,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+363,23,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+364,23,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+365,23,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+366,23,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+367,23,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+368,23,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+369,24,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+370,24,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+371,24,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+372,24,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+373,24,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+374,24,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+375,24,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+376,24,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+377,24,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+378,24,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+379,24,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+380,24,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+381,24,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+382,24,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+383,24,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+384,24,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+385,25,Alimentación,gasto,🍽️,1,0,1,1,2026-11-04T22:18:13Z
+386,25,Transporte,gasto,🚌,1,0,1,2,2026-11-04T22:18:13Z
+387,25,Familia y detalles,gasto,🎁,1,0,1,3,2026-11-04T22:18:13Z
+388,25,Ocio y gustos,gasto,🎉,1,0,1,4,2026-11-04T22:18:13Z
+389,25,Vivienda y fijos,gasto,🏠,1,1,1,5,2026-11-04T22:18:13Z
+390,25,Suscripciones,gasto,🍿,1,1,1,6,2026-11-04T22:18:13Z
+391,25,Salud y aseo,gasto,💊,1,0,1,7,2026-11-04T22:18:13Z
+392,25,Deudas,gasto,💳,1,0,1,8,2026-11-04T22:18:13Z
+393,25,Finanzas,gasto,🏦,1,0,1,9,2026-11-04T22:18:13Z
+394,25,Préstamos,gasto,🤝,1,0,1,10,2026-11-04T22:18:13Z
+395,25,Ahorro e inversión,gasto,🐷,1,0,1,11,2026-11-04T22:18:13Z
+396,25,Otros,gasto,📦,1,0,1,12,2026-11-04T22:18:13Z
+397,25,Trabajo,ingreso,💼,1,0,1,1,2026-11-04T22:18:13Z
+398,25,Apoyo familiar,ingreso,👨‍👩‍👧,1,0,1,2,2026-11-04T22:18:13Z
+399,25,Beca,ingreso,🎓,1,0,1,3,2026-11-04T22:18:13Z
+400,25,Otros ingresos,ingreso,✨,1,0,1,4,2026-11-04T22:18:13Z
+401,1,Delivery,gasto,📦,0,0,1,13,2026-04-23T14:00:00Z
+402,1,Mascotas,gasto,📦,0,0,1,14,2026-04-23T14:00:00Z
+403,2,Mascotas,gasto,📦,0,0,1,13,2025-07-14T14:00:00Z
+404,2,Delivery,gasto,📦,0,0,1,14,2025-07-14T14:00:00Z
+405,4,Delivery,gasto,📦,0,0,1,13,2025-11-01T14:00:00Z
+406,6,Delivery,gasto,📦,0,0,1,13,2025-12-10T14:00:00Z
+407,8,Delivery,gasto,📦,0,0,1,13,2026-01-25T14:00:00Z
+408,9,Educacion,gasto,📦,0,0,1,13,2026-01-31T14:00:00Z
+409,9,Mascotas,gasto,📦,0,0,1,14,2026-01-31T14:00:00Z
+410,11,Freelance,ingreso,📦,0,0,1,13,2026-03-03T14:00:00Z
+411,11,Mascotas,gasto,📦,0,0,1,14,2026-03-03T14:00:00Z
+412,14,Educacion,gasto,📦,0,0,1,13,2025-10-04T14:00:00Z
+413,14,Mascotas,gasto,📦,0,0,1,14,2025-10-04T14:00:00Z
+414,15,Educacion,gasto,📦,0,0,1,13,2026-06-01T14:00:00Z
+415,16,Delivery,gasto,📦,0,0,1,13,2025-11-26T14:00:00Z
+416,16,Mascotas,gasto,📦,0,0,1,14,2025-11-26T14:00:00Z
+417,17,Mascotas,gasto,📦,0,0,1,13,2026-01-04T14:00:00Z
+418,18,Educacion,gasto,📦,0,0,1,13,2025-06-15T14:00:00Z
+419,19,Educacion,gasto,📦,0,0,1,13,2025-07-15T14:00:00Z
+420,19,Freelance,ingreso,📦,0,0,1,14,2025-07-15T14:00:00Z
+421,21,Mascotas,gasto,📦,0,0,1,13,2026-01-27T14:00:00Z
+422,21,Freelance,ingreso,📦,0,0,1,14,2026-01-27T14:00:00Z
+423,22,Delivery,gasto,📦,0,0,1,13,2025-12-07T14:00:00Z
+424,23,Educacion,gasto,📦,0,0,1,13,2025-10-15T14:00:00Z
+425,25,Educacion,gasto,📦,0,0,1,13,2025-07-24T14:00:00Z
