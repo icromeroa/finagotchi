@@ -6,6 +6,11 @@ import 'package:frontend/api/api_client.dart';
 import 'package:frontend/api/grabador.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// La interpretacion con el modelo de lenguaje local tarda entre 7 y 15
+/// segundos, asi que estas pruebas necesitan mas margen que el de 30 segundos
+/// que trae flutter_test por defecto.
+const _margen = Timeout(Duration(minutes: 3));
+
 /// Pruebas del cliente de la API contra el backend real.
 ///
 /// Si el backend no esta levantado, las pruebas se saltan con un aviso: es
@@ -88,7 +93,7 @@ void main() {
       final tras = await cliente.home();
       final hoyTras = tras['hoy'] as Map<String, dynamic>;
       expect((hoyTras['gastos'] as num).toInt(), greaterThanOrEqualTo(12000));
-    });
+    }, timeout: _margen);
 
     test('devuelve el error del backend cuando las credenciales son malas',
         () async {
@@ -139,6 +144,6 @@ void main() {
             reason: 'El backend rechazo el WAV por formato: ${e.mensaje}');
         expect(e.codigo, 'STT_SIN_TEXTO');
       }
-    });
+    }, timeout: _margen);
   });
 }

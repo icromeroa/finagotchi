@@ -91,7 +91,7 @@ Uint8List wavDesdePcm(Uint8List pcm, int muestraRate) {
   cabecera.setUint32(4, 36 + numeroBytes, Endian.little);
   escribirTexto(8, 'WAVE');
   escribirTexto(12, 'fmt ');
-  cabecera.setUint32(16, 16, Endian.little); // tamaÃ±o del bloque fmt
+  cabecera.setUint32(16, 16, Endian.little); // tamaño del bloque fmt
   cabecera.setUint16(20, 1, Endian.little); // PCM sin comprimir
   cabecera.setUint16(22, 1, Endian.little); // un canal
   cabecera.setUint32(24, muestraRate, Endian.little);

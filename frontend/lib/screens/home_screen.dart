@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       setState(() {
         cargando = false;
-        errorConexion = 'No se pudo cargar la informaciÃ³n: $e';
+        errorConexion = 'No se pudo cargar la información: $e';
       });
     }
   }
@@ -74,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _hablar() async {
     if (!_grabador.puedeGrabar) {
       _message(
-        'La voz no estÃ¡ disponible en web. Escribe tu frase con el botÃ³n de al lado.',
+        'La voz no está disponible en web. Escribe tu frase con el botón de al lado.',
       );
       return;
     }
@@ -113,23 +113,23 @@ class _HomeScreenState extends State<HomeScreen> {
     final texto = (mensaje['texto_transcrito'] ?? '').toString();
 
     if (transacciones.isEmpty) {
-      _message(texto.isEmpty ? 'No entendÃ­ tu mensaje.' : 'EntendÃ­: "$texto"');
+      _message(texto.isEmpty ? 'No entendí tu mensaje.' : 'Entendí: "$texto"');
       return;
     }
 
     final detalle = transacciones.map((t) {
       final item = t as Map<String, dynamic>;
       final monto = (item['monto'] ?? 0).toInt();
-      final categoria = (item['categoria'] ?? 'Sin categorÃ­a').toString();
+      final categoria = (item['categoria'] ?? 'Sin categoría').toString();
       final cuenta = (item['cuenta'] ?? '').toString();
-      return '${item['tipo']} de $monto Â· $categoria'
-          '${cuenta.isEmpty ? '' : ' Â· $cuenta'}';
+      return '${item['tipo']} de $monto · $categoria'
+          '${cuenta.isEmpty ? '' : ' · $cuenta'}';
     }).join('\n');
 
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (contexto) => AlertDialog(
-        title: const Text('Â¿Registro esto?'),
+        title: const Text('¿Registro esto?'),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const Spacer(),
                         IconButton(
-                          onPressed: () => _message('AquÃ­ aparecerÃ¡n tus notificaciones.'),
+                          onPressed: () => _message('Aquí aparecerán tus notificaciones.'),
                           icon: const Icon(
                             Icons.notifications_none,
                             color: AppColors.darkGreen,
@@ -246,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () => _message('Tu perfil estarÃ¡ disponible aquÃ­.'),
+                          onPressed: () => _message('Tu perfil estará disponible aquí.'),
                           icon: const Icon(
                             Icons.account_circle_outlined,
                             color: AppColors.darkGreen,
@@ -268,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           border: Border.all(color: AppColors.wine, width: 1.5),
                         ),
                         child: const Text(
-                          'Â¿QuÃ© tal si me cuentas tu primer gasto?',
+                          '¿Qué tal si me cuentas tu primer gasto?',
                           style: TextStyle(
                             color: AppColors.wine,
                             fontSize: 12,
@@ -279,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 6),
 
-                    // 3. HABITACIÃ“N CLÃSICA DE FINAGOTCHI
+                    // 3. HABITACIÓN CLÃSICA DE FINAGOTCHI
                     SizedBox(
                       height: 260,
                       width: double.infinity,
@@ -294,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               alignment: Alignment.center,
                               padding: const EdgeInsets.all(16),
                               child: const Text(
-                                'No se pudo cargar la habitaciÃ³n.',
+                                'No se pudo cargar la habitación.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: AppColors.wine),
                               ),
@@ -304,10 +304,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    // ESPACIO AMPLIADO (Aprox 1 cm de respiro para que no quede apiÃ±ado)
+                    // ESPACIO AMPLIADO (Aprox 1 cm de respiro para que no quede apiñado)
                     const SizedBox(height: 24),
 
-                    // 4. BOTÃ“N FLOTANTE "Finaliza tu dÃ­a"
+                    // 4. BOTÓN FLOTANTE "Finaliza tu día"
                     Center(
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -322,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: const [
                             Text(
-                              'Finaliza tu dÃ­a',
+                              'Finaliza tu día',
                               style: TextStyle(
                                 color: AppColors.wine,
                                 fontWeight: FontWeight.w800,
@@ -331,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'â€œAlmuerzo corriente 14 milâ€',
+                              '“Almuerzo corriente 14 milâ€',
                               style: TextStyle(
                                 color: AppColors.wine,
                                 fontSize: 11,
@@ -347,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // ESPACIO AMPLIADO ENTRE BOTONES
                     const SizedBox(height: 16),
 
-                    // 5. BOTONES DE ACCIÃ“N (MantÃ©n para hablar + Escribir)
+                    // 5. BOTONES DE ACCIÓN (Mantén para hablar + Escribir)
                     Row(
                       children: [
                         Expanded(
@@ -383,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: const [
                                         Text(
-                                          'MantÃ©n para hablar',
+                                          'Mantén para hablar',
                                           style: TextStyle(
                                             color: AppColors.darkGreen,
                                             fontWeight: FontWeight.bold,
@@ -391,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         ),
                                         Text(
-                                          'â€œAlmuerzo corriente 14 milâ€',
+                                          '“Almuerzo corriente 14 milâ€',
                                           style: TextStyle(
                                             color: AppColors.darkGreen,
                                             fontSize: 9.5,
@@ -511,7 +511,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   const Text(
-                                    'Tope mÃ¡ximo',
+                                    'Tope máximo',
                                     style: TextStyle(color: AppColors.darkGreen, fontSize: 10),
                                   ),
                                   Text(
@@ -556,7 +556,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 16),
 
-                    // 7. TARJETA DE DIAGNÃ“STICO (Etapa 1 de 3)
+                    // 7. TARJETA DE DIAGNÓSTICO (Etapa 1 de 3)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
@@ -573,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               const Icon(Icons.flag_outlined, color: AppColors.wine, size: 18),
                               const SizedBox(width: 6),
                               const Text(
-                                'DiagnÃ³stico',
+                                'Diagnóstico',
                                 style: TextStyle(
                                   color: AppColors.wine,
                                   fontWeight: FontWeight.bold,
@@ -600,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Text(
-                                  'DÃ­a 1 de 30',
+                                  'Día 1 de 30',
                                   style: TextStyle(color: AppColors.darkGreen, fontSize: 9, fontWeight: FontWeight.bold),
                                 ),
                               ),
@@ -621,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: const [
                               Text('0 de 60 registros', style: TextStyle(color: AppColors.darkGreen, fontSize: 10)),
-                              Text('0 puntos â˜…', style: TextStyle(color: AppColors.darkGreen, fontSize: 10, fontWeight: FontWeight.bold)),
+                              Text('0 puntos ★', style: TextStyle(color: AppColors.darkGreen, fontSize: 10, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ],
@@ -630,9 +630,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 16),
 
-                    // 8. ÃšLTIMOS MOVIMIENTOS
+                    // 8. ÚLTIMOS MOVIMIENTOS
                     const Text(
-                      'Ãšltimos movimientos',
+                      'Últimos movimientos',
                       style: TextStyle(
                         color: AppColors.darkGreen,
                         fontWeight: FontWeight.bold,
@@ -660,7 +660,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'AÃºn no hay registros',
+                            'Aún no hay registros',
                             style: TextStyle(
                               color: AppColors.wine,
                               fontWeight: FontWeight.bold,
@@ -669,7 +669,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 2),
                           const Text(
-                            'MantÃ©n presionado el botÃ³n y cuÃ©ntame tu primer gasto.',
+                            'Mantén presionado el botón y cuéntame tu primer gasto.',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: AppColors.darkGreen, fontSize: 11),
                           ),
@@ -681,7 +681,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Text(
-                              'âš¡ Demora menos de 3 segundos',
+                              '⚡ Demora menos de 3 segundos',
                               style: TextStyle(color: AppColors.wine, fontSize: 9, fontWeight: FontWeight.bold),
                             ),
                           ),
@@ -693,7 +693,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // 9. NAVEGACIÃ“N INFERIOR
+            // 9. NAVEGACIÓN INFERIOR
             Padding(
               padding: const EdgeInsets.fromLTRB(22, 0, 22, 12),
               child: Row(
@@ -713,16 +713,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _navItem(Icons.home_outlined, 'Inicio', 0),
-                          _navItem(Icons.bar_chart, 'MÃ©tricas', 1),
+                          _navItem(Icons.bar_chart, 'Métricas', 1),
                           _navItem(Icons.manage_search, 'Historial', 2),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // BÃ“VEDA DE AHORROS
+                  // BÓVEDA DE AHORROS
                   InkWell(
-                    onTap: () => _message('AquÃ­ estarÃ¡ tu bÃ³veda de ahorros.'),
+                    onTap: () => _message('Aquí estará tu bóveda de ahorros.'),
                     customBorder: const CircleBorder(),
                     child: Container(
                       width: 52,
@@ -747,7 +747,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ELEMENTOS DE NAVEGACIÃ“N
+  // ELEMENTOS DE NAVEGACIÓN
   Widget _navItem(IconData icon, String label, int index) {
     final active = selectedTab == index;
 
@@ -755,7 +755,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         setState(() => selectedTab = index);
         if (index != 0) {
-          _message('$label estarÃ¡ disponible prÃ³ximamente.');
+          _message('$label estará disponible próximamente.');
         }
       },
       borderRadius: BorderRadius.circular(15),

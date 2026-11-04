@@ -548,7 +548,7 @@ def interpret(conn, user_id, text):
         return {
             "intent": "requiere_aclaracion",
             "texto": text,
-            "error": "No se identificÃ³ un monto",
+            "error": "No se identificó un monto",
             "transacciones": [],
         }
     if account is None:
@@ -562,7 +562,7 @@ def interpret(conn, user_id, text):
         return {
             "intent": "requiere_aclaracion",
             "texto": text,
-            "error": "No hay una categorÃ­a disponible",
+            "error": "No hay una categoría disponible",
             "transacciones": [],
         }
 
