@@ -203,5 +203,6 @@ flutter test
 ## Documentación
 
 - `docs/ESPECIFICACIONES.md`: contrato funcional, endpoints, esquema y decisiones.
+- `docs/endpoints.md`: guía práctica para conectar la app Flutter con la API.
 - `docs/DISPOSITIVO.md`: hardware, pinout, audio y flujos de pantalla para el firmware.
 - `GUIA_SIMULADOR.md`: guía del simulador de escritorio.

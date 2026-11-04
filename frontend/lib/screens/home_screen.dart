@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import '../api/api_client.dart';
-import '../api/grabador.dart';
-import '../api/servicios.dart';
 import '../theme/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,164 +12,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int selectedTab = 0;
   int dailyBudget = 10000;
   int spent = 2500;
-  int ingresos = 0;
-  int ahorro = 0;
-  int puntos = 0;
-  String animo = 'FELIZ';
-  int salud = 100;
   bool isRecording = false;
-  bool cargando = true;
-  String? errorConexion;
-
-  final GrabadorVoz _grabador = GrabadorVoz();
-
-  @override
-  void initState() {
-    super.initState();
-    _cargarHome();
-  }
-
-  @override
-  void dispose() {
-    _grabador.dispose();
-    super.dispose();
-  }
-
-  Future<void> _cargarHome() async {
-    try {
-      final datos = await api.home();
-      if (!mounted) return;
-      final hoy = (datos['hoy'] ?? {}) as Map<String, dynamic>;
-      final mascota = (datos['mascota'] ?? {}) as Map<String, dynamic>;
-      setState(() {
-        dailyBudget = (hoy['presupuesto_diario'] ?? 0).toInt();
-        spent = (hoy['gastos'] ?? 0).toInt();
-        ingresos = (hoy['ingresos'] ?? 0).toInt();
-        ahorro = (hoy['ahorro'] ?? 0).toInt();
-        puntos = (datos['puntos'] ?? 0).toInt();
-        animo = (mascota['animo'] ?? 'FELIZ').toString();
-        salud = (mascota['salud'] ?? 100).toInt();
-        cargando = false;
-        errorConexion = null;
-      });
-    } on ApiError catch (e) {
-      if (!mounted) return;
-      setState(() {
-        cargando = false;
-        errorConexion = e.mensaje;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        cargando = false;
-        errorConexion = 'No se pudo cargar la información: $e';
-      });
-    }
-  }
-
-  /// Graba la voz y la manda al backend, que la transcribe e interpreta.
-  Future<void> _hablar() async {
-    if (!_grabador.puedeGrabar) {
-      _message(
-        'La voz no está disponible en web. Escribe tu frase con el botón de al lado.',
-      );
-      return;
-    }
-    try {
-      await _grabador.iniciar();
-      setState(() => isRecording = true);
-    } catch (e) {
-      _message('No se pudo empezar a grabar: $e');
-    }
-  }
-
-  Future<void> _enviarAudio() async {
-    try {
-      final wav = await _grabador.detener();
-      setState(() => isRecording = false);
-      if (wav.isEmpty) return;
-
-      _message('Entendiendo tu mensaje...');
-      final mensaje = await api.enviarAudio(
-        wav,
-        messageId: 'app-${DateTime.now().millisecondsSinceEpoch}',
-        duracion: duracionWav(wav),
-      );
-      await _mostrarPropuesta(mensaje);
-      await _cargarHome();
-    } on ApiError catch (e) {
-      if (mounted) _message(e.mensaje);
-    } catch (e) {
-      if (mounted) _message('No se pudo enviar el audio: $e');
-    }
-  }
-
-  Future<void> _mostrarPropuesta(Map<String, dynamic> mensaje) async {
-    if (!mounted) return;
-    final transacciones = (mensaje['transacciones'] ?? []) as List<dynamic>;
-    final texto = (mensaje['texto_transcrito'] ?? '').toString();
-
-    if (transacciones.isEmpty) {
-      _message(texto.isEmpty ? 'No entendí tu mensaje.' : 'Entendí: "$texto"');
-      return;
-    }
-
-    final detalle = transacciones.map((t) {
-      final item = t as Map<String, dynamic>;
-      final monto = (item['monto'] ?? 0).toInt();
-      final categoria = (item['categoria'] ?? 'Sin categoría').toString();
-      final cuenta = (item['cuenta'] ?? '').toString();
-      return '${item['tipo']} de $monto · $categoria'
-          '${cuenta.isEmpty ? '' : ' · $cuenta'}';
-    }).join('\n');
-
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (contexto) => AlertDialog(
-        title: const Text('¿Registro esto?'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (texto.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text('"$texto"',
-                      style: const TextStyle(fontStyle: FontStyle.italic)),
-                ),
-              Text(detalle),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(contexto, false),
-            child: const Text('Descartar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(contexto, true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true || !mounted) return;
-    try {
-      final id = (mensaje['id'] ?? 0).toInt();
-      await api.confirmarMensaje(id);
-      _message('Registro guardado.');
-    } on ApiError catch (e) {
-      if (mounted) _message(e.mensaje);
-    }
-  }
-
-  void _message(String texto) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(texto)));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -226,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Padding(
                               padding: EdgeInsets.only(left: 2),
                               child: Text(
-                                'â— Registra hoy para mantenerla',
+                                '● Registra hoy para mantenerla',
                                 style: TextStyle(
                                   color: AppColors.wine,
                                   fontSize: 9.5,
@@ -258,7 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 12),
 
-                    // 2. GLOBO DE DIÃLOGO DE NANCY
+                    // 2. GLOBO DE DIÁLOGO DE NANCY
                     Center(
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -279,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 6),
 
-                    // 3. HABITACIÓN CLÃSICA DE FINAGOTCHI
+                    // 3. HABITACIÓN CLÁSICA DE FINAGOTCHI
                     SizedBox(
                       height: 260,
                       width: double.infinity,
@@ -331,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              '“Almuerzo corriente 14 milâ€',
+                              '“Almuerzo corriente 14 mil”',
                               style: TextStyle(
                                 color: AppColors.wine,
                                 fontSize: 11,
@@ -353,8 +193,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           flex: 65,
                           child: GestureDetector(
-                            onLongPressStart: (_) => _hablar(),
-                            onLongPressEnd: (_) => _enviarAudio(),
+                            onLongPressStart: (_) => setState(() => isRecording = true),
+                            onLongPressEnd: (_) {
+                              setState(() => isRecording = false);
+                              _message('Registro de voz conectado.');
+                            },
                             child: Container(
                               height: 52,
                               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -391,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ),
                                         ),
                                         Text(
-                                          '“Almuerzo corriente 14 milâ€',
+                                          '“Almuerzo corriente 14 mil”',
                                           style: TextStyle(
                                             color: AppColors.darkGreen,
                                             fontSize: 9.5,
@@ -794,6 +637,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${value < 0 ? '-' : ''}\$$formatted';
   }
 
-  // MENSAJES TEMPORALES: se usa el _message de la parte superior, que
-  // revisa que la pantalla siga montada antes de mostrar el aviso.
+  // MENSAJES TEMPORALES
+  void _message(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 }

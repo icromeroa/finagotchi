@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frontend/screens/login_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
-  });
-
   /// El boton esta al final de una columna que se puede desplazar, asi que
   /// hay que traerlo a la vista antes de pulsarlo.
   Future<void> pulsarEntrar(WidgetTester tester) async {

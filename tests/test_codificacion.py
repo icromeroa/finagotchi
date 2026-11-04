@@ -83,15 +83,8 @@ class CodificacionTests(unittest.TestCase):
         )
 
     def test_los_textos_publicados_se_ven_bien(self):
-        """Muestra representativa de lo que el usuario ve en pantalla."""
+        """Muestra representativa de los mensajes que devuelve la API."""
         casos = {
-            "frontend/lib/screens/home_screen.dart": [
-                "Mantén para hablar",
-                "¿Qué tal si me cuentas tu primer gasto?",
-                "Mantén presionado el botón y cuéntame tu primer gasto.",
-                "No entendí tu mensaje.",
-                "No se pudo cargar la información",
-            ],
             "backend/nlp.py": [
                 "No se identificó un monto",
                 "No hay una categoría disponible",

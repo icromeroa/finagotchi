@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
-import '../home_screen.dart';
 import 'stages_overview_screen.dart';
 
 enum LinkState { linking, success, connectionLost, error }
@@ -15,15 +14,6 @@ class DeviceLinkScreen extends StatefulWidget {
 class _DeviceLinkScreenState extends State<DeviceLinkScreen> {
   LinkState currentState = LinkState.linking;
 
-  /// Permite seguir sin vincular el dispositivo. El vinculo se puede hacer
-  /// despues desde la app: no bloquea el resto del flujo.
-  void _saltarVinculo() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,18 +22,6 @@ class _DeviceLinkScreenState extends State<DeviceLinkScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          TextButton(
-            onPressed: _saltarVinculo,
-            child: const Text(
-              'Ahora no',
-              style: TextStyle(
-                color: AppColors.wine,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
           PopupMenuButton<LinkState>(
             icon: const Icon(Icons.bug_report, color: AppColors.wine),
             onSelected: (state) => setState(() => currentState = state),
