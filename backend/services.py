@@ -6,6 +6,7 @@ from datetime import date as date_cls
 from datetime import datetime
 
 from . import nlp
+from . import finance_engine, optimization
 from .audio import MAX_DURACION_S as MAX_AUDIO_DURACION_S
 from .db import (
     BOGOTA,
@@ -23,6 +24,19 @@ ALLOWED_TRANSACTION_TYPES = ("gasto", "ingreso", "ahorro")
 ALLOWED_TRANSACTION_STATES = ("pendiente", "confirmado", "anulado")
 HEALTH_MIN = -35
 HEALTH_MAX = 25
+PRIORIDAD_MIN = 1
+PRIORIDAD_MAX = 5
+
+
+def parse_priority(value):
+    """Normaliza la prioridad de una meta; devuelve None si es invalida."""
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    if number < PRIORIDAD_MIN or number > PRIORIDAD_MAX:
+        return None
+    return number
 
 
 def parse_date(value):
@@ -1166,3 +1180,57 @@ def serialize_goal(conn, user_id, goal_id):
         (user_id, goal_id),
     ).fetchone()
     return dict(row) if row else None
+
+
+def goal_plan(
+    conn,
+    user_id,
+    as_of=None,
+    meses=finance_engine.MESES_POR_DEFECTO,
+    colchon_pct=finance_engine.COLCHON_PCT_POR_DEFECTO,
+    income_override=None,
+    expense_override=None,
+    capacity_override=None,
+    prioridades=None,
+    incluir_metas=None,
+    simulacion=False,
+    overrides=None,
+):
+    """Calcula el plan de metas sin escribir en la base.
+
+    Lee las metas desde `v_metas_progreso` y la capacidad desde
+    `finance_engine`, y delega la optimizacion en `optimization`.
+    """
+    as_of = as_of or local_date()
+    capacity = finance_engine.monthly_capacity(
+        conn,
+        user_id,
+        as_of,
+        meses=meses,
+        colchon_pct=colchon_pct,
+        income_override=income_override,
+        expense_override=expense_override,
+        capacity_override=capacity_override,
+    )
+    rows = conn.execute(
+        """
+        SELECT * FROM v_metas_progreso
+        WHERE usuario_id = ?
+        ORDER BY fecha_limite, meta_id
+        """,
+        (user_id,),
+    ).fetchall()
+
+    plan = optimization.plan_goals(
+        [dict(row) for row in rows],
+        capacity["capacidad_mensual"],
+        as_of,
+        horizon=meses,
+        prioridades=prioridades,
+        incluir_metas=incluir_metas,
+        entradas=capacity["entradas"],
+    )
+    plan["simulacion"] = bool(simulacion)
+    if simulacion:
+        plan["overrides"] = overrides or {}
+    return plan

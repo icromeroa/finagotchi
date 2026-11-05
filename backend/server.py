@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from backend import ai, audio, nlp, services  # noqa: E402
+from backend import finance_engine  # noqa: E402
 from backend.api_utils import body, datos_entrantes, error, ok, require_fields  # noqa: E402
 from backend.auth import (  # noqa: E402
     auth_required,
@@ -69,6 +70,151 @@ def _mime_audio(archivo):
     if nombre.endswith(".wav"):
         return audio.MIME_TYPE
     return mime or "application/octet-stream"
+
+
+def _plan_int(value, nombre, minimo, maximo):
+    try:
+        number = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "El parametro {0} debe ser un entero".format(nombre),
+            422,
+            {"campo": nombre},
+        ) from exc
+    if number < minimo or number > maximo:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "El parametro {0} debe estar entre {1} y {2}".format(nombre, minimo, maximo),
+            422,
+            {"campo": nombre},
+        )
+    return number
+
+
+def _plan_pct(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "El parametro colchon_pct debe ser numerico",
+            422,
+            {"campo": "colchon_pct"},
+        ) from exc
+    if number < 0 or number > 50:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "El parametro colchon_pct debe estar entre 0 y 50",
+            422,
+            {"campo": "colchon_pct"},
+        )
+    return number
+
+
+def _plan_options(source):
+    """Opciones comunes de plan: meses, fecha y colchon."""
+    fecha = source.get("fecha") or local_date()
+    if finance_engine.parse_date(fecha) is None:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "La fecha no es valida",
+            422,
+            {"campo": "fecha"},
+        )
+    return {
+        "as_of": str(fecha)[:10],
+        "meses": _plan_int(source.get("meses", 12), "meses", 1, 24),
+        "colchon_pct": _plan_pct(source.get("colchon_pct", 10)),
+    }
+
+
+def _plan_overrides(data):
+    """Opciones adicionales de simulacion y los overrides aplicados."""
+    overrides = {}
+    result = {}
+    for nombre, clave in (
+        ("ingreso_mensual", "income_override"),
+        ("gasto_mensual", "expense_override"),
+        ("capacidad_mensual", "capacity_override"),
+    ):
+        value = data.get(nombre)
+        if value is not None:
+            number = _plan_int(value, nombre, 0, 10**15)
+            result[clave] = number
+            overrides[nombre] = number
+
+    prioridades = data.get("prioridades")
+    if prioridades is not None:
+        if not isinstance(prioridades, dict):
+            raise ErrorSolicitud(
+                "PARAMETRO_INVALIDO",
+                "prioridades debe ser un objeto meta_id -> prioridad",
+                422,
+                {"campo": "prioridades"},
+            )
+        normalizadas = {}
+        for key, value in prioridades.items():
+            try:
+                meta_id = int(key)
+            except (TypeError, ValueError) as exc:
+                raise ErrorSolicitud(
+                    "PARAMETRO_INVALIDO",
+                    "Las claves de prioridades deben ser meta_id",
+                    422,
+                    {"campo": "prioridades"},
+                ) from exc
+            prioridad = services.parse_priority(value)
+            if prioridad is None:
+                raise ErrorSolicitud(
+                    "PARAMETRO_INVALIDO",
+                    "La prioridad debe estar entre 1 y 5",
+                    422,
+                    {"campo": "prioridades"},
+                )
+            normalizadas[meta_id] = prioridad
+        result["prioridades"] = normalizadas
+        overrides["prioridades"] = normalizadas
+
+    incluir = data.get("incluir_metas")
+    if incluir is not None:
+        if not isinstance(incluir, list):
+            raise ErrorSolicitud(
+                "PARAMETRO_INVALIDO",
+                "incluir_metas debe ser un arreglo de meta_id",
+                422,
+                {"campo": "incluir_metas"},
+            )
+        ids = []
+        for value in incluir:
+            try:
+                ids.append(int(value))
+            except (TypeError, ValueError) as exc:
+                raise ErrorSolicitud(
+                    "PARAMETRO_INVALIDO",
+                    "incluir_metas debe contener meta_id enteros",
+                    422,
+                    {"campo": "incluir_metas"},
+                ) from exc
+        result["incluir_metas"] = ids
+        overrides["incluir_metas"] = ids
+
+    return result, overrides
+
+
+def _verificar_metas(conn, user_id, meta_ids):
+    ids = sorted({int(value) for value in meta_ids})
+    if not ids:
+        return []
+    placeholders = ",".join("?" for _ in ids)
+    rows = conn.execute(
+        "SELECT id FROM metas WHERE usuario_id = ? AND is_deleted = 0 AND id IN ({0})".format(
+            placeholders
+        ),
+        (user_id, *ids),
+    ).fetchall()
+    existentes = {int(row["id"]) for row in rows}
+    return [meta_id for meta_id in ids if meta_id not in existentes]
 
 
 def procesar_mensaje_voz(
@@ -1074,6 +1220,47 @@ def create_app(database=None):
         ).fetchall()
         return ok(dict_rows(rows))
 
+    @app.get("/api/v1/goals/plan")
+    @auth_required
+    def get_goal_plan():
+        try:
+            options = _plan_options(request.args)
+        except ErrorSolicitud as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+        return ok(services.goal_plan(get_db(), g.user_id, **options))
+
+    @app.post("/api/v1/goals/plan/simulate")
+    @auth_required
+    def simulate_goal_plan():
+        data = body()
+        try:
+            options = _plan_options(data)
+            extra, overrides = _plan_overrides(data)
+        except ErrorSolicitud as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+
+        conn = get_db()
+        solicitadas = set(extra.get("incluir_metas") or [])
+        solicitadas.update(extra.get("prioridades") or {})
+        faltantes = _verificar_metas(conn, g.user_id, solicitadas)
+        if faltantes:
+            return error(
+                "META_INEXISTENTE",
+                "Alguna meta no existe o no pertenece al usuario",
+                404,
+                {"metas": faltantes},
+            )
+
+        plan = services.goal_plan(
+            conn,
+            g.user_id,
+            simulacion=True,
+            overrides=overrides,
+            **options,
+            **extra,
+        )
+        return ok(plan)
+
     @app.post("/api/v1/goals")
     @auth_required
     def create_goal():
@@ -1089,6 +1276,14 @@ def create_app(database=None):
             return error("MONTOS_INVALIDOS", "Los montos deben ser positivos", 422)
         if services.parse_date(data["fecha_limite"]) is None:
             return error("FECHA_INVALIDA", "La fecha límite no es válida", 422)
+        prioridad = services.parse_priority(data.get("prioridad", 1))
+        if prioridad is None:
+            return error(
+                "PRIORIDAD_INVALIDA",
+                "La prioridad debe estar entre 1 y 5",
+                422,
+                {"campo": "prioridad"},
+            )
         conn = get_db()
         cursor = conn.execute(
             """
@@ -1108,7 +1303,7 @@ def create_app(database=None):
                 contribution,
                 data.get("dia_aporte"),
                 data.get("hora_recordatorio") or "08:00",
-                int(data.get("prioridad", 1)),
+                prioridad,
             ),
         )
         conn.commit()
@@ -1148,6 +1343,16 @@ def create_app(database=None):
         ):
             if field in data:
                 allowed[field] = data[field]
+        if "prioridad" in allowed:
+            prioridad = services.parse_priority(allowed["prioridad"])
+            if prioridad is None:
+                return error(
+                    "PRIORIDAD_INVALIDA",
+                    "La prioridad debe estar entre 1 y 5",
+                    422,
+                    {"campo": "prioridad"},
+                )
+            allowed["prioridad"] = prioridad
         if not allowed:
             return ok(services.serialize_goal(conn, g.user_id, goal_id))
         assignments = ", ".join(f"{column} = ?" for column in allowed)
