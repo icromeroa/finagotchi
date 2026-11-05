@@ -6,12 +6,12 @@ fuentes de datos, el contrato de la API y los criterios de aceptación.
 
 | Dato | Valor |
 |---|---|
-| Versión del documento | 0.1 (fase 0: contratos y supuestos) |
+| Versión del documento | 1.0 |
 | Fecha de corte | 2026-11-05 |
 | Rama de referencia | `michelle` |
 | Módulos | `backend/finance_engine.py`, `backend/optimization.py` |
 | Endpoints | `GET /api/v1/goals/plan`, `POST /api/v1/goals/plan/simulate` |
-| Estado | En implementación por fases |
+| Estado | Implementado y probado |
 
 > **Regla de oro.** La optimización **solo propone**. Nunca crea transacciones,
 > nunca mueve saldos, nunca modifica metas y nunca sustituye la confirmación
@@ -51,6 +51,21 @@ después de una fecha límite.
 - Cumplimiento esperado y faltante proyectado.
 - Restricciones activas.
 - Diagnóstico legible y recomendaciones.
+
+### 1.4 Estado de implementación
+
+| Componente | Estado |
+|---|---|
+| `finance_engine.monthly_capacity` | Implementado |
+| `optimization.plan_goals` con HiGHS | Implementado |
+| Redondeo entero COP | Implementado |
+| Fallback greedy sin SciPy | Implementado |
+| `GET /goals/plan` | Implementado |
+| `POST /goals/plan/simulate` | Implementado |
+| `GET /home?incluir_plan=1` | Implementado |
+| Pantalla `[P]` del simulador | Implementado |
+| EOQ, inventarios y gastos hormiga | Futuro |
+| Persistencia de planes | Futuro |
 
 ---
 
@@ -104,8 +119,14 @@ no consumen capacidad.
 Fuentes:
 
 - **Declarado:** `perfil_financiero.ingreso_total_mensual`, columna generada.
-- **Observado:** promedio mensual de transacciones confirmadas de tipo
-  `ingreso` en una ventana de 90 días.
+- **Observado:** ingresos confirmados de los últimos 90 días proyectados a 30
+  días. Es conservador cuando hay pocos datos.
+
+```text
+ingreso_observado = round(Σ ingresos de 90 días × 30 / 90)
+```
+
+Si no hay ingresos en la ventana, la fuente observada es `None`.
 
 Criterio conservador por defecto:
 
@@ -334,6 +355,12 @@ Valores de `estado` por meta:
 | `parcial` | Recibió asignación, pero no alcanza el monto |
 | `sin_asignacion` | Capacidad insuficiente o plazo vencido |
 
+`mes_estimado_cumplimiento` es `0` cuando la meta ya estaba completa antes del
+plan; es `null` cuando no se alcanza dentro del horizonte.
+
+Los montos de `asignacion_mensual` son enteros COP y su suma por mes nunca
+supera la capacidad de ese mes.
+
 Valores de `confianza`:
 
 | Valor | Condición |
@@ -390,7 +417,47 @@ Errores de validación:
 ### 6.3 Integración opcional en `/home`
 
 `GET /api/v1/home?incluir_plan=1` agrega `data.plan_ahorro` con un resumen
-compacto. Sin la bandera, `/home` no ejecuta el LP.
+compacto:
+
+```json
+{
+  "horizonte_meses": 12,
+  "factible": true,
+  "solver": "highs",
+  "confianza": "media",
+  "capacidad_mes_actual": 250000,
+  "metas": [
+    {
+      "meta_id": 3,
+      "nombre": "Fondo de emergencia",
+      "prioridad": 5,
+      "asignacion_mes_actual": 30000,
+      "total_asignado": 240000,
+      "cumplimiento": 0.44,
+      "estado": "parcial",
+      "mes_estimado_cumplimiento": null
+    }
+  ],
+  "resumen": {
+    "capacidad_total": 2912004,
+    "total_asignado": 500000,
+    "metas_totales": 1,
+    "metas_completadas": 0,
+    "metas_parciales": 1,
+    "metas_sin_asignacion": 0,
+    "cumplimiento_ponderado": 0.44
+  },
+  "diagnostico": {
+    "nivel": "info",
+    "codigo": "CAPACIDAD_LIMITADA",
+    "mensaje": "La capacidad alcanza para el 44 % del plan ponderado.",
+    "recomendaciones": ["Prioriza la meta de mayor prioridad o reduce gastos variables."]
+  }
+}
+```
+
+Sin la bandera, `/home` no ejecuta el LP. El resumen no incluye la matriz
+completa de asignaciones para mantener liviana la pantalla de inicio.
 
 ---
 
@@ -400,10 +467,11 @@ compacto. Sin la bandera, `/home` no ejecuta el LP.
   estimado de cumplimiento.
 - **Mascota:** usa el diagnóstico para cambiar el diálogo; por ejemplo,
   `CAPACIDAD_LIMITADA` produce un consejo de repriorización.
-- **Simulador:** permite probar ingresos, colchón y prioridades sin tocar la
-  base.
+- **Simulador:** la opción `[P]` del menú consulta `GET /goals/plan` y muestra
+  capacidad del mes, metas y cumplimiento. Para probar escenarios se usa
+  `POST /goals/plan/simulate`; ninguno de los dos modifica la base.
 - **Dispositivo:** consume el resumen de solo lectura; el cálculo queda en el
-  backend.
+  backend. El firmware aún no implementa la pantalla.
 - **Cierre del día:** no depende del plan. La IO nunca bloquea operaciones.
 
 ---
@@ -436,7 +504,75 @@ compacto. Sin la bandera, `/home` no ejecuta el LP.
 
 ---
 
-## 10. Trabajo futuro
+## 10. Ejemplos numéricos
+
+### 10.1 Escasez con prioridades
+
+Datos:
+
+- Horizonte: 2 meses.
+- Capacidad: `C = [100000, 100000]`.
+- Meta A: `M=300000`, `S=0`, prioridad 5, plazo 2 meses.
+- Meta B: `M=100000`, `S=0`, prioridad 1, plazo 2 meses.
+
+El LP maximiza `5·y_A + 1·y_B`. Para completar B haría falta 100000, pero ese
+dinero reduce `y_A` en `100000/300000 = 0.333`, es decir, 1.667 puntos de
+objetivo, mientras B solo aporta 1. La solución óptima asigna todo a A:
+
+| Meta | Mes 1 | Mes 2 | Total | Cumplimiento |
+|---|---:|---:|---:|---:|
+| A | 100000 | 100000 | 200000 | 0.667 |
+| B | 0 | 0 | 0 | 0 |
+
+Conclusión: la prioridad pesa más que el monto. El diagnóstico devuelve
+`CAPACIDAD_LIMITADA`.
+
+### 10.2 Plazo que limita la asignación
+
+Datos:
+
+- Horizonte: 3 meses.
+- Capacidad: `C = [100000, 100000, 100000]`.
+- Meta A: `M=150000`, prioridad 3, vence al final del mes 1.
+- Meta B: `M=200000`, prioridad 2, vence al final del mes 3.
+
+A solo puede recibir en el mes 1: `min(100000, 150000) = 100000`, así que agota
+la capacidad del mes 1. B recibe los 100000 de los meses 2 y 3:
+
+| Meta | Mes 1 | Mes 2 | Mes 3 | Total | Estado |
+|---|---:|---:|---:|---:|---|
+| A | 100000 | 0 | 0 | 100000 | parcial |
+| B | 0 | 100000 | 100000 | 200000 | completada |
+
+`restricciones_activas` incluye `capacidad_mes_1`, `capacidad_mes_2`,
+`capacidad_mes_3` y `plazo_meta_1`.
+
+### 10.3 Capacidad cero
+
+Si `ingreso_estimado = 0`, la capacidad es 0. El plan devuelve todas las metas
+en `sin_asignacion`, `total_asignado = 0` y diagnóstico `PERFIL_INCOMPLETO`.
+No lanza error: la falta de datos es un estado de negocio, no una falla.
+
+---
+
+## 11. Pruebas implementadas
+
+| Archivo | Qué cubre |
+|---|---|
+| `tests/test_finance_engine.py` | Ingreso conservador, presupuesto, colchón, prorrateo, capacidad cero y overrides. |
+| `tests/test_optimization.py` | Prioridades, plazos, metas completas o vencidas, redondeo, fallback y determinismo. |
+| `tests/test_api_optimization.py` | Contrato HTTP, validaciones, `/home?incluir_plan=1` y no escritura en la base. |
+| `tests/test_simulador.py` | Pantalla `D14` del plan y menú del simulador. |
+
+Comandos:
+
+```powershell
+py -3 -m unittest tests.test_finance_engine tests.test_optimization tests.test_api_optimization -v
+```
+
+---
+
+## 12. Trabajo futuro
 
 - EOQ adaptado para compras recurrentes.
 - Reposición de efectivo y punto de reorden.

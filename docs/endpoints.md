@@ -183,6 +183,43 @@ Es la llamada que alimenta la pantalla de inicio. Devuelve todo lo necesario:
 
 Los montos son enteros en pesos colombianos (no hay centavos).
 
+### Incluir el plan de ahorro
+
+`GET /api/v1/home?incluir_plan=1` agrega `data.plan_ahorro` con un resumen
+compacto del plan de metas. Sin la bandera, `/home` no ejecuta el optimizador.
+
+```json
+{
+  "plan_ahorro": {
+    "horizonte_meses": 12,
+    "factible": true,
+    "solver": "highs",
+    "confianza": "media",
+    "capacidad_mes_actual": 250000,
+    "metas": [
+      {
+        "meta_id": 3,
+        "nombre": "Fondo de emergencia",
+        "prioridad": 5,
+        "asignacion_mes_actual": 30000,
+        "total_asignado": 240000,
+        "cumplimiento": 0.44,
+        "estado": "parcial",
+        "mes_estimado_cumplimiento": null
+      }
+    ],
+    "resumen": { "metas_totales": 1, "cumplimiento_ponderado": 0.44 },
+    "diagnostico": {
+      "nivel": "info",
+      "codigo": "CAPACIDAD_LIMITADA",
+      "mensaje": "La capacidad alcanza para el 44 % del plan ponderado."
+    }
+  }
+}
+```
+
+El plan solo propone: no modifica metas, transacciones ni saldos.
+
 ## 6. Movimientos (voz y texto)
 
 ### Enviar una frase de texto
@@ -314,6 +351,43 @@ Tipos válidos: `efectivo`, `billetera_digital`, `tarjeta`,
 | `GET` | `/api/v1/goals/{id}` |
 | `PATCH` | `/api/v1/goals/{id}` |
 | `DELETE` | `/api/v1/goals/{id}` |
+
+`prioridad` es un entero entre 1 y 5; la API rechaza valores fuera de rango con
+`PRIORIDAD_INVALIDA` (422).
+
+### Plan de metas (Investigación de Operaciones)
+
+| Método | Ruta | Para qué |
+|---|---|---|
+| `GET` | `/api/v1/goals/plan` | Plan óptimo con los datos reales. |
+| `POST` | `/api/v1/goals/plan/simulate` | Probar escenarios sin tocar la base. |
+
+Parámetros de `GET /goals/plan`:
+
+| Parámetro | Default | Rango |
+|---|---|---|
+| `meses` | 12 | 1–24 |
+| `fecha` | hoy en Bogotá | `YYYY-MM-DD` |
+| `colchon_pct` | 10 | 0–50 |
+
+Cuerpo de `POST /goals/plan/simulate` (todos opcionales):
+
+```json
+{
+  "meses": 12,
+  "fecha": "2026-11-05",
+  "ingreso_mensual": 1500000,
+  "gasto_mensual": 800000,
+  "colchon_pct": 10,
+  "capacidad_mensual": 300000,
+  "prioridades": { "3": 5, "4": 2 },
+  "incluir_metas": [3, 4]
+}
+```
+
+Devuelve la misma estructura que `GET` más `simulacion: true` y `overrides`.
+Errores: `PARAMETRO_INVALIDO` (422) y `META_INEXISTENTE` (404). El contrato
+completo está en `docs/OPTIMIZACION_IO.md`.
 
 ### Presupuesto
 

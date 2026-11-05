@@ -5,10 +5,10 @@ idealmente debería existir.
 
 | Dato | Valor |
 |---|---|
-| Versión del documento | 1.0 |
-| Fecha de corte | 2026-11-04 |
+| Versión del documento | 1.1 |
+| Fecha de corte | 2026-11-05 |
 | Rama de referencia | `michelle` |
-| Commit de código revisado | `31c31be` |
+| Commit de código revisado | `c3f8ffe` |
 | Base de datos | SQLite, esquema 4 |
 | Moneda | peso colombiano (COP), enteros |
 | Zona horaria usada por el backend | `America/Bogota` (UTC-5) |
@@ -75,8 +75,10 @@ Consecuencias importantes de lo que hay hoy:
 
 | Ruta | Papel en la lógica actual |
 |---|---|
-| `backend/server.py` | Aplicación Flask, 61 rutas, autenticación, CORS, recepción de audio, orquestación. |
-| `backend/services.py` | Dominio: mensajes, transacciones, puntos, presupuesto, metas, salud, cierre, notificaciones. |
+| `backend/server.py` | Aplicación Flask, 63 rutas, autenticación, CORS, recepción de audio, orquestación y endpoints del plan de metas. |
+| `backend/services.py` | Dominio: mensajes, transacciones, puntos, presupuesto, metas, salud, cierre, notificaciones y orquestación del plan. |
+| `backend/finance_engine.py` | Ingreso, gasto planificado, colchón y capacidad de ahorro on-the-fly. |
+| `backend/optimization.py` | Modelo LP, solver HiGHS, redondeo, fallback greedy y diagnóstico del plan. |
 | `backend/nlp.py` | Intención, tipo, monto, categoría, cuenta y validación de la respuesta del LLM. |
 | `backend/ai.py` | Transcripción (Gemini o faster-whisper local) y extracción con LLM (Ollama o Gemini). |
 | `backend/audio.py` | Contrato y validación del WAV. |
@@ -1145,8 +1147,9 @@ El endpoint devuelve esos valores tal cual.
 
 ## 10. Inventario de endpoints reales
 
-Hay 61 rutas. Leyenda de autenticación: `—` público, `A` token de acceso,
-`D` token de dispositivo.
+Hay 63 rutas: las 61 originales más `GET /goals/plan` y
+`POST /goals/plan/simulate` de la Fase 3. Leyenda de autenticación: `—` público,
+`A` token de acceso, `D` token de dispositivo.
 
 ### 10.1 Públicas
 
@@ -1171,7 +1174,7 @@ Hay 61 rutas. Leyenda de autenticación: `—` público, `A` token de acceso,
 | GET | `/api/v1/me/consents` | A | Lista consentimientos. |
 | POST | `/api/v1/me/consents` | A | Registra o actualiza consentimiento. |
 | GET | `/api/v1/me/wellbeing` | A | Puntaje y cobertura de bienestar. |
-| GET | `/api/v1/home` | A | Resumen del día y proyección. |
+| GET | `/api/v1/home` | A | Resumen del día y proyección; con `?incluir_plan=1` agrega `plan_ahorro`. |
 
 ### 10.3 Cuentas y categorías
 
@@ -1214,6 +1217,8 @@ Hay 61 rutas. Leyenda de autenticación: `—` público, `A` token de acceso,
 | GET | `/api/v1/metrics/diagnostics` | A | Progreso, puntos y cierres. |
 | GET | `/api/v1/goals` | A | Metas con estado calculado. |
 | POST | `/api/v1/goals` | A | Crea meta. |
+| GET | `/api/v1/goals/plan` | A | Plan óptimo de ahorro con programación lineal. |
+| POST | `/api/v1/goals/plan/simulate` | A | Plan con overrides, sin escribir en la base. |
 | GET | `/api/v1/goals/<id>` | A | Detalle de meta. |
 | PATCH | `/api/v1/goals/<id>` | A | Edita meta. |
 | DELETE | `/api/v1/goals/<id>` | A | Borrado lógico de meta. |
@@ -1493,6 +1498,16 @@ pendientes se borran lógicamente.
     `int(None)` lanza `TypeError`, que no captura el manejador de `ValueError`.
     Por ejemplo, `POST /auth/register` con `presupuesto_diario: null` devuelve
     `ERROR_INTERNO` en vez de 422.
+17. **El plan de metas no se persiste.** Se recalcula en cada petición; no hay
+    historial de planes ni comparación con el plan anterior.
+18. **La calidad del plan depende del perfil.** Un ingreso mal declarado o un
+    presupuesto irreal producen un plan poco realista. Por eso se usa el
+    criterio conservador y se reporta la confianza.
+19. **El plan solo cubre metas.** No optimiza gastos fijos, inventarios ni
+    gastos hormiga.
+20. **El primer mes se prorratea.** Si el usuario consulta el plan a fin de
+    mes, la capacidad del primer mes puede ser pequeña y concentrar el ahorro
+    en los meses siguientes.
 
 ### 14.2 Seguridad y operación
 
@@ -1552,6 +1567,9 @@ pendientes se borran lógicamente.
 | Progreso de metas | `v_metas_progreso` y `v_metas_estado` |
 | Bienestar | `v_bienestar_financiero` |
 | Completitud del perfil | `v_perfil_completitud` |
+| Capacidad de ahorro | `finance_engine.monthly_capacity` |
+| Plan óptimo de metas | `optimization.plan_goals` y `services.goal_plan` |
+| Simulación de plan | `POST /goals/plan/simulate` y `services.goal_plan` |
 | Contrato de audio | `backend/audio.py::validar_wav` |
 | Interpretación por reglas | `backend/nlp.py::interpret` |
 | Extracción con LLM | `backend/nlp.py::interpretar_con_ia` y `backend/ai.py::extraer_estructura` |
@@ -1575,7 +1593,8 @@ py -3 -m unittest discover -s tests -v
 ```
 
 La suite cubre esquema, API, audio, IA, seguridad, CORS, codificación,
-simulador, comandos y dataset. Al cierre de este documento son 118 pruebas.
+simulador, comandos, dataset y optimización. Al cierre de este documento son
+**161 pruebas**.
 
 ### 16.2 Backend en marcha
 
@@ -1611,6 +1630,384 @@ puntos, metas, cierres y exportaciones CSV.
 
 ---
 
+## 17. Catálogo de algoritmos financieros
+
+Esta sección responde, para cada cálculo: **qué hace, con qué fórmula, cuándo se
+calcula y dónde se aplica**. La etiqueta de momento distingue:
+
+- **On-the-fly:** se recalcula en cada petición.
+- **Persistido:** queda guardado y no se recalcula.
+- **Híbrido:** se proyecta en vivo, pero se guarda una foto al cerrar.
+
+### 17.1 Matriz resumen
+
+| # | Algoritmo | Objetivo | Momento | Aplicación |
+|---|---|---|---|---|
+| 1 | Totales del día | Sumar ingresos, gastos y ahorro confirmados | On-the-fly | `/home`, métricas, salud |
+| 2 | Presupuesto vigente | Obtener el límite diario aplicable | On-the-fly + historial | Cupo y salud |
+| 3 | Cupo restante | Saber cuánto queda del día | On-the-fly | `/home`, dispositivo |
+| 4 | Límite por categoría | Comparar gasto diario contra el tope mensual prorrateado | On-the-fly | Salud |
+| 5 | Saldo de cuentas | Reconstruir el saldo desde el saldo inicial | On-the-fly (vista) | `/accounts` |
+| 6 | Progreso de meta | Medir ahorro acumulado y porcentaje | On-the-fly (vista) | `/goals`, salud |
+| 7 | Aportes vencidos | Comparar ahorro contra lo esperado | On-the-fly (vista) | Estado de meta y salud |
+| 8 | Salud | Puntaje 0–100 con eventos del día | Híbrido | Mascota y cierre |
+| 9 | Racha | Días consecutivos con actividad | On-the-fly | Bonus de salud |
+| 10 | Ánimo | Traducir salud a estado visible | On-the-fly | Mascota |
+| 11 | Bienestar | Promedio ponderado de seis componentes | On-the-fly (vista) | `/me/wellbeing` |
+| 12 | Puntos | Recompensar transacciones confirmadas | Persistido + agregación | `/home`, `/me` |
+| 13 | Cierre del día | Guardar foto de totales y salud | Persistido | Historial y auditoría |
+| 14 | Ingreso estimado | Estimar ingreso mensual conservador | On-the-fly | Capacidad de ahorro |
+| 15 | Gasto planificado | Estimar el gasto mensual sin doble conteo | On-the-fly | Capacidad de ahorro |
+| 16 | Capacidad de ahorro | Calcular el excedente mensual disponible | On-the-fly | Plan de metas |
+| 17 | Plan óptimo de metas | Asignar ahorro entre metas | On-the-fly (LP) | `/goals/plan` |
+
+### 17.2 Totales del día
+
+- **Objetivo:** resumir la actividad confirmada de una fecha.
+- **Entradas:** `transacciones` con `estado = 'confirmado'`, `is_deleted = 0` y
+  `fecha_local = d`.
+- **Fórmulas:**
+
+```text
+I(d) = Σ monto si tipo = 'ingreso'
+G(d) = Σ monto si tipo = 'gasto'
+A(d) = Σ monto si tipo = 'ahorro'
+B(d) = I(d) − G(d)
+n(d) = COUNT(*)
+```
+
+- **Salida:** `ingresos`, `gastos`, `ahorro`, `balance_neto`, `num_registros`.
+- **Momento:** on-the-fly.
+- **Aplicación:** `/home`, `/metrics/*`, salud, cierre.
+- **Código:** `services.day_totals`.
+- **Supuesto:** el ahorro no resta del balance neto; se informa aparte.
+
+### 17.3 Presupuesto diario
+
+- **Objetivo:** decidir el límite de gasto de una fecha.
+- **Fórmula:**
+
+```text
+P(d) = último monto de presupuesto_diario_historial con fecha_local ≤ d
+       o, si no existe, usuarios.presupuesto_diario
+```
+
+- **Salida:** entero COP.
+- **Momento:** on-the-fly; el historial lo mantiene
+  `trg_usuarios_budget_hist`.
+- **Aplicación:** cupo, salud, métricas.
+- **Código:** `services.budget_for_day`.
+
+### 17.4 Cupo restante y límite por categoría
+
+- **Cupo:**
+
+```text
+Cupo(d) = P(d) − G(d)
+```
+
+Puede ser negativo; no bloquea gastos.
+
+- **Límite por categoría:** con `L_c` el límite mensual aprobado y
+  `D(d)` los días del mes:
+
+```text
+tope_diario(c, d) = L_c / D(d)
+si G_c(d) > tope_diario(c, d):
+    salud −= 2
+```
+
+- **Momento:** on-the-fly.
+- **Aplicación:** `/home`, `/budget`, reglas de salud.
+- **Código:** `services.approved_category_limits`,
+  `services.spending_by_category`, `services.calculate_health`.
+
+### 17.5 Saldo de cuentas
+
+- **Objetivo:** reconstruir el dinero disponible por cuenta.
+- **Fórmula:**
+
+```text
+S(cuenta) = saldo_inicial
+          + Σ ingresos confirmados
+          − Σ gastos confirmados
+          − Σ ahorros confirmados
+```
+
+Para `tipo_cuenta = 'tarjeta'`, el saldo es `NULL` porque representa deuda, no
+liquidez.
+
+- **Momento:** on-the-fly en `v_cuentas_resumen`.
+- **Aplicación:** `/accounts`, simulador.
+- **Código:** `database/sql/002_views.sql`.
+
+### 17.6 Progreso de meta
+
+- **Objetivo:** medir cuánto falta para cada meta.
+- **Fórmula:**
+
+```text
+s_i = Σ ahorros confirmados de la meta i
+f_i = M_i − s_i
+pct_i = ⌊100 · s_i / M_i⌋
+```
+
+- **Momento:** on-the-fly en `v_metas_progreso`.
+- **Aplicación:** `/goals`, salud, plan de metas.
+- **Código:** `v_metas_progreso`.
+
+### 17.7 Aportes vencidos y estado del plan
+
+- **Objetivo:** comparar el ahorro real con el esperado según la frecuencia.
+- **Fórmula de la vista:**
+
+```text
+esperado_i = min(M_i, periodos_i × aporte_periodico_i)
+estado_plan_i =
+    'completada' si estado = 'completada' o s_i ≥ M_i
+    'atrasada'   si s_i < 0.95 · esperado_i
+    'vas_bien'   en otro caso
+```
+
+- **Fórmula de salud:** `services.expected_goal_amount` calcula los periodos
+  con otra convención de redondeo. Es una diferencia conocida y documentada.
+- **Momento:** on-the-fly, pero la vista usa `date('now','-5 hours')` para
+  “hoy”, no una fecha recibida. Por eso no permite consultas históricas
+  deterministas.
+- **Aplicación:** `/goals`, reglas de salud.
+- **Código:** `v_metas_estado`, `services.expected_goal_amount`.
+
+### 17.8 Salud
+
+- **Objetivo:** puntaje de 0 a 100 que refleja el comportamiento financiero.
+- **Fórmula:**
+
+```text
+H' = clamp(H_prev + Δ, 0, 100)
+Δ  = max(−35, min(25, Σ δ_evento))
+```
+
+Eventos típicos: transacción confirmada, exceso de presupuesto, exceso por
+categoría, meta atrasada, cierre con saldo positivo.
+
+- **Salida:** salud proyectada y salud persistida.
+- **Momento:** híbrido. `/home` y `/metrics/health` proyectan; el cierre guarda
+  una foto en `salud_log`.
+- **Aplicación:** mascota, cierre, bienestar.
+- **Código:** `services.calculate_health`, `services.health_projection`,
+  `services.close_day`.
+
+### 17.9 Racha
+
+- **Objetivo:** contar días consecutivos con al menos una transacción
+  confirmada, terminando en la fecha consultada.
+- **Fórmula:**
+
+```text
+racha(d) = 0 si no hay transacción confirmada en d
+           n si d, d−1, …, d−n+1 tienen actividad y d−n no
+```
+
+- **Momento:** on-the-fly.
+- **Aplicación:** bonus de salud y progreso.
+- **Código:** `services.streak_ending_on`.
+
+### 17.10 Ánimo
+
+- **Objetivo:** traducir la salud a un estado visible para la mascota.
+- **Fórmula:**
+
+```text
+salud ≤ 20  → CRITICO
+salud ≤ 50  → TRISTE
+salud ≤ 80  → PREOCUPADO
+salud > 80  → FELIZ
+```
+
+- **Momento:** on-the-fly.
+- **Aplicación:** `/home`, pantallas del dispositivo.
+- **Código:** `services.mood_for_health`, `v_estado_mascota`.
+
+### 17.11 Bienestar financiero
+
+- **Objetivo:** índice de 0 a 100 con varios componentes.
+- **Fórmula:**
+
+```text
+bienestar = round(Σ componente_k × peso_k / Σ pesos_disponibles)
+```
+
+Si un componente no tiene dato, se excluye y se reduce la cobertura.
+
+- **Momento:** on-the-fly en `v_bienestar_financiero`.
+- **Aplicación:** `/me/wellbeing`.
+- **Código:** `v_bienestar_financiero`.
+
+### 17.12 Puntos
+
+- **Objetivo:** recompensar el registro y la confirmación.
+- **Fórmula:** `+1` por transacción confirmada y no borrada, insertado por
+  trigger en `puntos_log`.
+- **Salida:** suma de puntos.
+- **Momento:** persistido; la suma se hace en vivo.
+- **Aplicación:** `/home`, `/me`, progreso de etapa.
+- **Código:** `trg_tx_puntos_insert`, `trg_tx_puntos_confirm`.
+
+### 17.13 Cierre del día
+
+- **Objetivo:** dejar una foto auditable del día.
+- **Fórmula:** copia `I(d)`, `G(d)`, `A(d)`, `B(d)` y la salud final en
+  `cierres_dia` y `salud_log`.
+- **Momento:** persistido e idempotente; no se recalcula si luego cambian los
+  movimientos.
+- **Aplicación:** historial, métricas de cierre.
+- **Código:** `services.close_day`.
+
+### 17.14 Ingreso estimado
+
+- **Objetivo:** estimar el ingreso mensual con criterio conservador.
+- **Fórmula:**
+
+```text
+ingreso_declarado = perfil_financiero.ingreso_total_mensual
+ingreso_observado = round(Σ ingresos de 90 días × 30 / 90)
+
+ingreso_estimado =
+    min(declarado, observado)  si ambos existen
+    declarado                  si solo existe el declarado
+    observado                  si solo existe el observado
+    0                          si no hay datos
+```
+
+- **Momento:** on-the-fly.
+- **Aplicación:** capacidad de ahorro.
+- **Código:** `finance_engine.estimate_income`,
+  `finance_engine.observed_monthly_income`.
+
+### 17.15 Gasto planificado
+
+- **Objetivo:** estimar el gasto mensual sin sumar dos veces el presupuesto
+  diario y los límites por categoría.
+- **Fórmula:**
+
+```text
+gasto_planificado =
+    Σ límites mensuales aprobados       si hay presupuesto mensual vigente
+    presupuesto_diario × días_del_mes   en caso contrario
+    0                                   si no hay presupuesto
+```
+
+- **Momento:** on-the-fly.
+- **Aplicación:** capacidad de ahorro.
+- **Código:** `finance_engine.planned_monthly_expense`.
+
+### 17.16 Capacidad de ahorro
+
+- **Objetivo:** saber cuánto puede ahorrar el usuario cada mes.
+- **Fórmula:**
+
+```text
+colchon = colchon_pct × ingreso_estimado
+C_t = max(0, ingreso_estimado − gasto_planificado − colchon)
+```
+
+El primer mes se prorratea:
+
+```text
+C_1 = max(0, C_1 × días_restantes / días_del_mes)
+```
+
+- **Salida:** lista de meses con ingreso, gasto, colchón y capacidad.
+- **Momento:** on-the-fly.
+- **Aplicación:** plan de metas, `/home?incluir_plan=1`.
+- **Código:** `finance_engine.monthly_capacity`.
+
+### 17.17 Plan óptimo de metas
+
+- **Objetivo:** asignar la capacidad mensual entre metas.
+- **Modelo:** programación lineal; ver sección 18 y
+  `docs/OPTIMIZACION_IO.md`.
+- **Entradas:** metas, capacidad mensual, prioridad y fecha límite.
+- **Salida:** asignación por meta y mes, cumplimiento, faltante y diagnóstico.
+- **Momento:** on-the-fly en cada petición; no se persiste.
+- **Aplicación:** `/goals/plan`, `/goals/plan/simulate`,
+  `/home?incluir_plan=1` y la opción `[P]` del simulador.
+- **Código:** `optimization.plan_goals`, `services.goal_plan`.
+
+---
+
+## 18. Optimización de metas con programación lineal
+
+### 18.1 Decisión
+
+Se implementó la **opción 1** de la propuesta de Investigación de Operaciones:
+optimización de presupuesto y metas de ahorro con programación lineal. La IO es
+parte funcional del backend, no solo documentación.
+
+Quedan fuera de alcance, por ahora, EOQ, inventarios, reposición de efectivo,
+gastos hormiga y pronósticos estocásticos.
+
+### 18.2 Modelo
+
+```text
+max Z = Σ_i p_i · y_i − ε · Σ_i Σ_t (t / H) · x_{i,t}
+
+s.a.
+Σ_i x_{i,t} ≤ C_t
+S_i + Σ_t x_{i,t} ≥ M_i · y_i
+Σ_t x_{i,t} ≤ M_i − S_i
+0 ≤ y_i ≤ 1
+x_{i,t} ≥ 0
+x_{i,t} = 0 si t > T_i
+```
+
+Donde `x_{i,t}` es el dinero asignado a la meta `i` en el mes `t`, `y_i` la
+fracción de cumplimiento, `p_i` la prioridad, `M_i` el monto, `S_i` el ahorrado
+y `C_t` la capacidad.
+
+### 18.3 Solver y redondeo
+
+- `scipy.optimize.linprog(method="highs")` en dos etapas: primero maximiza el
+  cumplimiento ponderado; luego minimiza el tiempo de asignación sin perder
+  cumplimiento.
+- Si SciPy no está disponible o el LP falla, se usa un fallback greedy
+  determinista por prioridad descendente y fecha límite ascendente.
+- Los flotantes se redondean hacia abajo y el remanente se reparte por mayor
+  parte fraccionaria, verificando que ninguna suma mensual supere `C_t`.
+
+### 18.4 Endpoints
+
+| Método | Ruta | Función |
+|---|---|---|
+| GET | `/api/v1/goals/plan` | Plan con datos reales. Parámetros `meses` (1–24), `fecha` y `colchon_pct` (0–50). |
+| POST | `/api/v1/goals/plan/simulate` | Plan con overrides de ingreso, gasto, capacidad, prioridades o metas. |
+| GET | `/api/v1/home?incluir_plan=1` | Resumen compacto del plan. |
+
+Ambos endpoints de plan son de solo lectura, requieren autenticación y **no
+crean transacciones ni mueven saldos**.
+
+### 18.5 Reglas de negocio de la IO
+
+1. La confirmación humana sigue siendo obligatoria para cualquier movimiento
+   real. El plan solo propone.
+2. La prioridad se valida entre 1 y 5 al crear o editar una meta.
+3. Una meta vencida no recibe asignación.
+4. Una meta completada no consume capacidad.
+5. Si no hay ingreso, el plan devuelve capacidad cero y diagnóstico
+   `PERFIL_INCOMPLETO`.
+6. Si no hay metas, devuelve `metas = []` y diagnóstico `SIN_METAS`, no un
+   error.
+7. El plan es determinista: mismos datos, mismo resultado.
+
+### 18.6 Detalle completo
+
+El desarrollo matemático, los contratos JSON, los ejemplos numéricos y el
+trabajo futuro están en `docs/OPTIMIZACION_IO.md`.
+
+---
+
+
+
 ## Apéndice A. Dataset de demostración
 
 La base `finagotchi.db` del repositorio contiene un dataset sintético
@@ -1642,13 +2039,17 @@ para probar consultas, vistas y exportaciones con volúmenes realistas.
 
 1. `backend/server.py`: rutas y orquestación.
 2. `backend/services.py`: reglas de dominio.
-3. `backend/nlp.py`: interpretación.
-4. `backend/ai.py`: proveedores de IA.
-5. `backend/audio.py`: contrato del WAV.
-6. `database/sql/001_schema.sql`: tablas, restricciones y triggers.
-7. `database/sql/002_views.sql`: cálculos derivados.
-8. `simulator/main.py`: cliente real.
-9. `tests/test_api.py` y `tests/test_schema.py`: comportamiento esperado.
+3. `backend/finance_engine.py`: ingreso, gasto, colchón y capacidad.
+4. `backend/optimization.py`: programación lineal de metas.
+5. `backend/nlp.py`: interpretación.
+6. `backend/ai.py`: proveedores de IA.
+7. `backend/audio.py`: contrato del WAV.
+8. `database/sql/001_schema.sql`: tablas, restricciones y triggers.
+9. `database/sql/002_views.sql`: cálculos derivados.
+10. `simulator/main.py`: cliente real.
+11. `tests/test_api.py`, `tests/test_finance_engine.py` y
+    `tests/test_optimization.py`: comportamiento esperado.
+12. `docs/OPTIMIZACION_IO.md`: detalle de la IO.
 
 ## Apéndice C. Glosario operativo
 

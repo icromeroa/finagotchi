@@ -7,15 +7,17 @@ Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32 o al s
 | Ruta | Qué es |
 |---|---|
 | `backend/` | API Flask + SQLite + IA. Endpoints, autenticación, reglas de negocio. |
-| `backend/ai.py` | Proveedor de transcripción (Gemini Flash). |
+| `backend/ai.py` | Proveedores de transcripción (Gemini o faster-whisper local). |
 | `backend/audio.py` | Validación del WAV que llega del dispositivo. |
-| `backend/nlp.py` | Reglas locales para montos, categorías y cuentas. |
+| `backend/nlp.py` | Interpretación con LLM (Ollama/Gemini) y reglas locales de respaldo. |
+| `backend/finance_engine.py` | Ingreso, gasto, colchón y capacidad de ahorro on-the-fly. |
+| `backend/optimization.py` | Programación lineal del plan de metas y fallback greedy. |
 | `database/` | Esquema SQL, vistas, seeds e inicializador. |
-| `simulator/` | Simulador de escritorio que imita al dispositivo. |
-| `tests/` | Pruebas del esquema y de la API. |
+| `simulator/` | Simulador de escritorio que imita al dispositivo; incluye la opción `[P]` del plan. |
+| `tests/` | Pruebas del esquema, la API y la optimización. |
 | `tools/` | Utilidades, incluida la prueba real del flujo de voz. |
-| `docs/` | Especificación funcional y especificación del dispositivo. |
-| `frontend/` | App Flutter (pendiente de capa HTTP). |
+| `docs/` | Especificaciones, lógica de negocio, endpoints y detalle de la IO. |
+| `frontend/` | App Flutter (prototipo visual, pendiente de capa HTTP). |
 
 ## Puesta en marcha
 
@@ -25,9 +27,15 @@ Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32 o al s
 py -3 -m pip install -r requirements.txt
 ```
 
-### 2. Configurar la IA
+### 2. Configurar la IA (opcional)
 
-La API key **vive fuera del repositorio**, en `%USERPROFILE%\.finagotchi\gemini.env`. Así ningún `git clean -xdf`, borrado de carpeta o reinstalación del proyecto puede borrarla.
+El backend funciona **sin claves externas**: transcribe con faster-whisper local
+e interpreta con Ollama si está corriendo. Gemini es opcional y solo se usa si
+hay una clave válida.
+
+Si quieres usar Gemini, la API key **vive fuera del repositorio**, en
+`%USERPROFILE%\.finagotchi\gemini.env`. Así ningún `git clean -xdf`, borrado de
+carpeta o reinstalación del proyecto puede borrarla.
 
 ```powershell
 py -3 tools/configurar_api_key.py
@@ -96,6 +104,9 @@ py -3 -m unittest discover -s tests -v
 py -3 -m compileall -q backend simulator tests
 ```
 
+Al cierre de esta versión son **161 pruebas**. Incluyen esquema, API, audio, IA,
+seguridad, codificación, simulador y optimización con programación lineal.
+
 Con el backend levantado se puede probar el flujo completo con audio real:
 
 ```powershell
@@ -142,6 +153,23 @@ La IA recibe el **catálogo real del usuario** (sus 16 categorías y sus cuentas
 Para apagar la interpretación por IA y quedarte solo con las reglas: `NLP_USAR_IA=off`.
 
 Además, la transcripción recibe las **hotwords** del usuario (los nombres de sus cuentas y categorías). Sin eso, Whisper escribe "por Nike" en vez de "por Nequi", y "con David Plata" en vez de "con Daviplata".
+
+## Optimización de metas (Investigación de Operaciones)
+
+El backend incluye un planificador de metas con **programación lineal**. Calcula
+cuánto ahorrar en cada meta y en cada mes para maximizar el cumplimiento
+ponderado por prioridad, respetando la capacidad mensual y las fechas límite.
+
+- `GET /api/v1/goals/plan` devuelve el plan con los datos reales.
+- `POST /api/v1/goals/plan/simulate` permite probar ingresos, gastos, capacidad y prioridades sin escribir en la base.
+- `GET /api/v1/home?incluir_plan=1` agrega un resumen compacto.
+- El simulador lo muestra con la opción `[P]`.
+
+El plan **solo propone**: nunca crea transacciones, nunca mueve saldos y nunca
+sustituye la confirmación humana. Se calcula en cada petición y no se persiste.
+El detalle matemático, los contratos y los ejemplos están en
+[`docs/OPTIMIZACION_IO.md`](docs/OPTIMIZACION_IO.md); el catálogo completo de
+algoritmos está en [`docs/LOGICA_DE_NEGOCIO.md`](docs/LOGICA_DE_NEGOCIO.md).
 
 ## Dataset de evaluación
 
