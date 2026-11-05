@@ -5,6 +5,9 @@ itsdangerous==2.2.0
 google-genai>=1.0.0
 python-dotenv>=1.0.0
 
+# Solver de programacion lineal para el plan de metas (con fallback sin SciPy).
+scipy>=1.11
+
 # Proveedor de transcripcion local (faster-whisper).
 # No necesita clave de API ni cuota. El modelo se descarga la primera vez.
 faster-whisper>=1.2.0
