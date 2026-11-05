@@ -185,7 +185,14 @@ Cuentas demo: `simulador@finagotchi.local` / `simulador123` y `demo01@finagotchi
 
 ## App Flutter
 
-La app ya habla con el backend: la capa HTTP está en `frontend/lib/api/`.
+La app actual es un **prototipo visual**: no tiene capa HTTP y no llama al
+backend. `login_screen.dart` solo valida el formulario y muestra el mensaje
+“Inicio de sesión de demostración.”; `home_screen.dart` usa valores fijos
+(`dailyBudget = 10000`, `spent = 2500`). La lógica real vive en el backend y en
+el simulador de escritorio.
+
+La versión que sí estaba conectada al backend quedó guardada en la rama
+`respaldo-frontend-conectado`; no forma parte de la rama actual.
 
 ```powershell
 cd frontend
@@ -193,33 +200,16 @@ flutter pub get
 flutter run
 ```
 
-La dirección del backend se resuelve sola (`127.0.0.1` en web y escritorio, `10.0.2.2` en el emulador de Android). Para apuntar a otro equipo:
-
-```powershell
-flutter run --dart-define=API_BASE_URL=http://192.168.1.7:5000/api/v1
-```
-
-Qué ya está conectado:
-
-| Parte | Qué hace |
-|---|---|
-| `frontend/lib/api/api_client.dart` | Cliente HTTP con token, refresco automático y manejo de errores del backend. |
-| `frontend/lib/api/grabador.dart` | Graba PCM de 16 kHz mono y lo envuelve en un WAV, que es lo que acepta el backend. |
-| `frontend/lib/screens/login_screen.dart` | Inicio de sesión y registro reales contra la API. |
-| `frontend/lib/screens/home_screen.dart` | Carga el resumen del día real y manda la voz al backend para que la transcriba e interprete. |
-
-En web el navegador solo ofrece webm/opus, que el backend no acepta: ahí la app lo avisa y ofrece escribir la frase a mano. La voz funciona en Android e iOS.
-
-El paso de **vincular el dispositivo** se puede saltar con el botón "Ahora no", que lleva directo al home. El vínculo se puede hacer después.
-
-Si la app en Chrome no se conecta, revisa que el backend esté corriendo. El backend responde con el permiso de red privada que Chrome exige para hablar con un servidor local.
-
-Pruebas de la app (necesitan el backend levantado):
+Pruebas de la app (no necesitan backend):
 
 ```powershell
 cd frontend
 flutter test
 ```
+
+`frontend/test/widget_test.dart` comprueba que `LoginScreen` se monta y valida
+correo y contraseña. Para probar la lógica de negocio de verdad, usa el
+simulador (`GUIA_SIMULADOR.md`).
 
 ## Base de datos
 
@@ -231,6 +221,7 @@ flutter test
 ## Documentación
 
 - `docs/ESPECIFICACIONES.md`: contrato funcional, endpoints, esquema y decisiones.
+- `docs/LOGICA_DE_NEGOCIO.md`: cómo funciona hoy la lógica de negocio en el código real, con fórmulas, invariantes y diferencias frente a la especificación.
 - `docs/endpoints.md`: guía práctica para conectar la app Flutter con la API.
 - `docs/DISPOSITIVO.md`: hardware, pinout, audio y flujos de pantalla para el firmware.
 - `GUIA_SIMULADOR.md`: guía del simulador de escritorio.
