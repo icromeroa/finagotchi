@@ -212,6 +212,13 @@ class FinaGotchiClient:
     def home(self):
         return self.request("GET", "/home", headers=self.user_headers())
 
+    def goal_plan(self, meses=12):
+        return self.request(
+            "GET",
+            f"/goals/plan?meses={int(meses)}",
+            headers=self.user_headers(),
+        )
+
     def notifications(self, after_id=0, limit=20):
         return self.request(
             "GET",
@@ -398,6 +405,15 @@ class Simulador:
         print(pantallas.d08_consulta(self.client.home()))
         self.ultimo_home = self.client.home()
 
+    # --- D14 -------------------------------------------------------------
+    def ver_plan(self):
+        try:
+            plan = self.client.goal_plan(12)
+        except ApiError as exc:
+            print(pantallas.d13_aviso("Sin plan", str(exc)))
+            return
+        print(pantallas.d14_plan_ahorro(plan))
+
 
 def verificar_backend():
     """Comprueba que el backend responda y explica que hacer si no."""
@@ -458,6 +474,8 @@ def main():
             simulador.hablar()
         elif opcion in ("e", "estado"):
             simulador.estado_del_dia()
+        elif opcion in ("p", "plan"):
+            simulador.ver_plan()
         elif opcion in ("c", "cerrar", "cierre"):
             simulador.cerrar_dia()
         elif opcion in ("n", "notificaciones"):

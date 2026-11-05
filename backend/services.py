@@ -1095,7 +1095,7 @@ def close_day(conn, user_id, date_value):
     return payload
 
 
-def home_payload(conn, user_id):
+def home_payload(conn, user_id, incluir_plan=False):
     today = local_date()
     user = conn.execute("SELECT * FROM usuarios WHERE id = ?", (user_id,)).fetchone()
     mascot = conn.execute(
@@ -1111,7 +1111,7 @@ def home_payload(conn, user_id):
         "SELECT COALESCE(SUM(puntos), 0) AS total FROM puntos_log WHERE usuario_id = ?",
         (user_id,),
     ).fetchone()["total"]
-    return {
+    payload = {
         "usuario": {
             "id": user["id"],
             "nombre": user["nombre"],
@@ -1132,6 +1132,9 @@ def home_payload(conn, user_id):
         "puntos": int(points or 0),
         "fecha_local": today,
     }
+    if incluir_plan:
+        payload["plan_ahorro"] = plan_resumen(conn, user_id, today)
+    return payload
 
 
 def metrics_daily(conn, user_id, date_value):
@@ -1234,3 +1237,34 @@ def goal_plan(
     if simulacion:
         plan["overrides"] = overrides or {}
     return plan
+
+
+def plan_resumen(conn, user_id, as_of=None):
+    """Resumen compacto del plan para /home?incluir_plan=1."""
+    plan = goal_plan(conn, user_id, as_of=as_of)
+    mes_actual = plan["capacidad_mensual"][0] if plan["capacidad_mensual"] else {}
+    metas = []
+    for meta in plan["metas"]:
+        asignacion = meta["asignacion_mensual"] or [0]
+        metas.append(
+            {
+                "meta_id": meta["meta_id"],
+                "nombre": meta["nombre"],
+                "prioridad": meta["prioridad"],
+                "asignacion_mes_actual": asignacion[0],
+                "total_asignado": meta["total_asignado"],
+                "cumplimiento": meta["cumplimiento"],
+                "estado": meta["estado"],
+                "mes_estimado_cumplimiento": meta["mes_estimado_cumplimiento"],
+            }
+        )
+    return {
+        "horizonte_meses": plan["horizonte_meses"],
+        "factible": plan["factible"],
+        "solver": plan["solver"],
+        "confianza": plan["confianza"],
+        "capacidad_mes_actual": mes_actual.get("capacidad", 0),
+        "metas": metas,
+        "resumen": plan["resumen"],
+        "diagnostico": plan["diagnostico"],
+    }

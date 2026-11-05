@@ -48,6 +48,24 @@ class PantallasTests(unittest.TestCase):
             pantallas.d11_no_entendio(),
             pantallas.d12_bloqueado(),
             pantallas.d13_aviso("Aviso", "Texto del aviso"),
+            pantallas.d14_plan_ahorro(
+                {
+                    "capacidad_mes_actual": 250000,
+                    "resumen": {
+                        "metas_totales": 2,
+                        "cumplimiento_ponderado": 0.5,
+                    },
+                    "metas": [
+                        {
+                            "meta_id": 1,
+                            "nombre": "Fondo de emergencia",
+                            "asignacion_mes_actual": 30000,
+                            "cumplimiento": 0.4,
+                        }
+                    ],
+                    "diagnostico": {"mensaje": "La capacidad alcanza para el 50 %."},
+                }
+            ),
         ]
         for pantalla in pantallas_creadas:
             lineas = pantalla.splitlines()
@@ -105,8 +123,29 @@ class PantallasTests(unittest.TestCase):
 
     def test_el_menu_ofrece_las_acciones_del_dispositivo(self):
         menu = pantallas.menu()
-        for opcion in ("[H]", "[E]", "[C]", "[N]", "[S]"):
+        for opcion in ("[H]", "[E]", "[C]", "[P]", "[N]", "[S]"):
             self.assertIn(opcion, menu)
+
+    def test_el_plan_de_ahorro_muestra_capacidad_y_metas(self):
+        texto = pantallas.d14_plan_ahorro(
+            {
+                "capacidad_mes_actual": 250000,
+                "resumen": {"metas_totales": 1, "cumplimiento_ponderado": 0.4},
+                "metas": [
+                    {
+                        "meta_id": 1,
+                        "nombre": "Fondo",
+                        "asignacion_mes_actual": 30000,
+                        "cumplimiento": 0.4,
+                    }
+                ],
+                "diagnostico": {"mensaje": "Capacidad limitada."},
+            }
+        )
+        self.assertIn("250.000", texto)
+        self.assertIn("Fondo", texto)
+        self.assertIn("30.000", texto)
+        self.assertIn("40", texto)
 
 
 if __name__ == "__main__":

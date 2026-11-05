@@ -221,6 +221,22 @@ class ApiOptimizationTests(unittest.TestCase):
         self.assertEqual(update.status_code, 422)
         self.assertEqual(update.get_json()["error"]["codigo"], "PRIORIDAD_INVALIDA")
 
+    def test_home_includes_compact_plan_only_on_request(self):
+        meta_id = self.create_goal(monto=100000, prioridad=4)
+        normal = self.get("/api/v1/home")
+        self.assertEqual(normal.status_code, 200)
+        self.assertNotIn("plan_ahorro", normal.get_json()["data"])
+
+        before = self.snapshot()
+        response = self.get("/api/v1/home?incluir_plan=1")
+        after = self.snapshot()
+        self.assertEqual(response.status_code, 200)
+        plan = response.get_json()["data"]["plan_ahorro"]
+        self.assertIn("capacidad_mes_actual", plan)
+        self.assertEqual(plan["metas"][0]["meta_id"], meta_id)
+        self.assertIn("diagnostico", plan)
+        self.assertEqual(before, after)
+
     def test_requires_authentication(self):
         response = self.client.get("/api/v1/goals/plan")
         self.assertEqual(response.status_code, 401)

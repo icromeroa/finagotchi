@@ -315,10 +315,43 @@ def d13_aviso(titulo, mensaje):
     )
 
 
+def d14_plan_ahorro(plan):
+    """Resumen del plan de metas calculado con programacion lineal."""
+    if not plan:
+        return d13_aviso("Sin plan", "No se pudo calcular el plan de ahorro.")
+    resumen = plan.get("resumen", {})
+    diagnostico = plan.get("diagnostico", {})
+    lineas = [
+        "",
+        "    Plan de ahorro",
+        "",
+        f"   Capacidad mes 1  {_dinero(plan.get('capacidad_mes_actual', 0)):>11}",
+        f"   Metas            {resumen.get('metas_totales', 0):>11}",
+        f"   Cumplimiento     {int(round(resumen.get('cumplimiento_ponderado', 0) * 100)):>10}%",
+        "",
+    ]
+    for meta in (plan.get("metas") or [])[:4]:
+        nombre = str(meta.get("nombre") or "Meta")[:16]
+        porcentaje = int(round((meta.get("cumplimiento") or 0) * 100))
+        lineas.append(f"   {nombre:<16} {porcentaje:>3}%")
+        lineas.append(
+            f"   -> {_dinero(meta.get('asignacion_mes_actual', 0))}/mes"
+        )
+    if not plan.get("metas"):
+        lineas.append("   Aun no tienes metas.")
+    lineas += [
+        "",
+        "   Nancy: " + str(diagnostico.get("mensaje") or "")[:26],
+        "",
+    ]
+    return _caja(lineas)
+
+
 def menu():
     """Menu principal del simulador."""
     return (
         "\n"
         "  [H] Hablar   [E] Estado del día   [C] Cerrar el día\n"
-        "  [N] Notificaciones   [R] Repetir la última frase   [S] Salir"
+        "  [P] Plan de ahorro   [N] Notificaciones\n"
+        "  [R] Repetir la última frase   [S] Salir"
     )

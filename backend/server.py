@@ -667,7 +667,15 @@ def create_app(database=None):
     @app.get("/api/v1/home")
     @auth_required
     def home():
-        return ok(services.home_payload(get_db(), g.user_id))
+        incluir_plan = (request.args.get("incluir_plan") or "").strip().lower() in (
+            "1",
+            "true",
+            "si",
+            "sí",
+        )
+        return ok(
+            services.home_payload(get_db(), g.user_id, incluir_plan=incluir_plan)
+        )
 
     @app.get("/api/v1/accounts")
     @auth_required
