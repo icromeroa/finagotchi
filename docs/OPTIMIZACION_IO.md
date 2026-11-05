@@ -6,7 +6,7 @@ fuentes de datos, el contrato de la API y los criterios de aceptación.
 
 | Dato | Valor |
 |---|---|
-| Versión del documento | 1.0 |
+| Versión del documento | 1.1 (con verificación final) |
 | Fecha de corte | 2026-11-05 |
 | Rama de referencia | `michelle` |
 | Módulos | `backend/finance_engine.py`, `backend/optimization.py` |
@@ -568,11 +568,59 @@ Comandos:
 
 ```powershell
 py -3 -m unittest tests.test_finance_engine tests.test_optimization tests.test_api_optimization -v
+py -3 -m unittest discover -s tests -v
 ```
 
 ---
 
-## 12. Trabajo futuro
+## 12. Verificación final de la implementación
+
+Fecha de corte: 2026-11-05 · rama `michelle` · cierre de la fase 6.
+
+### 12.1 Suite completa
+
+```
+py -3 -m unittest discover -s tests -v
+```
+
+Resultado: **161 pruebas, OK**. Incluye las 16 del motor financiero, las 14 del
+LP, las 11 de la API de optimización y las 2 del simulador, además de la suite
+base, que sigue pasando sin cambios.
+
+### 12.2 Verificación manual de endpoints
+
+Con una base temporal y un usuario de prueba (ingreso declarado de 1.500.000,
+presupuesto diario de 20.000 y tres metas activas):
+
+| Comprobación | Resultado |
+|---|---|
+| `GET /goals/plan?meses=6&fecha=2026-11-05&colchon_pct=10` | 200, solver `highs`, 3 metas, diagnóstico `CAPACIDAD_LIMITADA`. |
+| `POST /goals/plan/simulate` con capacidad 80.000 y prioridades | 200, `simulacion: true`, overrides aplicados. |
+| `GET /home?incluir_plan=1` | 200, incluye `plan_ahorro` con capacidad del mes. |
+| `GET /home` sin bandera | 200, **no** incluye `plan_ahorro`. |
+| `meses=99` | 422 `PARAMETRO_INVALIDO`. |
+| `incluir_metas` con id ajeno | 404 `META_INEXISTENTE`. |
+
+### 12.3 No escritura en la base
+
+Se tomaron snapshots de las **40 tablas** del esquema (conteos y contenido
+íntegro de `metas`, `transacciones`, `puntos_log`, `salud_log`, `cierres_dia`,
+`interacciones_ia` y `dispositivos_notificaciones`) antes y después de todas las
+peticiones anteriores. **Son idénticos**: los endpoints del plan son de solo
+lectura y la optimización nunca mueve saldos.
+
+### 12.4 Coherencia de la documentación
+
+- Los cinco documentos actualizados están en UTF-8, sin BOM y sin mojibake.
+- Todas las referencias internas a archivos apuntan a rutas existentes.
+- Inventario real verificado: 63 rutas, 40 tablas, 15 vistas, 11 triggers,
+  esquema 4.
+- `docs/ESPECIFICACIONES.md` ya no presenta a Gemini ni a `GEMINI_API_KEY` como
+  obligatorios, y distingue los endpoints implementados de los futuros.
+
+---
+
+## 13. Trabajo futuro
 
 - EOQ adaptado para compras recurrentes.
 - Reposición de efectivo y punto de reorden.
