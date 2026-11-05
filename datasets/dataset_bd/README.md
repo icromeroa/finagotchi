@@ -63,6 +63,18 @@ Las 25 cuentas usan `America/Bogota`, moneda COP y correo ya verificado.
 Los valores `NULL` se exportan como campo vacio. Las columnas generadas
 (`ingreso_total_mensual`, `delta_salud`, `delta`) son de solo lectura.
 
+## Exportacion consolidada
+
+`consolidado/dataset_completo.csv` reune todas las tablas en formato largo:
+`tabla;id_registro;usuario_id;fecha;columna_fecha;campo;valor`. Usa UTF-8
+con BOM y separador `;` para abrirlo en Excel, incluye las celdas vacias y
+tiene su propio `consolidado/manifest_consolidado.json` con SHA-256.
+
+```powershell
+py -3 tools/exportar_csv_consolidado.py
+py -3 tools/exportar_csv_consolidado.py --separador "," --sin-bom --omitir-vacios
+```
+
 ## Regenerar
 
 ```powershell

@@ -14,6 +14,7 @@ BASE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE))
 sys.path.insert(0, str(BASE / "tools"))
 
+import exportar_csv_consolidado as consolidado  # noqa: E402
 import generar_dataset_bd as generador  # noqa: E402
 from werkzeug.security import check_password_hash  # noqa: E402
 
@@ -388,6 +389,88 @@ class DatasetBdTests(unittest.TestCase):
         guardado = json.loads((salida / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(guardado["semilla"], 20261104)
         self.assertEqual(guardado["resumen"]["usuarios"], 25)
+
+    def test_exportacion_consolidada(self):
+        salida = Path(self.temp.name) / "consolidado"
+        manifest = consolidado.exportar_consolidado(
+            self.db_path, salida=salida, separador=";", bom=True
+        )
+        ruta = salida / "dataset_completo.csv"
+        self.assertTrue(ruta.exists())
+        self.assertTrue((salida / "manifest_consolidado.json").exists())
+
+        contenido = ruta.read_bytes()
+        self.assertTrue(contenido.startswith(b"\xef\xbb\xbf"))
+        self.assertEqual(
+            hashlib.sha256(contenido).hexdigest(), manifest["sha256"]
+        )
+        self.assertEqual(manifest["separador"], ";")
+        self.assertEqual(manifest["codificacion"], "UTF-8 con BOM")
+
+        tablas = [
+            fila[0]
+            for fila in self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' "
+                "AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            )
+        ]
+        esquema = set()
+        total_celdas = 0
+        for tabla in tablas:
+            columnas = [
+                fila[1]
+                for fila in self.conn.execute(f"PRAGMA table_xinfo('{tabla}')")
+                if fila[6] != 1
+            ]
+            total_celdas += (
+                self.scalar(f'SELECT COUNT(*) FROM "{tabla}"') * len(columnas)
+            )
+            esquema.update((tabla, columna) for columna in columnas)
+
+        self.assertEqual(manifest["total_tablas"], len(tablas))
+        self.assertEqual(manifest["total_filas"], total_celdas)
+        # Las columnas generadas tambien se exportan.
+        self.assertIn(("cierres_dia", "delta_salud"), esquema)
+
+        with ruta.open(encoding="utf-8-sig", newline="") as archivo:
+            lector = csv.reader(archivo, delimiter=";")
+            self.assertEqual(tuple(next(lector)), consolidado.COLUMNAS)
+            filas = list(lector)
+
+        self.assertEqual(len(filas), total_celdas)
+        self.assertTrue(all(len(fila) == 7 for fila in filas))
+        self.assertEqual({(fila[0], fila[5]) for fila in filas}, esquema)
+        self.assertGreater(sum(1 for fila in filas if fila[6] == ""), 0)
+
+        usuarios = {
+            str(transaccion_id): str(usuario_id)
+            for transaccion_id, usuario_id in self.conn.execute(
+                "SELECT id, usuario_id FROM transacciones"
+            )
+        }
+        descuadres = [
+            fila
+            for fila in filas
+            if fila[0] == "transacciones"
+            and fila[5] == "usuario_id"
+            and usuarios[fila[1]] != fila[2]
+        ]
+        self.assertEqual(descuadres, [])
+
+        # La variante sin BOM y sin celdas vacias es mas pequena y legible
+        # con separador de coma.
+        otra = Path(self.temp.name) / "consolidado-sin-vacios"
+        reducido = consolidado.exportar_consolidado(
+            self.db_path,
+            salida=otra,
+            separador=",",
+            bom=False,
+            incluir_vacios=False,
+        )
+        self.assertFalse(
+            (otra / "dataset_completo.csv").read_bytes().startswith(b"\xef\xbb\xbf")
+        )
+        self.assertLess(reducido["total_filas"], total_celdas)
 
 
 if __name__ == "__main__":

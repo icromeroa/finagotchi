@@ -84,6 +84,7 @@ Estos son los comandos del proyecto, verificados por `tests/test_comandos.py`, q
 | `py -3 -m unittest discover -s tests -v` | Corre todas las pruebas. |
 | `py -3 tools/verificar_entorno.py` | Revisa dependencias, base, clave, IA y micrófono. |
 | `py -3 tools/generar_dataset_bd.py` | Regenera los datos demo de `finagotchi.db` y exporta CSV. |
+| `py -3 tools/exportar_csv_consolidado.py` | Exporta todas las tablas a un solo CSV para Excel. |
 | `py -3 tools/grabar_dataset.py` | Graba los clips del dataset con el micrófono. |
 | `py -3 tools/evaluar_dataset.py` | Evalúa el dataset (WER, montos, latencia). |
 | `py -3 tools/probar_flujo_voz.py audio.wav` | Prueba el flujo de voz con un WAV. |
@@ -169,8 +170,16 @@ py -3 tools/generar_dataset_bd.py --db C:\ruta\copia.db --no-exportar
 El generador respalda la base en `backups/` antes de borrar los datos de prueba, conserva `plantilla_*` y `schema_migrations`, verifica `foreign_key_check`/`integrity_check` y deja el resultado en:
 
 - `datasets/dataset_bd/csv/`: un CSV por tabla (UTF-8, sin BOM).
+- `datasets/dataset_bd/consolidado/dataset_completo.csv`: todas las tablas en un solo CSV en formato largo, con UTF-8 con BOM y separador `;`.
 - `datasets/dataset_bd/manifest.json`: conteo, tamaño y SHA-256 de cada archivo.
 - `datasets/dataset_bd/README.md`: contenido y credenciales.
+
+El consolidado se regenera aparte, sin tocar la base ni los 40 CSV:
+
+```powershell
+py -3 tools/exportar_csv_consolidado.py
+py -3 tools/exportar_csv_consolidado.py --separador "," --sin-bom --omitir-vacios
+```
 
 Cuentas demo: `simulador@finagotchi.local` / `simulador123` y `demo01@finagotchi.local` … `demo24@finagotchi.local` / `Demo1234`.
 
