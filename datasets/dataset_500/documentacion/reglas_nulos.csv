@@ -1,0 +1,54 @@
+columna,nulos,nulos_sin_explicacion,motivo
+eliminado_via,486,0,La transacción no fue anulada
+message_id,42,0,Registro manual: sin audio ni IA
+texto_transcrito,42,0,Registro manual: sin audio ni IA
+confianza_ia,42,0,Registro manual: sin audio ni IA
+secuencia,42,0,Registro manual: sin audio ni IA
+duracion_audio_s,42,0,Registro manual: sin audio ni IA
+msg_estado,42,0,Registro manual: sin audio ni IA
+msg_latencia_total_s,42,0,Registro manual: sin audio ni IA
+ia_stt_latencia_ms,42,0,Registro manual: sin audio ni IA
+ia_extraccion_latencia_ms,42,0,Registro manual: sin audio ni IA
+ia_stt_confianza,42,0,Registro manual: sin audio ni IA
+ia_tokens_entrada,42,0,Registro manual: sin audio ni IA
+ia_tokens_salida,42,0,Registro manual: sin audio ni IA
+ia_modelo_extraccion,42,0,Registro manual: sin audio ni IA
+menciona_cuenta_en_texto,42,0,Registro manual: sin audio ni IA
+bateria_en_evento,100,0,Registro no vino del dispositivo físico
+boton_en_evento,100,0,Registro no vino del dispositivo físico
+confirmado_en,8,0,Transacción pendiente: no confirmada
+categoria_id,39,0,El ahorro no lleva categoría
+categoria,39,0,El ahorro no lleva categoría
+categoria_es_fija,39,0,El ahorro no lleva categoría
+categoria_es_propia,39,0,El ahorro no lleva categoría
+categoria_original,457,0,La transacción nunca fue editada
+monto_original,457,0,La transacción nunca fue editada
+meta_id,461,0,Solo los ahorros tienen meta
+meta_nombre,461,0,Solo los ahorros tienen meta
+meta_monto,461,0,Solo los ahorros tienen meta
+meta_fecha_limite,461,0,Solo los ahorros tienen meta
+meta_frecuencia,461,0,Solo los ahorros tienen meta
+meta_aporte_periodico,461,0,Solo los ahorros tienen meta
+meta_estado,461,0,Solo los ahorros tienen meta
+meta_ahorrado,461,0,Solo los ahorros tienen meta
+meta_porcentaje,461,0,Solo los ahorros tienen meta
+meta_estado_plan,461,0,Solo los ahorros tienen meta
+coincide_palabra_clave_categoria,78,0,Sin texto para comparar
+cat_mes_total_gastado,123,0,Solo para gastos válidos
+cat_mes_limite,490,0,Categoría sin tope asignado
+cat_mes_superado,490,0,Categoría sin tope asignado
+cat_mes_porcentaje_usado,490,0,Categoría sin tope asignado
+dia_total_ingresos,12,0,El día no tiene transacciones válidas
+dia_total_gastos,12,0,El día no tiene transacciones válidas
+dia_total_ahorrado,12,0,El día no tiene transacciones válidas
+dia_balance_neto,12,0,El día no tiene transacciones válidas
+dia_presupuesto_diario,12,0,El día no tiene transacciones válidas
+dia_porcentaje_usado,12,0,El día no tiene transacciones válidas
+dia_calificacion,12,0,El día no tiene transacciones válidas
+dia_num_registros,12,0,El día no tiene transacciones válidas
+dia_salud_inicio,12,0,El día no tiene transacciones válidas
+dia_salud_fin,12,0,El día no tiene transacciones válidas
+dia_delta_salud,12,0,El día no tiene transacciones válidas
+dia_version_cierre,12,0,El día no tiene transacciones válidas
+solicitud_eliminacion_estado,436,0,El usuario no solicitó eliminación
+presupuesto_meses,160,0,Sin presupuesto aprobado

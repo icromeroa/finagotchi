@@ -1,0 +1,66 @@
+======================================================================
+LIMPIEZA DE DATOS - FinaGotchi
+======================================================================
+--- ETAPA 0: CARGA DE DATOS ---
+   Dimensiones: (500, 175)
+   Columnas con nulos: 53 | nulos totales: 9373
+
+--- ETAPA 1: CORRECCIÓN DE TIPOS ---
+   Fechas/horas -> datetime: 10 columnas
+   float -> Int64 (eran enteros): 35 columnas
+   Guardado: finagotchi_dataset_1_tipos_corregidos.csv  (500, 175)  (tipos corregidos)
+
+--- ETAPA 2: TRATAMIENTO DE NULOS ---
+   Columnas con nulos cubiertas por una regla: 53
+   Nulos sin explicación (datos perdidos): 0
+   Categóricas rellenadas con etiqueta: 11
+   Nulos que se conservan en numéricos/texto: 6015
+   Guardado: finagotchi_dataset_2_nulos_tratados.csv  (500, 180)  (nulos tratados)
+
+--- ETAPA 3: NORMALIZACIÓN DE TEXTO ---
+   Espacios limpiados en 37 columnas de texto
+   Categóricas normalizadas: 6
+   Guardado: finagotchi_dataset_3_texto_normalizado.csv  (500, 180)  (texto normalizado)
+
+--- ETAPA 4: DUPLICADOS ---
+   Filas completamente idénticas: 0
+   Duplicados por transaccion_id (PK): 0
+   Duplicados por clave de negocio: 0
+   message_id repetido por usuario: 0
+   Filas: 500 -> 500  (eliminadas: 0)
+   Posibles duplicados de negocio marcados: 0
+   Guardado: finagotchi_dataset_4_sin_duplicados.csv  (500, 182)  (sin duplicados)
+
+--- ETAPA 5: CONSISTENCIA ---
+   [alta ] pk_duplicada                               ->    0 filas
+   [alta ] fecha_local_no_coincide                    ->    0 filas
+   [alta ] hora_local_no_coincide                     ->    0 filas
+   [alta ] confirmado_antes_de_crear                  ->    0 filas
+   [media] tx_antes_del_alta_usuario                  ->    5 filas
+   [media] ultimo_acceso_antes_del_alta               ->    0 filas
+   [alta ] monto_no_positivo                          ->    0 filas
+   [alta ] duracion_fuera_de_rango                    ->    0 filas
+   [alta ] ia_stt_confianza_fuera_de_rango            ->    0 filas
+   [alta ] confianza_ia_fuera_de_rango                ->    0 filas
+   [alta ] bateria_fuera_de_rango                     ->    0 filas
+   [alta ] edad_fuera_de_rango                        ->    0 filas
+   [media] bienestar_fuera_de_rango                   ->    0 filas
+   [media] puntos_en_anulada                          ->   14 filas
+   [alta ] puntos_en_pendiente                        ->    0 filas
+   [baja ] puntos_mayor_a_1                           ->   29 filas
+   [alta ] animo_no_coincide_con_salud                ->    0 filas
+   [alta ] ingreso_total_no_suma                      ->    0 filas
+   [alta ] categoria_mezcla_tipos                     ->    0 filas
+   [media] ahorro_sin_meta_o_meta_en_otro_tipo        ->    0 filas
+   [media] texto_no_coincide_con_monto                ->    0 filas
+   Filas con al menos una inconsistencia: 48
+   Guardado: finagotchi_dataset_5_consistencia.csv  (500, 206)  (con banderas de consistencia)
+
+--- ETAPA 6: DETECCIÓN DE OUTLIERS ---
+   Monto ahorro  : IQR=[-102250, 247750] -> 2 outliers
+   Monto gasto   : IQR=[-29000, 67000] -> 48 outliers
+   Monto ingreso : IQR=[-317500, 1062500] -> 6 outliers
+   Duración audio: IQR=[1.55, 5.95] -> 1 outliers
+   Guardado: finagotchi_dataset_6_outliers.csv  (500, 208)  (con outliers marcados)
+
+Limpieza completada exitosamente.

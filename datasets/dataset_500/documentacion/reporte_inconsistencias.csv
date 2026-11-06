@@ -1,0 +1,22 @@
+regla,filas_afectadas,severidad,descripcion
+pk_duplicada,0,alta,ID repetido
+fecha_local_no_coincide,0,alta,fecha_local distinta a UTC
+hora_local_no_coincide,0,alta,hora_local distinta a UTC
+confirmado_antes_de_crear,0,alta,Confirmación previa a creación
+tx_antes_del_alta_usuario,5,media,Transacción previa al usuario
+ultimo_acceso_antes_del_alta,0,media,Acceso previo al alta
+monto_no_positivo,0,alta,Monto menor o igual a cero
+duracion_fuera_de_rango,0,alta,"Audio fuera de [0.5, 40] s"
+ia_stt_confianza_fuera_de_rango,0,alta,"Confianza STT fuera de [0, 1]"
+confianza_ia_fuera_de_rango,0,alta,"Confianza IA fuera de [0, 1]"
+bateria_fuera_de_rango,0,alta,"Batería fuera de [0, 100]"
+edad_fuera_de_rango,0,alta,"Edad fuera de [14, 100]"
+bienestar_fuera_de_rango,0,media,"Bienestar fuera de [0, 100]"
+puntos_en_anulada,14,media,Anulada con puntos
+puntos_en_pendiente,0,alta,Pendiente con puntos
+puntos_mayor_a_1,29,baja,Más de 1 punto por transacción
+animo_no_coincide_con_salud,0,alta,Ánimo no coincide con salud
+ingreso_total_no_suma,0,alta,Total no cuadra con componentes
+categoria_mezcla_tipos,0,alta,Categoría en ingresos y gastos a la vez
+ahorro_sin_meta_o_meta_en_otro_tipo,0,media,Meta mal asignada
+texto_no_coincide_con_monto,0,media,El audio dice un monto distinto

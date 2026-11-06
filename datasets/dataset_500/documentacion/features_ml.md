@@ -1,0 +1,89 @@
+# Guía para Machine Learning — FinaGotchi
+
+Dataset base: `finagotchi_dataset_6_outliers.csv` (500 filas, 208 columnas).
+
+
+## Posibles variables objetivo
+
+- `categoria` (clasificacion): Categoría de la transacción
+- `mascota_animo_actual` (clasificacion): Ánimo de la mascota (4 clases)
+- `mascota_salud_actual` (regresion): Salud de la mascota (0-100)
+- `salud_delta_tx` (regresion): Cambio de salud por transacción
+
+## Columnas que no se usan como features
+
+
+### Identificadores y texto libre
+
+- `transaccion_id`
+- `usuario_id`
+- `message_id`
+- `device_uid`
+- `cuenta_id`
+- `categoria_id`
+- `meta_id`
+- `texto_transcrito`
+- `concepto`
+- `inconsistencias`
+- `posible_duplicado_negocio`
+- `message_id_duplicado`
+
+### Post-evento (leakage temporal)
+
+- `estado`
+- `confirmado_en`
+- `is_deleted`
+- `eliminado_via`
+- `puntos_tx`
+- `salud_delta_tx`
+- `n_alertas_tx`
+- `n_notif_dispositivo_tx`
+- `monto_cambio`
+- `monto_original`
+- `dia_salud_fin`
+- `dia_delta_salud`
+- `dia_version_cierre`
+- `usuario_total_registros`
+- `usuario_dias_con_registro`
+- `usuario_puntos_totales`
+- `usuario_dias_perfectos`
+- `usuario_dias_cerrados`
+- `usuario_racha_actual`
+- `usuario_mejor_racha`
+- `cat_mes_total_gastado`
+- `cat_mes_superado`
+- `cat_mes_porcentaje_usado`
+
+### Banderas de diagnóstico
+
+- `flag_pk_duplicada`
+- `flag_fecha_local_no_coincide`
+- `flag_hora_local_no_coincide`
+- `flag_confirmado_antes_de_crear`
+- `flag_tx_antes_del_alta_usuario`
+- `flag_ultimo_acceso_antes_del_alta`
+- `flag_monto_no_positivo`
+- `flag_duracion_fuera_de_rango`
+- `flag_ia_stt_confianza_fuera_de_rango`
+- `flag_confianza_ia_fuera_de_rango`
+- `flag_bateria_fuera_de_rango`
+- `flag_edad_fuera_de_rango`
+- `flag_bienestar_fuera_de_rango`
+- `flag_puntos_en_anulada`
+- `flag_puntos_en_pendiente`
+- `flag_puntos_mayor_a_1`
+- `flag_animo_no_coincide_con_salud`
+- `flag_ingreso_total_no_suma`
+- `flag_categoria_mezcla_tipos`
+- `flag_ahorro_sin_meta_o_meta_en_otro_tipo`
+- `flag_texto_no_coincide_con_monto`
+- `es_outlier_monto`
+- `es_outlier_duracion_audio`
+
+## Reglas para el entrenamiento
+
+1. Dividir train y test por `fecha_hora`, no de forma aleatoria.
+2. Los encoders y escaladores van dentro de un `Pipeline` ajustado solo con train.
+3. Para predecir `monto` no se usa `texto_transcrito` porque el monto está escrito en el texto.
+4. Filtrar `es_outlier_monto == 1` si el modelo es sensible a extremos.
+5. Los agregados `dia_*` y `cat_mes_*` incluyen la fila actual; si se usan como feature deben recalcularse con `shift`.

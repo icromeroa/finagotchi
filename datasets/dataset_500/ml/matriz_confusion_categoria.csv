@@ -1,0 +1,15 @@
+,alimentacion,apoyo_familiar,beca,deudas,familia_y_detalles,finanzas,ocio_y_gustos,otros,otros_ingresos,salud_y_aseo,suscripciones,trabajo,transporte,vivienda_y_fijos
+alimentacion,12,0,0,0,0,2,2,3,0,1,2,0,6,1
+apoyo_familiar,0,7,0,0,0,0,0,0,0,0,0,0,0,0
+beca,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+deudas,0,0,0,1,0,0,0,1,0,0,0,0,0,1
+familia_y_detalles,0,0,0,0,1,1,0,0,0,0,0,0,0,0
+finanzas,0,0,0,0,0,2,0,2,0,0,0,0,0,0
+ocio_y_gustos,0,0,0,0,0,0,5,1,0,0,0,0,0,0
+otros,0,0,0,0,1,0,0,1,0,1,0,0,0,0
+otros_ingresos,0,0,0,0,0,0,0,0,1,0,0,0,0,0
+salud_y_aseo,0,0,0,0,1,0,0,0,0,1,0,0,0,1
+suscripciones,0,0,0,0,0,0,0,0,0,0,1,0,0,0
+trabajo,0,1,5,0,0,0,0,0,1,0,0,4,0,0
+transporte,2,0,0,0,0,0,2,0,0,1,0,0,7,1
+vivienda_y_fijos,0,0,0,0,0,0,1,1,0,0,0,0,0,1

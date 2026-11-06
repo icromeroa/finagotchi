@@ -1,0 +1,20 @@
+                    precision    recall  f1-score   support
+
+      alimentacion       0.86      0.41      0.56        29
+    apoyo_familiar       0.88      1.00      0.93         7
+              beca       0.00      0.00      0.00         0
+            deudas       1.00      0.33      0.50         3
+familia_y_detalles       0.33      0.50      0.40         2
+          finanzas       0.40      0.50      0.44         4
+     ocio_y_gustos       0.50      0.83      0.62         6
+             otros       0.11      0.33      0.17         3
+    otros_ingresos       0.50      1.00      0.67         1
+      salud_y_aseo       0.25      0.33      0.29         3
+     suscripciones       0.33      1.00      0.50         1
+           trabajo       1.00      0.36      0.53        11
+        transporte       0.54      0.54      0.54        13
+  vivienda_y_fijos       0.20      0.33      0.25         3
+
+          accuracy                           0.51        86
+         macro avg       0.49      0.53      0.46        86
+      weighted avg       0.69      0.51      0.54        86
