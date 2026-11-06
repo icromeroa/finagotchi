@@ -810,15 +810,28 @@ def detectar_intencion_conversacional(text):
             "confianza": 0.8,
         }
 
+    ahorro_pasado = any(
+        word_in_text(palabra, normalized)
+        for palabra in ("ahorre", "ahorré", "guarde", "separe")
+    )
     creacion = (
-        any(word_in_text(palabra, normalized) for palabra in ("crear", "plantear", "nueva", "quiero", "necesito", "meta", "objetivo"))
-        and any(word_in_text(palabra, normalized) for palabra in ("meta", "objetivo", "ahorrar para", "comprar", "comprarme"))
-        and parse_amount(normalized) is None
+        not ahorro_pasado
+        and any(
+            word_in_text(palabra, normalized)
+            for palabra in ("crear", "crea", "plantear", "plantea", "nueva", "quiero", "necesito")
+        )
+        and any(
+            word_in_text(palabra, normalized)
+            for palabra in ("meta", "objetivo", "ahorrar para", "comprar", "comprarme")
+        )
     )
     if creacion:
         return {
             "intent": "crear_meta",
-            "entidades": {"nombre": nombre_meta_probable(text)},
+            "entidades": {
+                "nombre": nombre_meta_probable(text),
+                "monto": parse_amount(normalized),
+            },
             "confianza": 0.75,
         }
 

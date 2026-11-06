@@ -28,6 +28,17 @@ PRIORIDAD_MIN = 1
 PRIORIDAD_MAX = 5
 
 
+class ErrorMeta(ValueError):
+    """Error de validacion de una meta con codigo estable para la API."""
+
+    def __init__(self, codigo, mensaje, estado=422, detalles=None):
+        super().__init__(mensaje)
+        self.codigo = codigo
+        self.mensaje = mensaje
+        self.estado = estado
+        self.detalles = detalles or {}
+
+
 def parse_priority(value):
     """Normaliza la prioridad de una meta; devuelve None si es invalida."""
     try:
@@ -511,6 +522,67 @@ def confirm_message(conn, user_id, message_id):
             "duplicado": notification["duplicado"],
         }
     return payload
+
+
+def create_goal(conn, user_id, data):
+    """Crea una meta validada. La usan la API y el agente conversacional."""
+    missing = [
+        field
+        for field in (
+            "nombre",
+            "monto_meta",
+            "fecha_limite",
+            "frecuencia_ahorro",
+            "aporte_periodico",
+        )
+        if not data.get(field)
+    ]
+    if missing:
+        raise ErrorMeta(
+            "CAMPOS_REQUERIDOS", "Faltan campos obligatorios", 422, {"campos": missing}
+        )
+    if data["frecuencia_ahorro"] not in ("diaria", "semanal", "quincenal", "mensual"):
+        raise ErrorMeta("FRECUENCIA_INVALIDA", "Frecuencia de ahorro inválida", 422)
+    try:
+        amount = int(data["monto_meta"])
+        contribution = int(data["aporte_periodico"])
+    except (TypeError, ValueError):
+        raise ErrorMeta("MONTOS_INVALIDOS", "Los montos deben ser enteros", 422)
+    if amount <= 0 or contribution <= 0:
+        raise ErrorMeta("MONTOS_INVALIDOS", "Los montos deben ser positivos", 422)
+    if parse_date(data["fecha_limite"]) is None:
+        raise ErrorMeta("FECHA_INVALIDA", "La fecha límite no es válida", 422)
+    prioridad = parse_priority(data.get("prioridad", 1))
+    if prioridad is None:
+        raise ErrorMeta(
+            "PRIORIDAD_INVALIDA",
+            "La prioridad debe estar entre 1 y 5",
+            422,
+            {"campo": "prioridad"},
+        )
+    cursor = conn.execute(
+        """
+        INSERT INTO metas
+            (usuario_id, nombre, icono, monto_meta, fecha_limite,
+             frecuencia_ahorro, aporte_periodico, dia_aporte, hora_recordatorio,
+             prioridad)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            str(data["nombre"])[:30],
+            data.get("icono"),
+            amount,
+            data["fecha_limite"],
+            data["frecuencia_ahorro"],
+            contribution,
+            data.get("dia_aporte"),
+            data.get("hora_recordatorio") or "08:00",
+            prioridad,
+        ),
+    )
+    conn.commit()
+    return serialize_goal(conn, user_id, cursor.lastrowid)
 
 
 def create_transaction(conn, user_id, data):
@@ -1228,6 +1300,7 @@ def goal_plan(
     incluir_metas=None,
     simulacion=False,
     overrides=None,
+    metas_extra=None,
 ):
     """Calcula el plan de metas sin escribir en la base.
 
@@ -1254,8 +1327,11 @@ def goal_plan(
         (user_id,),
     ).fetchall()
 
+    metas = [dict(row) for row in rows]
+    if metas_extra:
+        metas.extend(dict(meta) for meta in metas_extra)
     plan = optimization.plan_goals(
-        [dict(row) for row in rows],
+        metas,
         capacity["capacidad_mensual"],
         as_of,
         horizon=meses,
@@ -1267,6 +1343,115 @@ def goal_plan(
     if simulacion:
         plan["overrides"] = overrides or {}
     return plan
+
+
+def simulate_goal_draft(conn, user_id, draft, as_of=None, meses=12):
+    """Evalua una meta candidata con el LP sin insertarla en la base.
+
+    La meta virtual usa un id negativo para no confundirse con metas reales.
+    Devuelve el plan completo y el detalle de esa meta.
+    """
+    as_of = as_of or local_date()
+    virtual = {
+        "meta_id": -1,
+        "nombre": draft.get("nombre") or "Meta nueva",
+        "monto_meta": int(draft.get("monto_meta") or 0),
+        "ahorrado": 0,
+        "fecha_limite": draft.get("fecha_limite") or as_of,
+        "prioridad": int(draft.get("prioridad") or 3),
+    }
+    plan = goal_plan(
+        conn,
+        user_id,
+        as_of=as_of,
+        meses=meses,
+        simulacion=True,
+        metas_extra=[virtual],
+        overrides={"meta_virtual": virtual},
+    )
+    detalle = next(
+        (meta for meta in plan.get("metas", []) if meta.get("meta_id") == -1), None
+    )
+    capacidad = plan.get("capacidad_mensual") or []
+    return {
+        "meta": detalle,
+        "plan": plan,
+        "capacidad_mes_actual": capacidad[0]["capacidad"] if capacidad else 0,
+        "factible": plan.get("factible"),
+        "diagnostico": plan.get("diagnostico"),
+        "resumen": plan.get("resumen"),
+    }
+
+
+def period_totals(conn, user_id, start_date, end_date):
+    row = conn.execute(
+        """
+        SELECT
+          COALESCE(SUM(CASE WHEN tipo = 'ingreso' THEN monto ELSE 0 END), 0) AS ingresos,
+          COALESCE(SUM(CASE WHEN tipo = 'gasto' THEN monto ELSE 0 END), 0) AS gastos,
+          COALESCE(SUM(CASE WHEN tipo = 'ahorro' THEN monto ELSE 0 END), 0) AS ahorro,
+          COUNT(*) AS num_registros
+        FROM transacciones
+        WHERE usuario_id = ? AND fecha_local BETWEEN ? AND ?
+          AND estado = 'confirmado' AND is_deleted = 0
+        """,
+        (user_id, start_date, end_date),
+    ).fetchone()
+    totals = dict(row)
+    totals["balance_neto"] = totals["ingresos"] - totals["gastos"]
+    totals["capacidad_libre_ahorro"] = (
+        totals["ingresos"] - totals["gastos"] - totals["ahorro"]
+    )
+    return totals
+
+
+def recent_transactions(conn, user_id, limit=10):
+    rows = conn.execute(
+        """
+        SELECT t.id, t.tipo, t.monto, t.fecha_local, t.concepto, t.estado,
+               c.nombre AS categoria, cu.nombre AS cuenta, m.nombre AS meta
+        FROM transacciones t
+        LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
+        LEFT JOIN cuentas cu ON cu.usuario_id = t.usuario_id AND cu.id = t.cuenta_id
+        LEFT JOIN metas m ON m.usuario_id = t.usuario_id AND m.id = t.meta_id
+        WHERE t.usuario_id = ? AND t.is_deleted = 0
+        ORDER BY t.fecha_hora DESC, t.id DESC
+        LIMIT ?
+        """,
+        (user_id, int(limit)),
+    ).fetchall()
+    return dict_rows(rows)
+
+
+def accounts_summary(conn, user_id):
+    rows = conn.execute(
+        "SELECT * FROM v_cuentas_resumen WHERE usuario_id = ? ORDER BY orden, cuenta_id",
+        (user_id,),
+    ).fetchall()
+    return dict_rows(rows)
+
+
+def categories_summary(conn, user_id):
+    rows = conn.execute(
+        "SELECT id, nombre, tipo, icono, activa FROM categorias "
+        "WHERE usuario_id = ? ORDER BY tipo, nombre",
+        (user_id,),
+    ).fetchall()
+    return dict_rows(rows)
+
+
+def profile_summary(conn, user_id):
+    user = conn.execute(
+        "SELECT nombre, correo, presupuesto_diario, zona_horaria FROM usuarios WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+    profile = conn.execute(
+        "SELECT * FROM perfil_financiero WHERE usuario_id = ?", (user_id,)
+    ).fetchone()
+    return {
+        "usuario": dict(user) if user else {},
+        "perfil": dict(profile) if profile else {},
+    }
 
 
 def plan_resumen(conn, user_id, as_of=None):

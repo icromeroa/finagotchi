@@ -10,6 +10,7 @@ No es fuente de verdad financiera: si el backend se reinicia solo se pierde el
 borrador en curso. Los movimientos pendientes siguen en las tablas existentes.
 """
 
+import math
 import os
 import threading
 import time
@@ -311,6 +312,8 @@ def _registrar_movimiento(
 
 def _confirmar(conn, usuario_id, texto, estado, dispositivo_uid):
     accion = estado.get("accion_pendiente") or {}
+    if accion.get("tipo") == "crear_meta":
+        return _confirmar_meta(conn, usuario_id, texto, estado, dispositivo_uid)
     if accion.get("tipo") == "confirmar_mensaje" and accion.get("message_id"):
         payload = services.confirm_message(conn, usuario_id, accion["message_id"])
         borrar_estado(usuario_id, dispositivo_uid)
@@ -437,38 +440,41 @@ def _consulta_balance(conn, usuario_id, periodo, estado, dispositivo_uid, texto)
     hoy = services.local_date()
     if periodo == "hoy":
         resumen = services.metrics_daily(conn, usuario_id, hoy)
+        resumen = {
+            "desde": hoy,
+            "hasta": hoy,
+            "total_ingresos": resumen.get("total_ingresos", 0),
+            "total_gastos": resumen.get("total_gastos", 0),
+            "total_ahorrado": resumen.get("total_ahorrado", 0),
+            "balance_neto": resumen.get("balance_neto", 0),
+            "cupo_restante": resumen.get("cupo_restante"),
+            "presupuesto_diario": resumen.get("presupuesto_diario"),
+            "num_registros": resumen.get("num_registros", 0),
+        }
         mensaje = (
-            f"Hoy llevas {_moneda(resumen.get('total_gastos'))} en gastos y "
-            f"{_moneda(resumen.get('total_ahorrado'))} en ahorro. "
-            f"Tu balance neto es {_moneda(resumen.get('balance_neto'))}."
+            f"Hoy llevas {_moneda(resumen['total_gastos'])} en gastos y "
+            f"{_moneda(resumen['total_ahorrado'])} en ahorro. "
+            f"Tu balance neto es {_moneda(resumen['balance_neto'])}."
         )
+        if resumen.get("cupo_restante") is not None:
+            mensaje += f" Te queda un cupo diario de {_moneda(resumen['cupo_restante'])}."
     else:
-        desde = hoy
         if periodo == "semana":
             desde = (date_cls.fromisoformat(hoy) - timedelta(days=6)).isoformat()
+            etiqueta = "esta semana"
         else:
             desde = hoy[:7] + "-01"
-        fila = conn.execute(
-            """
-            SELECT
-              COALESCE(SUM(CASE WHEN tipo = 'ingreso' THEN monto ELSE 0 END), 0) AS ingresos,
-              COALESCE(SUM(CASE WHEN tipo = 'gasto' THEN monto ELSE 0 END), 0) AS gastos,
-              COALESCE(SUM(CASE WHEN tipo = 'ahorro' THEN monto ELSE 0 END), 0) AS ahorro
-            FROM transacciones
-            WHERE usuario_id = ? AND fecha_local BETWEEN ? AND ?
-              AND estado = 'confirmado' AND is_deleted = 0
-            """,
-            (usuario_id, desde, hoy),
-        ).fetchone()
+            etiqueta = "este mes"
+        totales = services.period_totals(conn, usuario_id, desde, hoy)
         resumen = {
             "desde": desde,
             "hasta": hoy,
-            "total_ingresos": fila["ingresos"],
-            "total_gastos": fila["gastos"],
-            "total_ahorrado": fila["ahorro"],
-            "balance_neto": fila["ingresos"] - fila["gastos"],
+            "total_ingresos": totales["ingresos"],
+            "total_gastos": totales["gastos"],
+            "total_ahorrado": totales["ahorro"],
+            "balance_neto": totales["balance_neto"],
+            "num_registros": totales["num_registros"],
         }
-        etiqueta = "esta semana" if periodo == "semana" else "este mes"
         mensaje = (
             f"En {etiqueta} registraste {_moneda(resumen['total_gastos'])} en gastos, "
             f"{_moneda(resumen['total_ingresos'])} en ingresos y "
@@ -482,6 +488,402 @@ def _consulta_balance(conn, usuario_id, periodo, estado, dispositivo_uid, texto)
         estado,
         datos={"periodo": periodo, "resumen": resumen},
         intent="consulta_estado",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+    )
+
+
+def _consulta_metas(conn, usuario_id, estado, dispositivo_uid, texto):
+    filas = conn.execute(
+        "SELECT * FROM v_metas_estado WHERE usuario_id = ? ORDER BY fecha_limite, meta_id",
+        (usuario_id,),
+    ).fetchall()
+    metas = [dict(row) for row in filas]
+    if not metas:
+        mensaje = "Todavía no tienes metas. Puedes decir: quiero crear una meta para comprar audífonos."
+    else:
+        partes = []
+        for meta in metas[:5]:
+            partes.append(
+                f"{meta['nombre']}: llevas {_moneda(meta.get('ahorrado'))} de "
+                f"{_moneda(meta.get('monto_meta'))}"
+            )
+        mensaje = "Tus metas van así. " + "; ".join(partes) + "."
+    return _respuesta(
+        mensaje,
+        "consulta",
+        {**estado, "estado": ESTADO_INACTIVA, "accion_pendiente": None},
+        datos={"metas": metas},
+        intent="consultar_metas",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+    )
+
+
+def _consulta_plan(conn, usuario_id, estado, dispositivo_uid, texto):
+    plan = services.plan_resumen(conn, usuario_id)
+    capacidad = plan.get("capacidad_mes_actual", 0)
+    metas = plan.get("metas") or []
+    if metas:
+        detalle = "; ".join(
+            f"{meta['nombre']} con {_moneda(meta.get('asignacion_mes_actual'))} al mes"
+            for meta in metas[:5]
+        )
+        mensaje = (
+            f"Este mes puedes ahorrar hasta {_moneda(capacidad)}. "
+            f"El plan recomienda: {detalle}."
+        )
+    else:
+        mensaje = f"Este mes puedes ahorrar hasta {_moneda(capacidad)} y no tienes metas activas."
+    return _respuesta(
+        mensaje,
+        "consulta",
+        {**estado, "estado": ESTADO_INACTIVA, "accion_pendiente": None},
+        datos=plan,
+        intent="consultar_plan",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+    )
+
+
+def _consulta_cuentas(conn, usuario_id, estado, dispositivo_uid, texto):
+    cuentas = services.accounts_summary(conn, usuario_id)
+    if cuentas:
+        detalle = "; ".join(
+            f"{cuenta['nombre']}: {_moneda(cuenta.get('saldo_actual'))}"
+            for cuenta in cuentas[:6]
+        )
+        mensaje = f"Tus cuentas son: {detalle}."
+    else:
+        mensaje = "No tienes cuentas registradas."
+    return _respuesta(
+        mensaje,
+        "consulta",
+        estado,
+        datos={"cuentas": cuentas},
+        intent="consultar_cuentas",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+    )
+
+
+def _consulta_categorias(conn, usuario_id, estado, dispositivo_uid, texto):
+    categorias = services.categories_summary(conn, usuario_id)
+    nombres = ", ".join(categoria["nombre"] for categoria in categorias[:10])
+    mensaje = f"Tus categorías son: {nombres}." if nombres else "No tienes categorías."
+    return _respuesta(
+        mensaje,
+        "consulta",
+        estado,
+        datos={"categorias": categorias},
+        intent="consultar_categorias",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+    )
+
+
+def _consulta_movimientos(conn, usuario_id, estado, dispositivo_uid, texto):
+    movimientos = services.recent_transactions(conn, usuario_id, limit=8)
+    if movimientos:
+        detalle = "; ".join(
+            f"{movimiento['tipo']} de {_moneda(movimiento['monto'])}"
+            + (f" en {movimiento['categoria']}" if movimiento.get("categoria") else "")
+            for movimiento in movimientos[:6]
+        )
+        mensaje = f"Tus últimos movimientos: {detalle}."
+    else:
+        mensaje = "Todavía no tienes movimientos registrados."
+    return _respuesta(
+        mensaje,
+        "consulta",
+        estado,
+        datos={"movimientos": movimientos},
+        intent="consultar_movimientos",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+    )
+
+
+def _consulta_presupuesto(conn, usuario_id, estado, dispositivo_uid, texto):
+    hoy = services.local_date()
+    presupuesto = services.budget_for_day(conn, usuario_id, hoy)
+    gastos = services.day_totals(conn, usuario_id, hoy)["gastos"]
+    mensaje = (
+        f"Tu presupuesto diario es {_moneda(presupuesto)}. "
+        f"Hoy has gastado {_moneda(gastos)} y te quedan {_moneda(presupuesto - gastos)}."
+    )
+    return _respuesta(
+        mensaje,
+        "consulta",
+        estado,
+        datos={
+            "presupuesto_diario": presupuesto,
+            "gastos_hoy": gastos,
+            "cupo_restante": presupuesto - gastos,
+        },
+        intent="consultar_presupuesto",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+    )
+
+
+def _consulta_perfil(conn, usuario_id, estado, dispositivo_uid, texto):
+    perfil = services.profile_summary(conn, usuario_id)
+    usuario = perfil.get("usuario") or {}
+    datos = perfil.get("perfil") or {}
+    mensaje = (
+        f"Tu perfil es {usuario.get('nombre', 'sin nombre')}. "
+        f"Tu ingreso mensual declarado es {_moneda(datos.get('ingreso_total_mensual'))}."
+    )
+    return _respuesta(
+        mensaje,
+        "consulta",
+        estado,
+        datos=perfil,
+        intent="consultar_perfil",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Creacion de metas por dialogo
+# ---------------------------------------------------------------------------
+CAMPOS_META = {
+    "nombre": "¿Para qué quieres crear la meta?",
+    "monto_meta": "¿Cuánto cuesta aproximadamente?",
+    "fecha_limite": "¿En cuánto tiempo quieres lograrlo? Por ejemplo, en cinco meses.",
+    "frecuencia_ahorro": "¿Quieres aportar diaria, semanal, quincenal o mensualmente?",
+    "prioridad": "¿Qué prioridad tiene frente a tus otras metas: alta, media o baja?",
+}
+
+
+def _nombre_limpio(texto):
+    limpio = nlp.normalize(texto)
+    limpio = re.sub(
+        r"\b(quiero|quisiera|necesito|crear|crea|plantear|plantea|una|un|la|el|"
+        r"meta|objetivo|para|de|del|comprar|comprarme|ahorrar|por|favor)\b",
+        " ",
+        limpio,
+    )
+    return re.sub(r"\s+", " ", limpio).strip(" .,;")[:30]
+
+
+def _borrador_inicial(texto, entidades):
+    entidades = entidades or {}
+    borrador = {
+        "nombre": entidades.get("nombre") or nlp.nombre_meta_probable(texto),
+        "monto_meta": nlp._entero(entidades.get("monto")) or nlp.parse_amount(texto),
+        "fecha_limite": None,
+        "plazo_meses": nlp._entero(entidades.get("plazo_meses")),
+        "plazo_dias": nlp._entero(entidades.get("plazo_dias")),
+        "frecuencia_ahorro": entidades.get("frecuencia")
+        or nlp.parse_frecuencia(texto),
+        "prioridad": nlp._entero(entidades.get("prioridad"))
+        or nlp.detect_priority(texto),
+    }
+    plazo = nlp.parse_plazo(texto)
+    if plazo and not borrador["fecha_limite"]:
+        borrador["fecha_limite"] = plazo["fecha_limite"]
+        borrador["plazo_meses"] = plazo["meses"]
+        borrador["plazo_dias"] = plazo["dias"]
+    return borrador
+
+
+def _actualizar_borrador(borrador, texto, entidades, campo_pendiente=None, forzar=False):
+    borrador = dict(borrador or {})
+    entidades = entidades or {}
+    if entidades.get("nombre") and (forzar or not borrador.get("nombre")):
+        borrador["nombre"] = str(entidades["nombre"])[:30]
+    if campo_pendiente == "nombre" and not borrador.get("nombre"):
+        borrador["nombre"] = _nombre_limpio(texto)
+
+    monto = nlp._entero(entidades.get("monto"))
+    if monto is None and (forzar or not borrador.get("monto_meta")):
+        monto = nlp.parse_amount(texto)
+    if monto and (forzar or not borrador.get("monto_meta")):
+        borrador["monto_meta"] = monto
+
+    if forzar or not borrador.get("fecha_limite"):
+        plazo = nlp.parse_plazo(texto)
+        if plazo is None and (entidades.get("plazo_meses") or entidades.get("plazo_dias")):
+            plazo = nlp._plazo_resultado(
+                entidades.get("plazo_meses") or 0, entidades.get("plazo_dias") or 0
+            )
+        if plazo:
+            borrador["fecha_limite"] = plazo["fecha_limite"]
+            borrador["plazo_meses"] = plazo["meses"]
+            borrador["plazo_dias"] = plazo["dias"]
+
+    frecuencia = entidades.get("frecuencia") or nlp.parse_frecuencia(texto)
+    if frecuencia and (forzar or not borrador.get("frecuencia_ahorro")):
+        borrador["frecuencia_ahorro"] = frecuencia
+
+    prioridad = nlp._entero(entidades.get("prioridad")) or nlp.detect_priority(texto)
+    if prioridad and (forzar or not borrador.get("prioridad")):
+        borrador["prioridad"] = prioridad
+
+    if borrador.get("nombre"):
+        borrador["nombre"] = str(borrador["nombre"])[:30]
+    return borrador
+
+
+def _campo_faltante(borrador):
+    for campo in ("nombre", "monto_meta", "fecha_limite", "frecuencia_ahorro", "prioridad"):
+        if not borrador.get(campo):
+            return campo
+    return None
+
+
+def _periodos_hasta(desde, hasta, frecuencia):
+    dias = max(0, (hasta - desde).days)
+    if frecuencia == "diaria":
+        return max(1, dias)
+    if frecuencia == "semanal":
+        return max(1, dias // 7)
+    if frecuencia == "quincenal":
+        return max(1, dias // 15)
+    meses = (hasta.year - desde.year) * 12 + (hasta.month - desde.month)
+    if hasta.day >= desde.day:
+        meses += 1
+    return max(1, meses)
+
+
+def _completar_borrador(borrador):
+    """Calcula fecha, aporte y prioridad con Python, nunca con el LLM."""
+    borrador = dict(borrador)
+    if not borrador.get("prioridad"):
+        borrador["prioridad"] = 3
+    if not borrador.get("frecuencia_ahorro"):
+        borrador["frecuencia_ahorro"] = "mensual"
+    if not borrador.get("fecha_limite"):
+        plazo = nlp._plazo_resultado(
+            borrador.get("plazo_meses") or 6, borrador.get("plazo_dias") or 0
+        )
+        borrador["fecha_limite"] = plazo["fecha_limite"]
+    inicio = date_cls.fromisoformat(services.local_date())
+    limite = services.parse_date(borrador["fecha_limite"])
+    if limite is None or limite <= inicio:
+        limite = date_cls.fromisoformat(
+            nlp._plazo_resultado(6, 0, inicio)["fecha_limite"]
+        )
+        borrador["fecha_limite"] = limite.isoformat()
+    periodos = _periodos_hasta(inicio, limite, borrador["frecuencia_ahorro"])
+    borrador["aporte_periodico"] = max(
+        1, math.ceil(int(borrador["monto_meta"]) / periodos)
+    )
+    borrador["periodos"] = periodos
+    return borrador
+
+
+def _proponer_meta(conn, usuario_id, borrador, estado, dispositivo_uid, texto):
+    borrador = _completar_borrador(borrador)
+    simulacion = services.simulate_goal_draft(conn, usuario_id, borrador)
+    detalle = simulacion.get("meta") or {}
+    asignacion = (detalle.get("asignacion_mensual") or [0])[0]
+    mensaje = (
+        f"Voy a crear la meta {borrador['nombre']} por {_moneda(borrador['monto_meta'])}, "
+        f"con fecha límite {borrador['fecha_limite']}, frecuencia "
+        f"{borrador['frecuencia_ahorro']} y un aporte de "
+        f"{_moneda(borrador['aporte_periodico'])} por periodo."
+    )
+    if detalle:
+        mensaje += (
+            f" El plan recomienda asignarle {_moneda(asignacion)} al mes "
+            f"y su cumplimiento estimado es {round(float(detalle.get('cumplimiento') or 0) * 100)} %."
+        )
+    mensaje += " ¿La creo?"
+    nuevo_estado = {
+        **estado,
+        "estado": ESTADO_CONFIRMANDO_META,
+        "accion_pendiente": {"tipo": "crear_meta"},
+        "borrador": borrador,
+        "campo_pendiente": None,
+    }
+    _recordar(nuevo_estado, texto, mensaje)
+    guardar_estado(usuario_id, dispositivo_uid, nuevo_estado)
+    return _respuesta(
+        mensaje,
+        "confirmacion",
+        nuevo_estado,
+        datos={"borrador": borrador, "simulacion": simulacion},
+        requiere_confirmacion=True,
+        intent="crear_meta",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+    )
+
+
+def _recopilar_meta(
+    conn,
+    usuario_id,
+    texto,
+    entidades,
+    estado,
+    dispositivo_uid,
+    forzar=False,
+    intent="actualizar_meta",
+):
+    borrador = _actualizar_borrador(
+        estado.get("borrador") or {},
+        texto,
+        entidades,
+        campo_pendiente=estado.get("campo_pendiente"),
+        forzar=forzar,
+    )
+    campo = _campo_faltante(borrador)
+    if campo:
+        nuevo_estado = {
+            **estado,
+            "estado": ESTADO_RECOPILANDO_META,
+            "accion_pendiente": None,
+            "borrador": borrador,
+            "campo_pendiente": campo,
+        }
+        guardar_estado(usuario_id, dispositivo_uid, nuevo_estado)
+        return _respuesta(
+            CAMPOS_META[campo],
+            "aclaracion",
+            nuevo_estado,
+            datos={"borrador": borrador, "campo_pendiente": campo},
+            intent=intent,
+            dispositivo_uid=dispositivo_uid,
+            usuario_id=usuario_id,
+            texto=texto,
+        )
+    return _proponer_meta(conn, usuario_id, borrador, estado, dispositivo_uid, texto)
+
+
+def _confirmar_meta(conn, usuario_id, texto, estado, dispositivo_uid):
+    borrador = estado.get("borrador") or {}
+    try:
+        meta = services.create_goal(conn, usuario_id, borrador)
+    except services.ErrorMeta as exc:
+        return _respuesta(
+            f"No pude crear la meta: {exc.mensaje}",
+            "error",
+            estado,
+            intent="crear_meta",
+            dispositivo_uid=dispositivo_uid,
+            usuario_id=usuario_id,
+            texto=texto,
+        )
+    borrar_estado(usuario_id, dispositivo_uid)
+    return _respuesta(
+        f"Listo. Creé la meta {meta.get('nombre')} por {_moneda(meta.get('monto_meta'))}.",
+        "resultado",
+        {"estado": ESTADO_INACTIVA, "accion_pendiente": None, "borrador": None},
+        datos={"meta": meta},
+        intent="crear_meta",
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
@@ -571,6 +973,43 @@ def procesar_turno(
             )
             if corregido is not None:
                 return corregido
+        if accion.get("tipo") == "crear_meta" and (
+            intent == "corregir"
+            or intent == "actualizar_meta"
+            or _es_correccion(texto)
+        ):
+            return _recopilar_meta(
+                conn,
+                usuario_id,
+                texto,
+                interpretacion.get("entidades") or {},
+                estado,
+                dispositivo_uid,
+                forzar=True,
+            )
+
+    if estado.get("estado") == ESTADO_RECOPILANDO_META or intent in (
+        "crear_meta",
+        "actualizar_meta",
+    ):
+        if intent == "crear_meta" and not estado.get("borrador"):
+            return _recopilar_meta(
+                conn,
+                usuario_id,
+                texto,
+                interpretacion.get("entidades") or {},
+                {**estado, "borrador": _borrador_inicial(texto, interpretacion.get("entidades"))},
+                dispositivo_uid,
+                intent="crear_meta",
+            )
+        return _recopilar_meta(
+            conn,
+            usuario_id,
+            texto,
+            interpretacion.get("entidades") or {},
+            estado,
+            dispositivo_uid,
+        )
 
     if intent in ("registrar_movimiento", "registrar"):
         return _registrar_movimiento(
@@ -600,6 +1039,20 @@ def procesar_turno(
         return _consulta_balance(
             conn, usuario_id, periodo, estado, dispositivo_uid, texto
         )
+    if intent == "consultar_metas":
+        return _consulta_metas(conn, usuario_id, estado, dispositivo_uid, texto)
+    if intent == "consultar_plan":
+        return _consulta_plan(conn, usuario_id, estado, dispositivo_uid, texto)
+    if intent == "consultar_cuentas":
+        return _consulta_cuentas(conn, usuario_id, estado, dispositivo_uid, texto)
+    if intent == "consultar_categorias":
+        return _consulta_categorias(conn, usuario_id, estado, dispositivo_uid, texto)
+    if intent == "consultar_movimientos":
+        return _consulta_movimientos(conn, usuario_id, estado, dispositivo_uid, texto)
+    if intent == "consultar_presupuesto":
+        return _consulta_presupuesto(conn, usuario_id, estado, dispositivo_uid, texto)
+    if intent == "consultar_perfil":
+        return _consulta_perfil(conn, usuario_id, estado, dispositivo_uid, texto)
     if intent == "ayuda":
         return _ayuda(estado, dispositivo_uid, texto, usuario_id)
     if intent == "cerrar_dia":

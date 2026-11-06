@@ -1272,50 +1272,11 @@ def create_app(database=None):
     @app.post("/api/v1/goals")
     @auth_required
     def create_goal():
-        data = body()
-        missing = require_fields(data, ("nombre", "monto_meta", "fecha_limite", "frecuencia_ahorro", "aporte_periodico"))
-        if missing:
-            return error("CAMPOS_REQUERIDOS", "Faltan campos obligatorios", 422, {"campos": missing})
-        if data["frecuencia_ahorro"] not in ("diaria", "semanal", "quincenal", "mensual"):
-            return error("FRECUENCIA_INVALIDA", "Frecuencia de ahorro inválida", 422)
-        amount = int(data["monto_meta"])
-        contribution = int(data["aporte_periodico"])
-        if amount <= 0 or contribution <= 0:
-            return error("MONTOS_INVALIDOS", "Los montos deben ser positivos", 422)
-        if services.parse_date(data["fecha_limite"]) is None:
-            return error("FECHA_INVALIDA", "La fecha límite no es válida", 422)
-        prioridad = services.parse_priority(data.get("prioridad", 1))
-        if prioridad is None:
-            return error(
-                "PRIORIDAD_INVALIDA",
-                "La prioridad debe estar entre 1 y 5",
-                422,
-                {"campo": "prioridad"},
-            )
-        conn = get_db()
-        cursor = conn.execute(
-            """
-            INSERT INTO metas
-                (usuario_id, nombre, icono, monto_meta, fecha_limite,
-                 frecuencia_ahorro, aporte_periodico, dia_aporte, hora_recordatorio,
-                 prioridad)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                g.user_id,
-                str(data["nombre"])[:30],
-                data.get("icono"),
-                amount,
-                data["fecha_limite"],
-                data["frecuencia_ahorro"],
-                contribution,
-                data.get("dia_aporte"),
-                data.get("hora_recordatorio") or "08:00",
-                prioridad,
-            ),
-        )
-        conn.commit()
-        return ok(services.serialize_goal(conn, g.user_id, cursor.lastrowid), 201)
+        try:
+            goal = services.create_goal(get_db(), g.user_id, body())
+        except services.ErrorMeta as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+        return ok(goal, 201)
 
     @app.get("/api/v1/goals/<int:goal_id>")
     @auth_required

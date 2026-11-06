@@ -134,6 +134,77 @@ class ConversationTests(unittest.TestCase):
         self.assertIn("No encontré la meta", respuesta["mensaje_nancy"])
         self.assertEqual(self.home()["hoy"]["ahorro"], 0)
 
+    # --- Creacion de metas por dialogo ---------------------------------
+    def test_meta_por_dialogo_solo_se_crea_al_confirmar(self):
+        respuesta = self.decir("quiero crear una meta para comprar unos audífonos")
+        self.assertEqual(respuesta["intent"], "crear_meta")
+        self.assertEqual(respuesta["estado_conversacion"], "recopilando_meta")
+        self.assertIn("Cuánto cuesta", respuesta["mensaje_nancy"])
+        metas = self.client.get("/api/v1/goals", headers=self.user["headers"]).get_json()["data"]
+        self.assertEqual(metas, [])
+
+        self.decir("500 mil")
+        self.decir("en cinco meses")
+        self.decir("mensual")
+        propuesta = self.decir("prioridad alta")
+        self.assertTrue(propuesta["requiere_confirmacion"])
+        self.assertEqual(propuesta["estado_conversacion"], "confirmando_meta")
+        self.assertEqual(propuesta["datos"]["borrador"]["monto_meta"], 500000)
+        self.assertEqual(propuesta["datos"]["borrador"]["prioridad"], 1)
+        self.assertIn("¿La creo?", propuesta["mensaje_nancy"])
+
+        # Todavia no se ha guardado.
+        metas = self.client.get("/api/v1/goals", headers=self.user["headers"]).get_json()["data"]
+        self.assertEqual(metas, [])
+
+        confirmacion = self.decir("sí, está correcto")
+        self.assertEqual(confirmacion["tipo_respuesta"], "resultado")
+        self.assertEqual(confirmacion["datos"]["meta"]["nombre"], "audifonos")
+        metas = self.client.get("/api/v1/goals", headers=self.user["headers"]).get_json()["data"]
+        self.assertEqual(len(metas), 1)
+        self.assertEqual(metas[0]["monto_meta"], 500000)
+
+    def test_meta_por_dialogo_se_puede_cancelar(self):
+        self.decir("quiero crear una meta para comprar audífonos")
+        self.decir("500 mil")
+        self.decir("cancela")
+        metas = self.client.get("/api/v1/goals", headers=self.user["headers"]).get_json()["data"]
+        self.assertEqual(metas, [])
+
+    # --- Consultas naturales -------------------------------------------
+    def test_consulta_de_balance_del_dia(self):
+        self.decir("gasté 20 mil en almuerzo")
+        self.decir("sí")
+        respuesta = self.decir("¿cómo me fue hoy?")
+        self.assertEqual(respuesta["tipo_respuesta"], "consulta")
+        self.assertIn("$20.000", respuesta["mensaje_nancy"])
+        self.assertEqual(respuesta["datos"]["periodo"], "hoy")
+
+    def test_consulta_de_balance_semanal_y_mensual(self):
+        self.decir("gasté 20 mil en almuerzo")
+        self.decir("sí")
+        semanal = self.decir("balance de esta semana")
+        self.assertEqual(semanal["datos"]["periodo"], "semana")
+        self.assertIn("$20.000", semanal["mensaje_nancy"])
+        mensual = self.decir("¿cuánto gasté este mes?")
+        self.assertEqual(mensual["datos"]["periodo"], "mes")
+
+    def test_consulta_de_metas_y_plan(self):
+        self.crear_meta()
+        metas = self.decir("¿cómo van mis metas?")
+        self.assertEqual(metas["intent"], "consultar_metas")
+        self.assertIn("Mi nuevo celular", metas["mensaje_nancy"])
+        plan = self.decir("¿cuánto debo ahorrar este mes?")
+        self.assertEqual(plan["intent"], "consultar_plan")
+        self.assertIn("plan recomienda", plan["mensaje_nancy"])
+
+    def test_consultas_de_catalogo(self):
+        self.assertIn("cuentas", self.decir("¿cuáles son mis cuentas?").get("mensaje_nancy", "").lower())
+        self.assertEqual(self.decir("mis categorías").get("intent"), "consultar_categorias")
+        self.assertEqual(self.decir("mis movimientos").get("intent"), "consultar_movimientos")
+        self.assertEqual(self.decir("mi presupuesto").get("intent"), "consultar_presupuesto")
+        self.assertEqual(self.decir("mi perfil").get("intent"), "consultar_perfil")
+
     def test_mensaje_duplicado_no_procesa_dos_veces(self):
         primero = self.decir("gasté 12.000 en almuerzo", "repetido-1")
         segundo = self.decir("otra cosa", "repetido-1")
