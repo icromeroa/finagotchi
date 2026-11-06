@@ -53,10 +53,13 @@ DEFAULT_CONFIG = {
     "email": "simulador@finagotchi.local",
     "password": "simulador123",
     "nombre": "Simulador",
-    "auto_confirm": True,
+    # La confirmacion es siempre humana: se responde con otra frase de voz o
+    # texto. No hay guardado automatico.
+    "auto_confirm": False,
     "sample_rate": 16000,
     "language": "es-CO",
     "stt_provider": "gemini",
+    "input_device": None,
     "request_timeout_s": 90,
 }
 
@@ -193,6 +196,20 @@ class FinaGotchiClient:
             },
         )
 
+    def send_text(self, texto, message_id=None):
+        """Envia texto por el mismo camino conversacional que la voz."""
+        return self.request(
+            "POST",
+            "/device/messages",
+            headers=self.device_headers(),
+            json={
+                "texto": texto,
+                "message_id": message_id or str(uuid.uuid4()),
+                "origen": "app_voz",
+                "idioma": self.config.get("language", "es-CO"),
+            },
+        )
+
     def confirm_message(self, message_id):
         return self.request(
             "POST",
@@ -235,6 +252,82 @@ class FinaGotchiClient:
         )
 
 
+NIVEL_SILENCIO = 30
+
+
+def _estadisticas_audio(muestras):
+    """Pico y RMS de las muestras. Sirve para explicar el silencio."""
+    import numpy as np
+
+    if muestras is None or len(muestras) == 0:
+        return {"pico": 0, "rms": 0.0, "muestras": 0}
+    datos = np.asarray(muestras).astype(np.int32)
+    pico = int(np.max(np.abs(datos)))
+    rms = round(float(np.sqrt(np.mean(datos.astype(np.float64) ** 2))), 2)
+    return {"pico": pico, "rms": rms, "muestras": int(len(muestras))}
+
+
+def _entrada_elegida():
+    """Indice y nombre del microfono configurado o del predeterminado."""
+    indice = CONFIG.get("input_device")
+    try:
+        if indice is None:
+            indice = sd.default.device[0]
+        info = sd.query_devices(indice)
+        return indice, info.get("name") or f"dispositivo {indice}"
+    except Exception:  # noqa: BLE001 - sin microfono o indice invalido
+        return None, "microfono predeterminado"
+
+
+def listar_microfonos():
+    if not MICROFONO_DISPONIBLE:
+        print("  No se pudo cargar sounddevice / PortAudio.")
+        return []
+    entradas = []
+    for indice, dispositivo in enumerate(sd.query_devices()):
+        if dispositivo.get("max_input_channels", 0) > 0:
+            entradas.append((indice, dispositivo.get("name") or "sin nombre"))
+            print(f"  [{indice:>2}] {dispositivo.get('name')}")
+    return entradas
+
+
+def probar_microfono(segundos=3):
+    """Graba unos segundos y muestra si llega señal. No envia nada al backend."""
+    if not MICROFONO_DISPONIBLE:
+        print("  Instala las dependencias: py -3 -m pip install -r requirements-simulator.txt")
+        return False
+    print("\n  Microfonos disponibles:")
+    listar_microfonos()
+    indice, nombre = _entrada_elegida()
+    print(f"\n  Probando: {nombre}")
+    print(f"  Habla durante {segundos} segundos...")
+    try:
+        import numpy as np
+
+        grabacion = sd.rec(
+            int(segundos * CONFIG["sample_rate"]),
+            samplerate=CONFIG["sample_rate"],
+            channels=1,
+            dtype="int16",
+            device=indice,
+        )
+        sd.wait()
+        muestras = np.asarray(grabacion).reshape(-1)
+    except Exception as exc:  # noqa: BLE001
+        print(f"  No se pudo grabar: {exc}")
+        return False
+    stats = _estadisticas_audio(muestras)
+    correcto = stats["pico"] >= NIVEL_SILENCIO
+    print(pantallas.d17_microfono(nombre, stats["pico"], stats["rms"], correcto))
+    if not correcto:
+        print(
+            "  Consejo: revisa Configuracion > Sistema > Sonido > Entrada,\n"
+            "  sube el volumen y elige otro indice con \"input_device\" en\n"
+            "  simulator/config.json."
+        )
+    return correcto
+
+
 def capture_voice(duracion_maxima=40):
     """Graba el microfono mientras se mantenga la tecla ESPACIO.
 
@@ -242,19 +335,22 @@ def capture_voice(duracion_maxima=40):
     ejecutar como administrador), se graba con la tecla ENTER: una pulsacion
     empieza a grabar y la siguiente la detiene.
 
-    Devuelve los bytes WAV y la duracion. El simulador no transcribe: solo
-    captura y envia el audio al backend, igual que hara el firmware.
+    Devuelve ``(wav_bytes, duracion, estadisticas)``. El simulador no
+    transcribe: solo captura y envia el audio al backend, igual que el
+    firmware. Si no llega señal, avisa antes de gastar una llamada al STT.
     """
     if not MICROFONO_DISPONIBLE:
         print()
         print("  No se pudo cargar el microfono (falta PortAudio o sounddevice).")
         print("  Instala las dependencias del simulador:")
         print("      py -3 -m pip install -r requirements-simulator.txt")
-        return b"", 0.0
+        return b"", 0.0, {"pico": 0, "rms": 0.0, "muestras": 0}
 
+    indice, nombre = _entrada_elegida()
     usar_teclado = TECLADO_DISPONIBLE
     if usar_teclado:
-        print("\n  Mantén presionada la tecla [ESPACIO] y habla.")
+        print(f"\n  Microfono: {nombre}")
+        print("  Mantén presionada la tecla [ESPACIO] y habla.")
         print("  Suelta para enviar. [Atrás para cancelar]")
     else:
         print("\n  El hook de teclado no esta disponible (se necesita ejecutar")
@@ -267,12 +363,18 @@ def capture_voice(duracion_maxima=40):
 
     bloques = []
     inicio = time.time()
+    detener = False
 
     def callback(indata, frames, time_info, status):
-        bloques.append(indata.copy())
+        if not detener:
+            bloques.append(indata.copy())
 
     with sd.InputStream(
-        samplerate=CONFIG["sample_rate"], channels=1, dtype="int16", callback=callback
+        samplerate=CONFIG["sample_rate"],
+        channels=1,
+        dtype="int16",
+        device=indice,
+        callback=callback,
     ):
         if usar_teclado:
             while keyboard.is_pressed("space"):
@@ -290,16 +392,27 @@ def capture_voice(duracion_maxima=40):
                 if not input("  [ENTER] para detener la grabación: ").strip():
                     break
 
+    detener = True
     duracion = round(time.time() - inicio, 1)
     if not bloques:
-        return b"", 0.0
+        return b"", 0.0, {"pico": 0, "rms": 0.0, "muestras": 0}
 
     import numpy as np
 
     muestras = np.concatenate(bloques, axis=0)
+    stats = _estadisticas_audio(muestras)
+    print(
+        f"  Audio: {duracion}s · {stats['muestras']} muestras · "
+        f"pico {stats['pico']} · RMS {stats['rms']}"
+    )
+    if stats["pico"] < NIVEL_SILENCIO:
+        print(pantallas.d17_microfono(nombre, stats["pico"], stats["rms"], False))
+        print("  No envie el audio: casi no llego sonido del microfono.")
+        return b"", duracion, stats
+
     buffer = io.BytesIO()
     wav.write(buffer, CONFIG["sample_rate"], muestras)
-    return buffer.getvalue(), duracion
+    return buffer.getvalue(), duracion, stats
 
 
 class Simulador:
@@ -308,6 +421,7 @@ class Simulador:
     def __init__(self, client):
         self.client = client
         self.ultima_frase = None
+        self.ultima_respuesta = None
         self.ultimo_id_notificacion = 0
         self.ultimo_home = {}
 
@@ -321,13 +435,39 @@ class Simulador:
         print(pantallas.d03_reposo(self.ultimo_home, conectado=True, pendientes=pendientes))
 
     # --- D04 a D07 -------------------------------------------------------
+    def _detalle_error(self, exc):
+        payload = exc.payload if isinstance(exc.payload, dict) else {}
+        error = payload.get("error") or {}
+        return (
+            error.get("codigo"),
+            error.get("mensaje") or str(exc),
+            error.get("detalles"),
+        )
+
+    def _procesar_respuesta(self, respuesta):
+        """Muestra la respuesta de Nancy sin decidir por el usuario."""
+        self.ultima_respuesta = respuesta
+        texto = respuesta.get("texto_transcrito")
+        if texto:
+            self.ultima_frase = texto
+            print(f'\n  Escuché: "{texto}"')
+        print(pantallas.d15_conversacion(respuesta))
+        if respuesta.get("intent") == "cerrar_dia" and (respuesta.get("datos") or {}).get("cierre"):
+            print(pantallas.d09_cierre(respuesta["datos"]["cierre"]))
+
     def hablar(self):
-        wav_bytes, duracion = capture_voice()
+        wav_bytes, duracion, stats = capture_voice()
         if not wav_bytes:
-            print(pantallas.d11_no_entendio())
+            if stats.get("pico", 0) < NIVEL_SILENCIO:
+                print(pantallas.d16_error(
+                    "No escuché tu voz",
+                    "El micrófono casi no recibió señal. Revisa el dispositivo o usa [T] para escribir.",
+                ))
+            else:
+                print(pantallas.d16_error("Audio vacío", "No se pudo capturar la frase."))
             return
         if duracion > 40:
-            print(pantallas.d11_no_entendio())
+            print(pantallas.d16_error("Audio muy largo", "Intenta frases de menos de 40 segundos."))
             return
 
         print(pantallas.d05_procesando())
@@ -335,48 +475,41 @@ class Simulador:
         try:
             message = self.client.send_audio(wav_bytes, duracion, message_id)
         except ApiError as exc:
-            if exc.status == 422:
-                print(pantallas.d11_no_entendio())
-            elif exc.status in (429, 502, 503):
+            codigo, mensaje, detalles = self._detalle_error(exc)
+            if exc.status in (429, 502, 503, 504):
                 print(pantallas.d10_sin_conexion())
             else:
-                print(pantallas.d10_sin_conexion())
-                print(f"  Detalle: {exc}")
+                detalle = None
+                if isinstance(detalles, dict):
+                    detalle = detalles.get("motivo") or detalles.get("mensaje")
+                print(pantallas.d16_error(codigo or "Error al procesar", mensaje, detalle))
             return
+        self._procesar_respuesta(message)
 
-        texto = message.get("texto_transcrito")
-        self.ultima_frase = texto
-        intent = message.get("intent")
-
-        if intent == "cerrar_dia":
-            print(pantallas.d09_cierre(self.client.close_day()))
-            self.pantalla_reposo()
+    def escribir(self):
+        """Entrada de texto equivalente a la voz, para cuando no se puede hablar."""
+        try:
+            texto = input("\n  Escribe tu frase: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
             return
-        if intent == "consulta_estado":
-            print(pantallas.d08_consulta(self.client.home()))
-            self.ultimo_home = self.client.home()
+        if not texto:
             return
+        self.escribir_texto(texto)
 
-        transacciones = message.get("transacciones") or []
-        if not transacciones:
-            print(pantallas.d11_no_entendio())
+    def escribir_texto(self, texto):
+        message_id = str(uuid.uuid4())
+        print(pantallas.d05_procesando())
+        try:
+            message = self.client.send_text(texto, message_id)
+        except ApiError as exc:
+            codigo, mensaje, detalles = self._detalle_error(exc)
+            detalle = None
+            if isinstance(detalles, dict):
+                detalle = detalles.get("motivo") or detalles.get("mensaje")
+            print(pantallas.d16_error(codigo or "Error al procesar", mensaje, detalle))
             return
-
-        print(pantallas.d06_confirmar(transacciones, texto or ""))
-
-        should_confirm = CONFIG.get("auto_confirm", True)
-        if not should_confirm:
-            answer = input("  ¿Confirmar? [S/n]: ").strip().lower()
-            should_confirm = answer in ("", "s", "si", "sí")
-        if not should_confirm:
-            print("  Registro descartado.")
-            self.pantalla_reposo()
-            return
-
-        confirmado = self.client.confirm_message(message["id"])
-        home = self.client.home()
-        self.ultimo_home = home
-        print(pantallas.d07_resultado(confirmado.get("puntos_otorgados", 0), home))
+        self._procesar_respuesta(message)
 
     # --- D09 -------------------------------------------------------------
     def cerrar_dia(self):
@@ -470,8 +603,13 @@ def main():
         if opcion in ("s", "salir", "q"):
             print("  Hasta luego.")
             return
-        if opcion in ("h", "hablar"):
+        if opcion in ("h", "hablar", ""):
+            # La voz es la entrada principal: Enter tambien inicia la captura.
             simulador.hablar()
+        elif opcion in ("t", "texto", "escribir"):
+            simulador.escribir()
+        elif opcion in ("a", "audio", "microfono", "micrófono"):
+            probar_microfono()
         elif opcion in ("e", "estado"):
             simulador.estado_del_dia()
         elif opcion in ("p", "plan"):
@@ -481,14 +619,15 @@ def main():
         elif opcion in ("n", "notificaciones"):
             simulador.ver_notificaciones()
         elif opcion in ("r", "repetir"):
-            if simulador.ultima_frase:
+            if simulador.ultima_respuesta:
+                print(pantallas.d15_conversacion(simulador.ultima_respuesta))
+            elif simulador.ultima_frase:
                 print(f"  Última frase: {simulador.ultima_frase}")
             else:
                 print("  Todavia no has hablado.")
-        elif opcion == "":
-            continue
         else:
-            print("  Opción no reconocida.")
+            # Cualquier frase natural escrita se envia por el mismo agente.
+            simulador.escribir_texto(opcion)
 
 
 if __name__ == "__main__":

@@ -126,6 +126,50 @@ class PantallasTests(unittest.TestCase):
         for opcion in ("[H]", "[E]", "[C]", "[P]", "[N]", "[S]"):
             self.assertIn(opcion, menu)
 
+    def test_el_menu_es_voz_primero_y_ofrece_texto_y_microfono(self):
+        menu = pantallas.menu()
+        self.assertIn("Habla con Nancy", menu)
+        self.assertIn("[T] Escribir", menu)
+        self.assertIn("[A] Probar micrófono", menu)
+        self.assertIn("Quiero crear una meta", menu)
+
+    def test_la_pantalla_conversacional_muestra_a_nancy(self):
+        texto = pantallas.d15_conversacion(
+            {
+                "mensaje_nancy": "Entendí un GASTO de $20.000 en Alimentación. ¿Está correcto?",
+                "estado_conversacion": "confirmando_movimiento",
+                "requiere_confirmacion": True,
+                "datos": {"transaccion": {"tipo": "gasto", "monto": 20000}},
+            }
+        )
+        self.assertIn("NANCY", texto)
+        self.assertIn("20.000", texto)
+        self.assertIn("confirmando_movimiento", texto)
+        self.assertIn("Di sí", texto)
+
+    def test_pantalla_de_error_explica_el_motivo(self):
+        texto = pantallas.d16_error(
+            "STT_SIN_TEXTO", "No se pudo transcribir el audio", "pico 1"
+        )
+        self.assertIn("STT_SIN_TEXTO", texto)
+        self.assertIn("pico 1", texto)
+        self.assertIn("[T] Escribir", texto)
+
+    def test_pantalla_de_microfono_avisa_silencio(self):
+        texto = pantallas.d17_microfono("Realtek", 1, 0.48, False)
+        self.assertIn("Realtek", texto)
+        self.assertIn("Casi no hay señal", texto)
+
+
+class AudioSimuladorTests(unittest.TestCase):
+    def test_estadisticas_detectan_silencio(self):
+        from simulator import main as simulador_main
+
+        stats = simulador_main._estadisticas_audio([0, 0, 0, 0])
+        self.assertEqual(stats["pico"], 0)
+        self.assertEqual(stats["rms"], 0.0)
+        self.assertEqual(stats["muestras"], 4)
+
     def test_el_plan_de_ahorro_muestra_capacidad_y_metas(self):
         texto = pantallas.d14_plan_ahorro(
             {

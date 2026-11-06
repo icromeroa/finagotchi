@@ -182,7 +182,7 @@ def d06_confirmar(transacciones, texto=""):
             lineas.append(f"          {detalles}")
     if texto:
         lineas += ["", f'   "{texto[:30]}"']
-    lineas += ["", "   OK para confirmar", ""]
+    lineas += ["", "   Di: sí, está bien u ok", ""]
     return _caja(lineas)
 
 
@@ -347,11 +347,99 @@ def d14_plan_ahorro(plan):
     return _caja(lineas)
 
 
+def _envolver(texto, ancho=ANCHO - 4):
+    palabras = str(texto or "").split()
+    lineas = []
+    actual = ""
+    for palabra in palabras:
+        if len(actual) + len(palabra) + 1 > ancho:
+            if actual:
+                lineas.append(actual)
+            actual = palabra
+        else:
+            actual = f"{actual} {palabra}".strip()
+    if actual:
+        lineas.append(actual)
+    return lineas or [""]
+
+
+def d15_conversacion(respuesta):
+    """Respuesta conversacional de Nancy, valida para voz y texto."""
+    mensaje = respuesta.get("mensaje_nancy") or "No obtuve una respuesta."
+    estado = respuesta.get("estado_conversacion") or "inactiva"
+    lineas = ["", "   NANCY dice:", ""]
+    for linea in _envolver(mensaje)[:7]:
+        lineas.append(f"   {linea}")
+    datos = respuesta.get("datos") or {}
+    transaccion = datos.get("transaccion")
+    borrador = datos.get("borrador")
+    meta = datos.get("meta")
+    if transaccion:
+        lineas += ["", f"   {str(transaccion.get('tipo', '')).upper()} {_dinero(transaccion.get('monto', 0))}"]
+        if transaccion.get("meta"):
+            lineas.append(f"   Meta: {transaccion['meta'][:22]}")
+    if borrador:
+        lineas += [
+            "",
+            f"   Meta: {str(borrador.get('nombre') or '')[:22]}",
+            f"   Monto: {_dinero(borrador.get('monto_meta', 0))}",
+        ]
+    if meta:
+        lineas += ["", f"   {str(meta.get('nombre') or '')[:24]}"]
+    lineas += ["", f"   Estado: {estado}"]
+    if respuesta.get("requiere_confirmacion"):
+        lineas.append("   Di sí, está bien, ok o no")
+    lineas.append("")
+    return _caja(lineas)
+
+
+def d16_error(titulo, mensaje, detalle=None):
+    lineas = ["", f"   {str(titulo)[:30]}", ""]
+    for linea in _envolver(mensaje)[:6]:
+        lineas.append(f"   {linea}")
+    if detalle:
+        for linea in _envolver(detalle, ancho=ANCHO - 4)[:3]:
+            lineas.append(f"   {linea}")
+    lineas += ["", "   [T] Escribir o [H] Hablar", ""]
+    return _caja(lineas)
+
+
+def d17_microfono(dispositivo, pico, rms, correcto=True):
+    lineas = [
+        "",
+        "   Prueba de micrófono",
+        "",
+        f"   Dispositivo: {str(dispositivo)[:20]}",
+        f"   Pico: {pico}",
+        f"   RMS: {rms}",
+        "",
+        "   " + ("Señal detectada." if correcto else "Casi no hay señal."),
+        "",
+    ]
+    if not correcto:
+        lineas += [
+            "   Revisa el micrófono",
+            "   en Windows o elige",
+            "   otro dispositivo.",
+            "",
+        ]
+    return _caja(lineas)
+
+
 def menu():
-    """Menu principal del simulador."""
+    """Menu informativo: la entrada principal es la voz."""
     return (
         "\n"
-        "  [H] Hablar   [E] Estado del día   [C] Cerrar el día\n"
+        "  Habla con Nancy o escribe la misma frase natural.\n"
+        "  Puedes decir:\n"
+        "   - Gasté 20 mil en almuerzo\n"
+        "   - Ahorré 50 mil para mi meta\n"
+        "   - Quiero crear una meta para comprar audífonos\n"
+        "   - ¿Cómo me fue hoy?  /  ¿Cómo van mis metas?\n"
+        "   - Sí, está bien  /  No, cancela\n"
+        "\n"
+        "  [H] Hablar   [T] Escribir   [A] Probar micrófono\n"
+        "  [E] Estado del día   [C] Cerrar el día\n"
         "  [P] Plan de ahorro   [N] Notificaciones\n"
         "  [R] Repetir la última frase   [S] Salir"
     )
