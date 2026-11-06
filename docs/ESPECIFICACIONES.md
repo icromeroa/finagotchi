@@ -1,11 +1,11 @@
 # FinaGotchi · Especificaciones funcionales y técnicas
 
-Versión del documento: 2.0  
+Versión del documento: 2.1  
 Estado: vigente para implementación  
 Base de datos: SQLite 3.31+ · portable a PostgreSQL 12+  
 Moneda: peso colombiano (COP), enteros sin decimales  
 Zona horaria por defecto: `America/Bogota`  
-Documentos relacionados: `database/sql/001_schema.sql`, `database/sql/002_views.sql`, `database/sql/003_seed.sql`
+Documentos relacionados: `database/sql/001_schema.sql`, `database/sql/002_views.sql`, `database/sql/003_seed.sql`, `docs/LOGICA_DE_NEGOCIO.md`, `docs/OPTIMIZACION_IO.md`, `docs/endpoints.md`
 
 ---
 
@@ -23,6 +23,21 @@ La aplicación se compone de:
 4. Dispositivo físico ESP32-S3 y simulador de PC.
 5. Aplicación frontend.
 6. Panel de notificaciones y bienestar.
+
+### Arquitectura real implementada
+
+El código actual no es solo una especificación: el backend, la base y el
+simulador funcionan de extremo a extremo. Al cierre de este documento:
+
+| Elemento | Estado real |
+|---|---|
+| Backend | Flask en `backend/server.py`, 63 rutas HTTP tras añadir la IO. |
+| Base de datos | SQLite, esquema 4, 40 tablas, 15 vistas y 11 triggers. |
+| Agente de voz | STT y LLM con proveedores intercambiables; Gemini es opcional. |
+| Simulador | Cliente real del backend en `simulator/`; opción `[P]` para el plan de ahorro. |
+| App Flutter | Prototipo visual sin capa HTTP; la versión conectada está en la rama `respaldo-frontend-conectado`. |
+| Automatización temporal | No existe scheduler; todo cálculo ocurre dentro de una petición. |
+| Optimización de metas | Implementada on-the-fly con programación lineal; ver `docs/OPTIMIZACION_IO.md`. |
 
 Esta versión prioriza:
 
@@ -726,20 +741,143 @@ El delta se calcula automáticamente como `salud_nueva - salud_anterior`.
 
 La clave de periodo evita duplicados.
 
+### 8.4 Plan óptimo de metas con Investigación de Operaciones
+
+El backend calcula, en cada petición, cuánto ahorrar por meta y por mes. La
+decisión vigente es implementar **solo programación lineal** para metas; EOQ,
+inventarios y gastos hormiga quedan como trabajo futuro.
+
+```text
+max Z = Σ_i p_i · y_i − ε · Σ_i Σ_t (t / H) · x_{i,t}
+
+s.a.
+Σ_i x_{i,t} ≤ C_t
+S_i + Σ_t x_{i,t} ≥ M_i · y_i
+Σ_t x_{i,t} ≤ M_i − S_i
+0 ≤ y_i ≤ 1,  x_{i,t} ≥ 0
+x_{i,t} = 0 si t > T_i
+```
+
+| Símbolo | Significado |
+|---|---|
+| `x_{i,t}` | Dinero asignado a la meta `i` en el mes `t`. |
+| `y_i` | Fracción de cumplimiento de la meta `i`. |
+| `p_i` | Prioridad de la meta, validada entre 1 y 5. |
+| `M_i` / `S_i` | Monto objetivo y ahorro actual. |
+| `C_t` | Capacidad mensual de ahorro. |
+| `T_i` | Meses disponibles hasta la fecha límite. |
+
+La capacidad se calcula con `backend/finance_engine.py`:
+
+```text
+ingreso_estimado = min(ingreso_declarado, ingreso_observado_90_dias)
+gasto_planificado = presupuesto mensual aprobado o presupuesto diario × días
+colchon = colchon_pct × ingreso_estimado
+C_t = max(0, ingreso_estimado − gasto_planificado − colchon)
+```
+
+El primer mes se prorratea por los días restantes. El solver es
+`scipy.optimize.linprog(method="highs")` en dos etapas: primero maximiza el
+cumplimiento ponderado y luego anticipa la asignación sin perder cumplimiento.
+Si SciPy no está disponible, se usa un fallback greedy determinista.
+
+**Regla de oro.** El plan solo propone. No crea transacciones, no mueve saldos,
+no modifica metas y no sustituye la confirmación humana. Se calcula en cada
+petición y no se persiste como estado maestro.
+
+El detalle matemático, los contratos y los ejemplos están en
+`docs/OPTIMIZACION_IO.md`; el catálogo completo de algoritmos está en
+`docs/LOGICA_DE_NEGOCIO.md`, secciones 17 y 18.
+
 ---
 
 ## 9. Agente IA
 
 ### 9.1 Interfaz
 
-El backend expone una interfaz de proveedor con estas operaciones:
+El backend expone un proveedor de transcripción con estas operaciones:
 
-- `transcribir(audio, idioma) -> texto`.
+- `transcribe_audio(audio_bytes, mime_type, language) -> texto`.
 - `interpretar(texto, contexto_usuario) -> propuesta`.
 - `clasificar_categoria(texto, categorias_usuario) -> categoria_id`.
-- `salud_proveedor() -> estado`.
+- `esta_configurado() -> estado`.
 
-El proveedor es intercambiable. La versión inicial puede usar reglas locales para texto; el proveedor de transcripción y clasificación definitivo aún no está decidido.
+**Decisión vigente.** La transcripción la hace un proveedor de STT en el backend (`backend/ai.py`) y la interpretación de montos, categorías y cuentas usa un **modelo de lenguaje** (`backend/nlp.py::interpretar_con_ia`), con las reglas locales de `backend/nlp.py::interpret` como respaldo determinista. Ningún proveedor decide confirmaciones: la IA solo propone y el usuario confirma.
+
+Los proveedores son intercambiables y **ninguno es obligatorio**:
+
+| Etapa | Proveedor preferido | Alternativa | Clave |
+|---|---|---|---|
+| Transcripción (STT) | Gemini Flash | faster-whisper local | Solo Gemini |
+| Interpretación (LLM) | Ollama `qwen3:4b` | Gemini | Solo Gemini |
+
+`STT_PROVEEDOR` y `LLM_PROVEEDOR` deciden el comportamiento. Con `auto` (por
+defecto) se intenta el proveedor preferido y, si no hay clave, cuota o
+conexión, se cae al alternativo local. Sin ningún proveedor disponible, la
+interpretación usa reglas por palabra clave y el audio responde error de STT.
+
+| Proveedor STT | Qué es | Clave | Cuota | Latencia |
+|---|---|---|---|---|
+| `gemini` | Gemini Flash por la API de Google | `GEMINI_API_KEY` | 3 peticiones/min en la capa gratuita | 3–5 s |
+| `local` | faster-whisper corriendo en el PC del backend | no | ninguna | ~1 s |
+
+`STT_PROVEEDOR` decide el comportamiento:
+
+- `auto` (por defecto): usa Gemini si hay clave y responde. Si la clave está rota, no hay cuota o el proveedor falla, cae al modelo local y deja constancia del motivo en `interacciones_ia`.
+- `gemini`: solo la API de Google. Si falla, el endpoint responde error.
+- `local`: solo el modelo local del PC. No necesita clave ni conexión.
+
+**Por qué existe el proveedor local.** Desde el 28 de mayo de 2026 Google AI Studio solo emite "Auth keys" (`AQ.Ab...`) en lugar de las estándar (`AIza...`), y hay un problema abierto de compatibilidad: esas claves responden `401 UNAUTHENTICATED` con motivo `ACCESS_TOKEN_TYPE_UNSUPPORTED` en `generativelanguage.googleapis.com`. El modelo local garantiza que el proyecto se pueda demostrar sin depender de ese servicio y sin `GEMINI_API_KEY`.
+
+El modelo se configura con `GEMINI_MODEL` y admite una cadena de respaldo con `GEMINI_MODEL_FALLBACKS`, porque la API de Google puede responder con `503` por demanda alta o dejar de ofrecer un modelo. El modelo local se configura con `STT_MODELO_LOCAL` (`tiny`, `base`, `small`, `medium`).
+
+Los modelos locales (whisper, Ollama, llama.cpp, Gemma) se ejecutan en el **PC o servidor del backend**, nunca en la ESP32. La ESP32 solo graba, envía y muestra.
+
+### 9.1.1 Interpretación: el modelo de lenguaje
+
+Transcribir no basta. Hay un paso aparte donde un modelo de lenguaje decide **qué tipo de movimiento es, el monto, la categoría y la cuenta**. Ese paso lo hace `nlp.interpretar_con_ia`.
+
+| Proveedor | Clave | Latencia | Notas |
+|---|---|---|---|
+| `ollama` | no | 2–8 s | Modelo local. `qwen3:4b` por defecto. Gratis, offline, sin cuota. |
+| `gemini` | sí | 1–3 s | Solo si la API key funciona. |
+
+El modelo recibe el catálogo real del usuario (sus categorías con su tipo y sus cuentas) y debe responder un JSON:
+
+```json
+{
+  "tipo": "gasto",
+  "monto": 20000,
+  "categoria": "Alimentación",
+  "cuenta": "Nequi",
+  "concepto": "almuerzo del viernes"
+}
+```
+
+**La respuesta se valida contra la base de datos antes de aceptarla:**
+
+| Campo | Regla de validación |
+|---|---|
+| `tipo` | Debe ser `gasto`, `ingreso` o `ahorro`. |
+| `monto` | Entero positivo. Si falta, se usa el monto que sale de las reglas. |
+| `categoria` | Debe existir en las categorías del usuario y ser del mismo tipo que el movimiento. Si no, se deja vacía. |
+| `cuenta` | Debe existir en las cuentas del usuario. Si no, se usa la cuenta por defecto. |
+
+Así el modelo puede equivocarse sin romper nada: lo que no cuadra con el catálogo del usuario se descarta y se completa con las reglas.
+
+Si no hay ningún LLM disponible, `nlp.interpret` usa las reglas por palabra clave (`NLP_USAR_IA=off` las fuerza).
+
+### 9.1.2 Hotwords de transcripción
+
+El modelo de transcripción recibe los nombres de cuentas y categorías del usuario como `initial_prompt`. Sin esto, los modelos de ASR escriben las marcas de forma aproximada:
+
+| Frase | Sin hotwords | Con hotwords |
+|---|---|---|
+| "gasté 20.000 por nequi" | "por Nike" | "por Nequi" |
+| "compré 5.000 con daviplata" | "con David Plata" | "con Daviplata" |
+| "me pagaron 800.000 a la cuenta nu" | "a la cuenta no" | "a la cuenta Nu" |
+
+La lista se arma con `nlp.palabras_clave_usuario` a partir de las cuentas y categorías activas del usuario.
 
 ### 9.2 Contexto permitido
 
@@ -794,10 +932,11 @@ No se envían correos, teléfonos, números completos de tarjeta ni tokens.
 - Si el texto menciona una meta, se propone `meta_id`.
 - Si el texto contiene varias acciones, se devuelven varias transacciones.
 - La confianza se guarda por transacción y por interacción.
-- Si el proveedor falla, se usa el intérprete de reglas.
+- Si el proveedor de transcripción falla, no se crea el mensaje: el dispositivo reintenta con el mismo `message_id`.
 - Si el intérprete de reglas falla, el mensaje queda pendiente de revisión.
 - Si el guardado fue exitoso, se encola una notificación para el dispositivo y para la app.
-- Las interacciones se auditan en `interacciones_ia`.
+- Las interacciones se auditan en `interacciones_ia`, guardando solo metadatos: el audio nunca se persiste.
+- El texto transcrito puede traer el monto en cifras (`14.000`) o en palabras (`catorce mil`); el intérprete de reglas entiende ambas formas y también los millones (`1.5 millones`).
 
 ---
 
@@ -817,13 +956,13 @@ El diseño visual y el pinout del dispositivo se documentan en `docs/DISPOSITIVO
 ### 10.2 Conexión
 
 - BLE para configuración inicial.
-- Wi-Fi para operación normal.
+- Wi-Fi para operación normal, incluido el envío del audio.
 - Token de dispositivo en cada petición.
 - El audio se sube al backend; la transcripción no ocurre en el dispositivo.
 - La notificación de “registro guardado” se recibe por polling HTTP cada 3–5 segundos.
 - El polling usa `after_id` para no repetir notificaciones y envía acuse al mostrarlas.
 - Reintentos con backoff.
-- Cola local de mensajes cuando no hay red.
+- El dispositivo trabaja con conexión permanente: si la red falla, reintenta con el mismo `message_id` en lugar de guardar audio en cola.
 - Confirmación visual al recibir respuesta del backend.
 
 ### 10.3 Contrato de audio y telemetría
@@ -1019,6 +1158,8 @@ Códigos:
 |---|---|---|
 | GET | `/goals` | Listar metas |
 | POST | `/goals` | Crear meta |
+| GET | `/goals/plan` | Plan óptimo de ahorro con programación lineal |
+| POST | `/goals/plan/simulate` | Plan con overrides, sin escribir en la base |
 | GET | `/goals/{id}` | Detalle |
 | PATCH | `/goals/{id}` | Editar |
 | DELETE | `/goals/{id}` | Eliminar lógicamente |
@@ -1035,6 +1176,20 @@ Códigos:
 | POST | `/budgets/{id}/approve` | Aprobar |
 | GET | `/budget` | Presupuesto diario |
 | PATCH | `/budget` | Cambiar presupuesto diario |
+
+#### Plan de metas
+
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | `/goals/plan?meses=12&fecha=YYYY-MM-DD&colchon_pct=10` | Plan con datos reales. `meses` entre 1 y 24; `colchon_pct` entre 0 y 50. |
+| POST | `/goals/plan/simulate` | Plan con overrides de ingreso, gasto, capacidad, prioridades o metas. |
+
+Ambos endpoints son de solo lectura, requieren `Authorization: Bearer` y no
+crean transacciones ni mueven saldos. Los errores de validación usan
+`PARAMETRO_INVALIDO` (422) y `META_INEXISTENTE` (404). El contrato completo está
+en `docs/OPTIMIZACION_IO.md`, sección 6.
+
+`GET /home?incluir_plan=1` agrega un resumen compacto en `data.plan_ahorro`.
 
 ### 11.8 Notificaciones
 
@@ -1053,21 +1208,29 @@ Los endpoints de esta sección usan `X-Device-Token`. Los equivalentes de app us
 
 #### `POST /device/messages`
 
-Procesa audio o texto enviado por el dispositivo. El audio se transcribe y clasifica en el backend; el dispositivo nunca envía texto transcrito. Mientras no haya proveedor STT configurado, el campo `texto` es obligatorio y el endpoint responde `STT_NO_CONFIGURADO` si falta.
+Procesa audio o texto enviado por el dispositivo. El audio se transcribe en el backend con el proveedor de STT configurado (Gemini o faster-whisper local) y luego se interpreta con el LLM o con las reglas locales de respaldo; el dispositivo nunca transcribe.
 
-Estado de implementación: el endpoint ya acepta `texto`; el campo `audio` está reservado y devuelve `STT_NO_CONFIGURADO` hasta integrar el proveedor.
+Estado de implementación: **operativo**. El endpoint recibe `audio` (multipart) o `texto` (JSON o multipart). Con audio se valida el WAV, se transcribe, se registra la auditoría en `interacciones_ia` y se crea el mensaje con sus transacciones pendientes.
 
 - Autenticación: `X-Device-Token`.
-- `Content-Type`: `multipart/form-data` para audio (cuando el STT esté configurado) o `application/json` para texto.
+- `Content-Type`: `multipart/form-data` para audio o `application/json` para texto.
 - Campos:
 
 | Campo | Tipo | Obligatorio | Descripción |
 |---|---|---|---|
-| `audio` | archivo | Sí, si no hay `texto` | WAV, 16 kHz, mono, 0.5–30 s. |
+| `audio` | archivo | Sí, si no hay `texto` | WAV, 16 kHz, mono, 16 bits, 0.5–40 s, máximo 2 MB. |
 | `texto` | texto | Sí, si no hay `audio` | Fallback de pruebas o cuando el STT corre en el cliente. |
-| `message_id` | UUID | Sí | Idempotencia; un mismo `message_id` no se procesa dos veces. |
-| `audio_duracion_s` | número | No | Duración real del audio en segundos. |
+| `message_id` | UUID | Sí, si hay `audio` | Idempotencia; un mismo `message_id` no se procesa dos veces. |
+| `audio_duracion_s` | número | No | Informativo. La duración real la calcula el servidor a partir del WAV. |
 | `idioma` | texto | No | `es-CO` por defecto. |
+
+Orden de procesamiento:
+
+1. Si el `message_id` ya existe, se devuelve el mensaje guardado con `duplicado: true` **sin volver a llamar a la IA**.
+2. Se valida el WAV: 16 kHz, mono, 16 bits, 0.5–40 s y máximo 2 MB.
+3. Se transcribe con el proveedor de STT configurado (Gemini o faster-whisper local).
+4. Se interpretan montos, categoría y cuenta con el LLM; si no está disponible, con las reglas de `backend/nlp.py`.
+5. Se guarda el texto, la duración y la auditoría. El audio no se persiste en ningún sitio.
 
 Respuesta `201` en el primer procesamiento y `200` si el mensaje es duplicado:
 
@@ -1079,6 +1242,7 @@ Respuesta `201` en el primer procesamiento y `200` si el mensaje es duplicado:
     "message_id": "9e4f0d7a-3a2b-4c7d-8e1f-123456789abc",
     "estado": "pendiente",
     "texto_transcrito": "gasté 14.000 en el almuerzo",
+    "duracion_audio_s": 3.84,
     "transacciones": [],
     "puntos_otorgados": 0,
     "requiere_confirmacion": true,
@@ -1087,11 +1251,64 @@ Respuesta `201` en el primer procesamiento y `200` si el mensaje es duplicado:
 }
 ```
 
-Errores: `401` token inválido, `403` dispositivo no vinculado, `422` falta audio/texto o el audio no cumple el formato.
+Errores:
+
+| Código | HTTP | Cuándo ocurre |
+|---|---|---|
+| `CAMPOS_REQUERIDOS` | 422 | Falta `audio` y `texto`, o falta `message_id` cuando hay audio. |
+| `AUDIO_INVALIDO` | 422 | El WAV no cumple el formato o la duración (0.5–40 s). |
+| `AUDIO_MUY_GRANDE` | 413 | El archivo supera los 2 MB. |
+| `STT_NO_CONFIGURADO` | 503 | No hay ni Gemini configurado ni proveedor local disponible. |
+| `STT_KEY_INVALIDA` | 502 | Google rechazó la credencial (401). Ocurre con las "Auth keys" (`AQ.Ab...`). |
+| `STT_SIN_PERMISOS` | 502 | La credencial es válida pero no tiene acceso al modelo (403). |
+| `STT_CUOTA` | 429 | Google rechazó la petición por límite de cuota. |
+| `STT_NO_DISPONIBLE` | 502 | Google no responde o el modelo no está disponible. |
+| `STT_ERROR` | 502 | Cualquier otro fallo del proveedor. |
+| `STT_SIN_TEXTO` | 422 | El modelo no devolvió texto para el audio recibido. |
+
+Cuando la transcripción falla no se crea el mensaje ni la transacción: el dispositivo puede reintentar con el mismo `message_id`.
 
 #### `POST /messages`
 
 Equivalente para la app. Usa `Authorization: Bearer <token>`. Acepta los mismos campos y además `device_id` y `origen` (`app_voz` por defecto). Mismo contrato de respuesta.
+
+#### Configuración de los proveedores de IA
+
+La IA se configura en `backend/.env` (copiar `backend/.env.example`). La clave nunca viaja al dispositivo ni al frontend. **Ninguna clave es obligatoria**: sin `GEMINI_API_KEY`, el backend usa faster-whisper para transcribir y Ollama para interpretar.
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `GEMINI_API_KEY` | vacío | Clave opcional de Gemini. Sin ella se usan los proveedores locales. |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Modelo principal de transcripción. |
+| `GEMINI_MODEL_FALLBACKS` | `gemini-3.5-flash,gemini-3.5-flash-lite` | Modelos alternos cuando el principal no responde. |
+| `GEMINI_TIMEOUT_S` | `60` | Tiempo máximo de espera de una llamada. |
+| `GEMINI_PLAZO_S` | `90` | Tiempo máximo total de todos los reintentos. |
+| `STT_PROVEEDOR` | `auto` | `auto`, `gemini` o `local`. |
+| `STT_MODELO_LOCAL` | `base` | Modelo de faster-whisper: `tiny`, `base`, `small`, `medium`. |
+| `LLM_PROVEEDOR` | `auto` | `auto`, `ollama` o `gemini`. |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Servidor local de Ollama. |
+| `OLLAMA_MODEL` | `qwen3:4b` | Modelo local de interpretación. |
+
+La API de Google puede responder `503` por demanda alta o retirar un modelo. El backend reintenta con el siguiente modelo de la cadena antes de devolver un error, y el dispositivo puede reintentar con el mismo `message_id`.
+
+**Límites de la capa gratuita.** Google limita a 3 peticiones por minuto y por modelo. Al agotarse la cuota la latencia de transcripción sube de 3–5 segundos a 16–18 segundos y las peticiones responden `429`. El backend tiene un plazo total (`GEMINI_PLAZO_S`, 90 segundos por defecto) para no dejar la petición colgada. Para una demo frente a la docencia o para producción se recomienda una cuenta de pago; la clave sigue siendo la misma.
+
+#### Auditoría de las llamadas a la IA
+
+Cada llamada al proveedor se registra en `interacciones_ia`:
+
+| Columna | Contenido |
+|---|---|
+| `proveedor` | `google`. |
+| `modelo` | Modelo que respondió. |
+| `version_prompt` | Prompt de transcripción usado. |
+| `entrada_json` | Metadatos del audio: `mime_type`, `duracion_s` e `idioma`. |
+| `salida_json` | Texto transcrito o el error de la llamada. |
+| `latencia_ms` | Tiempo de la llamada. |
+| `tokens_entrada` / `tokens_salida` | Consumo de tokens. |
+| `mensaje_id` | Mensaje resultante. Es `NULL` si la transcripción falló. |
+
+El audio no se guarda ni en la base ni en disco, ni siquiera de forma temporal: se procesa en memoria durante la petición.
 
 #### `POST /device/messages/{id}/confirm` y `POST /messages/{id}/confirm`
 
@@ -1283,6 +1500,24 @@ El esquema se divide en:
 - Los puntos por transacción se otorgan una sola vez.
 - Los eventos de meta se deduplican por periodo.
 
+### 12.4 Cálculos on-the-fly y optimización
+
+No todas las cifras que devuelve la API están persistidas. Las siguientes se
+recalculan en cada petición y no tienen tabla propia:
+
+| Cálculo | Módulo | Persistencia |
+|---|---|---|
+| Totales del día, cupo y saldo de cuentas | `services.py` y vistas | Ninguna |
+| Salud proyectada y ánimo | `services.calculate_health` | Solo al cerrar el día |
+| Ingreso, gasto y capacidad de ahorro | `backend/finance_engine.py` | Ninguna |
+| Plan óptimo de metas | `backend/optimization.py` | Ninguna |
+
+La optimización **no agrega tablas, columnas, migraciones ni triggers**. El
+esquema sigue en versión 4 con 40 tablas, 15 vistas y 11 triggers. El plan se
+calcula con los datos existentes y se devuelve en la respuesta HTTP. Si en el
+futuro se decide persistirlo, la tabla propuesta es `planes_ahorro`, pero hoy
+no existe.
+
 ---
 
 ## 13. Seguridad y privacidad
@@ -1377,6 +1612,13 @@ El esquema se divide en:
 25. Una notificación de dispositivo nace en `pendiente` sin fechas de entrega ni lectura.
 26. El CHECK de `dispositivos_notificaciones` impide estados incoherentes con `entregado_en` y `leido_en`.
 27. Un mismo mensaje no genera dos notificaciones `movimiento_registrado` para el mismo dispositivo.
+28. Un WAV de 16 kHz mono entre 0.5 y 40 s se transcribe y crea el mensaje con sus transacciones pendientes.
+29. Un WAV con otra frecuencia, en estéreo, con menos de 0.5 s o con más de 40 s se rechaza con `AUDIO_INVALIDO`.
+30. Un `message_id` repetido con audio devuelve el mensaje guardado y no vuelve a llamar al proveedor.
+31. Si el proveedor de transcripción falla no queda ningún mensaje ni transacción creados.
+32. La llamada al proveedor queda auditada en `interacciones_ia` con modelo, latencia y tokens.
+33. El audio no queda almacenado en la base ni en el disco.
+34. El texto transcrito en palabras (`catorce mil`) y en cifras (`14.000`) producen el mismo monto, incluidos los millones.
 
 ---
 
@@ -1384,8 +1626,14 @@ El esquema se divide en:
 
 | Tema | Estado | Propuesta |
 |---|---|---|
-| Proveedor de IA/STT | Abierto | Interfaz abstracta; transcripción y categoría en backend, fallback por reglas para texto. |
+| Proveedor de IA/STT | Decidido | Transcripción con Gemini Flash o faster-whisper local, e interpretación con Ollama `qwen3:4b` o Gemini. `auto` prefiere Ollama para interpretar y Gemini para transcribir si hay clave; si no, usa los locales. Las reglas de `backend/nlp.py` son el respaldo determinista. Ningún proveedor es obligatorio. |
+| Duración máxima del audio | Decidido | 40 segundos, validada por el servidor. |
+| Transmisión del audio | Decidido | Wi-Fi por HTTP multipart. BLE queda solo para configuración inicial. |
+| SLM local | Decidido | Se ejecuta en el PC o servidor del backend, nunca en la ESP32. Queda para el agente consejero. |
+| Modelo local en el dispositivo | Descartado | La ESP32-S3 no puede ejecutar un SLM: 512 KB de SRAM y 16 MB de flash. |
 | Guardado automático vs confirmación | Decidido | Se mantiene la confirmación humana: la IA propone y el usuario confirma antes de afectar el dinero. |
+| Optimización de metas | Decidido | Programación lineal con `scipy.optimize.linprog(method="highs")` y fallback greedy; el plan es on-the-fly y solo propone. |
+| EOQ e inventarios | Futuro | Fuera de alcance de esta versión. |
 | Notificación al dispositivo | Decidido | Polling HTTP cada 3–5 segundos con `after_id` y acuse explícito. |
 | Persistencia de notificaciones | Decidido | Tabla `dispositivos_notificaciones` con estados `pendiente`, `entregada` y `leida`. |
 | Fórmula de bienestar | Propuesta | Seis componentes ponderados; validar con producto. |
@@ -1399,15 +1647,50 @@ El esquema se divide en:
 
 ## 18. Operación
 
-### 18.1 Inicializar una base nueva
+### 18.1 Instalar dependencias y configurar la IA (opcional)
+
+```powershell
+py -3 -m pip install -r requirements.txt
+```
+
+Con eso el backend ya funciona sin claves externas: la transcripción usa
+faster-whisper local y la interpretación usa Ollama si está corriendo. Gemini es
+opcional. Para habilitarlo:
+
+```powershell
+py -3 tools/configurar_api_key.py
+```
+
+La API key se guarda **fuera del repositorio**, en `%USERPROFILE%\.finagotchi\gemini.env`, para que ningún `git clean -xdf` ni una reinstalación la borren. El asistente también la verifica contra la API real antes de terminar. Si no hay clave, el sistema cae a los proveedores locales sin fallar.
+
+El backend busca la configuración en este orden:
+
+| Prioridad | Origen | Nota |
+|---|---|---|
+| 1 | Variable de entorno del sistema | `GEMINI_API_KEY` gana sobre todo lo demás. |
+| 2 | `backend/.env` | Ignorado por git, se puede borrar. |
+| 3 | `.env` en la raíz | Ignorado por git, se puede borrar. |
+| 4 | `%USERPROFILE%/.finagotchi/gemini.env` | Fuera del repo, a salvo de `git clean`. |
+
+`backend/.env.example` **sí está versionado**: es una plantilla y nunca debe llevar una clave real. `tests/test_seguridad.py` falla si encuentra una clave con formato de Google en cualquier archivo del repositorio.
+
+Diagnóstico del entorno:
+
+```powershell
+py -3 tools/verificar_entorno.py
+```
+
+Revisa Python y las dependencias, el esquema de la base, el origen de la clave, si la API responde y si hay micrófono disponible. Devuelve 1 si hay algo que arreglar.
+
+### 18.2 Inicializar una base nueva
 
 ```powershell
 py -3 database/init_db.py
 ```
 
-### 18.2 Reiniciar la base desde cero
+### 18.3 Reiniciar la base desde cero
 
-No se migran datos legacy. Para descartar el dataset anterior y crear una base v2 limpia:
+No se migran datos legacy. Para descartar el dataset anterior y crear una base limpia:
 
 ```powershell
 Remove-Item finagotchi.db, finagotchi.db-wal, finagotchi.db-shm -Force -ErrorAction SilentlyContinue
@@ -1416,13 +1699,91 @@ py -3 database/init_db.py
 
 La base nueva contiene solo catálogos y estructuras; no crea usuarios, transacciones ni mascotas hasta que se registre el primer usuario.
 
-### 18.3 Validación
+### 18.4 Validación
 
 ```powershell
 py -3 -m unittest discover -s tests -v
+py -3 -m compileall -q backend simulator tests
 ```
 
-### 18.4 Respaldo
+Al cierre de esta versión la suite tiene **161 pruebas** e incluye
+`tests/test_finance_engine.py`, `tests/test_optimization.py` y
+`tests/test_api_optimization.py`, que cubren la capacidad de ahorro, el LP, los
+endpoints y la garantía de que el plan no escribe en la base.
+
+Entre las pruebas hay `tests/test_comandos.py`, que levanta el backend en un puerto libre y ejecuta `py -3 simulator/main.py` exactamente como lo documenta la guía. Sirve para que un comando anunciado nunca falle sin que nadie se entere.
+
+### 18.5 Comandos del proyecto
+
+| Comando | Qué hace |
+|---|---|
+| `py -3 backend/server.py` | Levanta la API. `FLASK_DEBUG=1` activa la recarga automática al depurar. |
+| `py -3 simulator/main.py` | Abre el dispositivo simulado con el menú de pantallas. |
+| `py -3 database/init_db.py` | Crea o actualiza la base de datos. |
+| `py -3 -m unittest discover -s tests -v` | Corre todas las pruebas. |
+| `py -3 tools/verificar_entorno.py` | Revisa dependencias, base, clave, IA y micrófono. |
+| `py -3 tools/configurar_api_key.py` | Guarda la clave de Gemini fuera del repositorio. |
+| `py -3 tools/grabar_dataset.py` | Graba los clips del dataset con el micrófono. |
+| `py -3 tools/evaluar_dataset.py` | Evalúa el dataset (WER, montos, latencia). |
+| `py -3 tools/probar_flujo_voz.py audio.wav` | Prueba el flujo de voz con un WAV. |
+
+El punto de entrada del simulador se llama `main.py` y no `simulator.py` a propósito: si el módulo se llamara igual que el paquete, al ejecutarlo directamente Python lo cargaría como `simulator` y el import de las pantallas fallaría con `ImportError`.
+
+### 18.5 Prueba real del flujo de voz
+
+Con el backend levantado (`py -3 backend/server.py`) y un WAV de 16 kHz mono:
+
+```powershell
+py -3 tools/probar_flujo_voz.py ruta\al\audio.wav
+```
+
+El script registra un usuario de prueba, vincula un dispositivo, envía el audio, confirma el mensaje, consulta y acusa las notificaciones, y muestra la auditoría de `interacciones_ia`.
+
+### 18.6 Dataset de evaluación de audio
+
+El manifiesto `datasets/eval_audio/manifest.csv` define 500 casos de prueba con su verdad conocida:
+
+| Columna | Descripción |
+|---|---|
+| `id` | Identificador del clip. |
+| `archivo` | WAV dentro de `datasets/eval_audio/audio`. |
+| `transcripcion` | Texto esperado. |
+| `intent` | `registrar`, `consulta_estado`, `cerrar_dia` o `requiere_aclaracion`. |
+| `monto_esperado` | Monto esperado en pesos enteros. |
+| `categoria_esperada` | Categoría esperada. |
+| `cuenta_esperada` | Cuenta esperada. |
+| `duracion_s` | Se completa al grabar. |
+| `ruido` | `bajo`, `medio` o `alto`. |
+| `notas` | Observaciones del caso. |
+
+Los casos cubren montos en cifras (`14.000`) y en palabras (`catorce mil`), millones (`1.5 millones`), ingresos, gastos y ahorro, consultas, frases sin monto, correcciones, ruido y variantes de la frase de cierre.
+
+Reglas que debe cumplir el manifiesto:
+
+- Una fila con monto declara exactamente lo que devuelve `nlp.parse_amount` sobre su transcripción normalizada.
+- Una fila sin monto no tiene ninguna cifra ni cantidad en palabras que se pueda interpretar.
+- `intent` coincide con `nlp.detect_intent`, y una petición de registro sin monto queda como `requiere_aclaracion` sin categoría ni cuenta, porque nunca se inventa un valor.
+- `categoria_esperada` y `cuenta_esperada` pertenecen al catálogo del usuario.
+
+Herramientas:
+
+```powershell
+py -3 tools/generar_dataset.py     # regenera el manifiesto y lo valida
+py -3 tools/grabar_dataset.py      # graba los clips pendientes con el micrófono
+py -3 tools/evaluar_dataset.py     # transcribe y genera datasets/eval_audio/reporte.json
+```
+
+Métricas del reporte: WER promedio, exactitud de montos, exactitud de intención, latencia promedio y máxima, y tokens consumidos.
+
+| Objetivo | Umbral |
+|---|---|
+| WER promedio | menor a 15 % |
+| Montos exactos | al menos 90 % |
+| Latencia | menor a 5 segundos en el 95 % de los casos |
+
+La capa gratuita de Gemini limita a 3 peticiones por minuto y por modelo, así que la evaluación pausa entre clips y reintenta cuando recibe `429`.
+
+### 18.7 Respaldo
 
 - Copiar `finagotchi.db` con el servicio detenido.
 - Copiar también `finagotchi.db-wal` y `finagotchi.db-shm` si existen.

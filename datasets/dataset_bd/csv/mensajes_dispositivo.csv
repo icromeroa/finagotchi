@@ -1,0 +1,344 @@
+id,usuario_id,device_id,device_uid,message_id,secuencia,origen,texto_transcrito,duracion_audio_s,confianza_ia,estado,error,recibido_en,procesado_en
+1,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0001,1,app_voz,recibi 129000 de regalo,14.6,0.927,confirmado,,2026-07-08T17:16:00Z,2026-07-08T17:16:11Z
+2,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0002,1,dispositivo,gaste 46000 en pedido de comida,,0.817,confirmado,,2026-07-09T14:13:00Z,2026-07-09T14:13:18Z
+3,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0003,1,dispositivo,gaste 62500 en desayuno,,0.681,confirmado,,2026-07-11T17:25:00Z,2026-07-11T17:25:16Z
+4,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0004,1,app_voz,gaste 10500 en gasolina,,0.723,confirmado,,2026-07-23T19:10:00Z,2026-07-23T19:10:02Z
+5,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0005,1,app_voz,gaste 38000 en restaurante,16.2,0.983,confirmado,,2026-07-25T00:34:00Z,2026-07-25T00:34:07Z
+6,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0006,1,app_voz,gaste 47500 en videojuego,1.4,0.675,confirmado,,2026-07-29T23:05:00Z,2026-07-29T23:05:02Z
+7,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0007,1,dispositivo,recibi 6810000 de honorarios,11.4,0.945,confirmado,,2026-08-07T14:25:00Z,2026-08-07T14:25:15Z
+8,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0008,1,app_voz,recibi 136000 de reembolso,16.9,0.833,confirmado,,2026-08-24T18:12:00Z,2026-08-24T18:12:02Z
+9,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0009,1,dispositivo,gaste 69000 en arena del gato,,0.821,confirmado,,2026-08-29T13:16:00Z,2026-08-29T13:16:05Z
+10,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0010,1,dispositivo,gaste 76000 en detalle de cumpleanos,17.7,0.792,confirmado,,2026-09-01T23:24:00Z,2026-09-01T23:24:10Z
+11,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0011,1,dispositivo,gaste 23500 en Spotify,,0.953,confirmado,,2026-09-26T20:43:00Z,2026-09-26T20:43:17Z
+12,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0012,1,app_voz,gaste 43000 en almuerzo,,0.766,confirmado,,2026-09-29T19:38:00Z,2026-09-29T19:38:18Z
+13,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0013,1,app_voz,gaste 28000 en panaderia,,0.934,confirmado,,2026-10-04T02:29:00Z,2026-10-04T02:29:13Z
+14,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0014,1,dispositivo,gaste 44000 en desayuno,,0.687,confirmado,,2026-10-07T02:24:00Z,2026-10-07T02:24:09Z
+15,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0015,1,dispositivo,gaste 122000 en concierto,,0.746,confirmado,,2026-10-09T18:16:00Z,2026-10-09T18:16:13Z
+16,1,1,FINAGOTCHI-PC-SIMULATOR-01,msg-001-0016,1,dispositivo,gaste 64000 en domicilio de comida,9.2,0.753,confirmado,,2026-10-20T02:55:00Z,2026-10-20T02:55:11Z
+17,2,2,FG-0001,msg-002-0001,1,dispositivo,gaste 7000 en gasolina,7.8,0.738,confirmado,,2026-07-20T01:38:00Z,2026-07-20T01:38:03Z
+18,2,2,FG-0001,msg-002-0002,1,dispositivo,gaste 7500 en varios,,0.853,confirmado,,2026-07-20T15:11:00Z,2026-07-20T15:11:03Z
+19,2,2,FG-0001,msg-002-0003,1,app_voz,gaste 17000 en cine,9.1,0.958,confirmado,,2026-07-24T15:50:00Z,2026-07-24T15:50:06Z
+20,2,2,FG-0001,msg-002-0004,1,dispositivo,gaste 9500 en corte de cabello,9.4,0.684,confirmado,,2026-08-11T18:15:00Z,2026-08-11T18:15:14Z
+21,2,2,FG-0001,msg-002-0005,1,dispositivo,gaste 136000 en administracion,8.3,0.658,confirmado,,2026-08-11T23:49:00Z,2026-08-11T23:49:05Z
+22,2,2,FG-0001,msg-002-0006,1,app_voz,gaste 6500 en cafe,3.7,0.625,confirmado,,2026-08-19T13:41:00Z,2026-08-19T13:41:04Z
+23,2,2,FG-0001,msg-002-0007,1,dispositivo,gaste 56000 en cuota de la tarjeta,4.8,0.873,confirmado,,2026-09-19T12:15:00Z,2026-09-19T12:15:13Z
+24,2,2,FG-0001,msg-002-0008,1,dispositivo,recibi 287000 de salario,6.0,0.801,confirmado,,2026-10-05T00:29:00Z,2026-10-05T00:29:02Z
+25,2,2,FG-0001,msg-002-0009,1,app_voz,guarde 81500 para Curso de ingles,10.2,0.642,confirmado,,2026-10-10T14:11:00Z,2026-10-10T14:11:10Z
+26,2,2,FG-0001,msg-002-0010,1,dispositivo,gaste 21000 en arena del gato,6.0,0.973,descartado,,2026-10-11T15:21:00Z,2026-10-11T15:21:15Z
+27,2,2,FG-0001,msg-002-0011,1,dispositivo,gaste 141000 en servicios publicos,9.6,0.805,confirmado,,2026-10-16T13:35:00Z,2026-10-16T13:35:09Z
+28,2,2,FG-0001,msg-002-0012,1,dispositivo,gaste 22000 en mercado,5.2,0.727,confirmado,,2026-10-20T02:12:00Z,2026-10-20T02:12:04Z
+29,2,2,FG-0001,msg-002-0013,1,dispositivo,gaste 13500 en detalle de cumpleanos,17.5,0.936,descartado,,2026-10-27T21:23:00Z,2026-10-27T21:23:08Z
+30,2,2,FG-0001,msg-002-0014,1,dispositivo,gaste 27000 en concierto,10.6,0.659,confirmado,,2026-10-28T18:07:00Z,2026-10-28T18:07:08Z
+31,2,2,FG-0001,msg-002-0015,1,app_voz,gaste 53500 en compra,10.1,0.838,confirmado,,2026-11-02T00:27:00Z,2026-11-02T00:27:16Z
+32,2,2,FG-0001,msg-002-0016,1,dispositivo,gaste 15000 en imprevisto,,0.932,confirmado,,2026-11-04T17:08:00Z,2026-11-04T17:08:10Z
+33,3,3,FG-0002,msg-003-0001,1,dispositivo,gaste 24000 en libro,,0.829,confirmado,,2026-08-04T00:22:00Z,2026-08-04T00:22:15Z
+34,3,3,FG-0002,msg-003-0002,1,dispositivo,gaste 19500 en concierto,9.9,0.696,confirmado,,2026-08-04T00:26:00Z,2026-08-04T00:26:10Z
+35,3,3,FG-0002,msg-003-0003,1,app_voz,gaste 27500 en domicilio de comida,3.9,0.798,confirmado,,2026-08-25T02:41:00Z,2026-08-25T02:41:06Z
+36,3,3,FG-0002,msg-003-0004,1,app_voz,gaste 18000 en compra pequena,16.5,0.91,confirmado,,2026-09-02T15:16:00Z,2026-09-02T15:16:14Z
+37,3,3,FG-0002,msg-003-0005,1,dispositivo,recibi 286000 de ayuda familiar,7.4,0.814,confirmado,,2026-09-05T21:07:00Z,2026-09-05T21:07:10Z
+38,3,3,FG-0002,msg-003-0006,1,app_voz,gaste 23000 en cafe,13.6,0.751,confirmado,,2026-09-08T21:52:00Z,2026-09-08T21:52:16Z
+39,3,3,FG-0002,msg-003-0007,1,dispositivo,gaste 40500 en Spotify,1.9,0.925,confirmado,,2026-09-15T22:37:00Z,2026-09-15T22:37:18Z
+40,3,3,FG-0002,msg-003-0008,1,app_voz,gaste 11500 en pasaje de bus,10.0,0.718,confirmado,,2026-09-16T23:27:00Z,2026-09-16T23:27:18Z
+41,3,3,FG-0002,msg-003-0009,1,dispositivo,gaste 17500 en mercado,15.1,0.727,confirmado,,2026-09-20T19:32:00Z,2026-09-20T19:32:09Z
+42,3,3,FG-0002,msg-003-0010,1,app_voz,gaste 26000 en almuerzo,,0.772,descartado,,2026-09-25T18:28:00Z,2026-09-25T18:28:11Z
+43,3,3,FG-0002,msg-003-0011,1,app_voz,gaste 24500 en desayuno,,0.873,confirmado,,2026-10-05T12:12:00Z,2026-10-05T12:12:04Z
+44,3,3,FG-0002,msg-003-0012,1,dispositivo,gaste 30500 en desayuno,,0.646,confirmado,,2026-10-14T15:34:00Z,2026-10-14T15:34:05Z
+45,3,3,FG-0002,msg-003-0013,1,dispositivo,gaste 15500 en retiro,,0.63,confirmado,,2026-10-17T15:43:00Z,2026-10-17T15:43:07Z
+46,3,3,FG-0002,msg-003-0014,1,dispositivo,guarde 80500 para Ahorro navideno,,0.925,confirmado,,2026-10-19T18:48:00Z,2026-10-19T18:48:11Z
+47,3,3,FG-0002,msg-003-0015,1,app_voz,gaste 34000 en concierto,,0.815,confirmado,,2026-10-27T20:41:00Z,2026-10-27T20:41:16Z
+48,3,3,FG-0002,msg-003-0016,1,app_voz,gaste 70000 en arriendo,,0.837,confirmado,,2026-11-04T23:13:00Z,2026-11-04T23:13:16Z
+49,4,4,FG-0003,msg-004-0001,1,dispositivo,gaste 56500 en panaderia,1.7,0.872,confirmado,,2026-08-08T17:59:00Z,2026-08-08T17:59:05Z
+50,4,4,FG-0003,msg-004-0002,1,dispositivo,gaste 77500 en jabon,7.8,0.642,confirmado,,2026-08-12T14:21:00Z,2026-08-12T14:21:13Z
+51,4,4,FG-0003,msg-004-0003,1,dispositivo,gaste 69500 en mercado,7.3,0.872,confirmado,,2026-08-12T20:43:00Z,2026-08-12T20:43:12Z
+52,4,4,FG-0003,msg-004-0004,1,dispositivo,gaste 62000 en cafe,3.4,0.906,confirmado,,2026-08-31T02:41:00Z,2026-08-31T02:41:03Z
+53,4,4,FG-0003,msg-004-0005,1,app_voz,gaste 52500 en mercado,16.9,0.982,confirmado,,2026-09-09T01:42:00Z,2026-09-09T01:42:08Z
+54,4,4,FG-0003,msg-004-0006,1,dispositivo,gaste 61500 en mercado,4.9,0.865,confirmado,,2026-09-11T22:36:00Z,2026-09-11T22:36:15Z
+55,4,4,FG-0003,msg-004-0007,1,dispositivo,gaste 57500 en cine familiar,17.3,0.825,confirmado,,2026-09-11T22:55:00Z,2026-09-11T22:55:16Z
+56,4,4,FG-0003,msg-004-0008,1,app_voz,gaste 63000 en farmacia,,0.837,confirmado,,2026-09-28T12:26:00Z,2026-09-28T12:26:14Z
+57,4,4,FG-0003,msg-004-0009,1,dispositivo,recibi 232000 de apoyo de mis papas,6.1,0.721,confirmado,,2026-10-03T14:40:00Z,2026-10-03T14:40:14Z
+58,4,4,FG-0003,msg-004-0010,1,dispositivo,gaste 154000 en internet,12.0,0.944,confirmado,,2026-10-10T17:38:00Z,2026-10-10T17:38:06Z
+59,4,4,FG-0003,msg-004-0011,1,app_voz,gaste 74000 en domicilio,1.7,0.621,confirmado,,2026-10-20T01:21:00Z,2026-10-20T01:21:16Z
+60,4,4,FG-0003,msg-004-0012,1,dispositivo,gaste 56000 en desayuno,4.0,0.809,procesado,,2026-10-25T19:20:00Z,2026-10-25T19:20:11Z
+61,4,4,FG-0003,msg-004-0013,1,dispositivo,gaste 100000 en reparacion,,0.814,confirmado,,2026-11-04T18:42:00Z,2026-11-04T18:42:06Z
+62,5,5,FG-0004,msg-005-0001,1,dispositivo,gaste 5000 en gasolina,15.0,0.787,descartado,,2026-07-11T01:55:00Z,2026-07-11T01:55:16Z
+63,5,5,FG-0004,msg-005-0002,1,app_voz,gaste 9500 en Uber,5.0,0.851,confirmado,,2026-07-14T13:36:00Z,2026-07-14T13:36:09Z
+64,5,5,FG-0004,msg-005-0003,1,dispositivo,gaste 15500 en Spotify,14.0,0.822,confirmado,,2026-08-13T13:42:00Z,2026-08-13T13:42:15Z
+65,5,5,FG-0004,msg-005-0004,1,app_voz,gaste 15500 en mercado,2.2,0.961,confirmado,,2026-08-24T15:05:00Z,2026-08-24T15:05:14Z
+66,5,5,FG-0004,msg-005-0005,1,app_voz,gaste 12000 en panaderia,10.1,0.637,confirmado,,2026-09-06T01:01:00Z,2026-09-06T01:01:15Z
+67,5,5,FG-0004,msg-005-0006,1,app_voz,gaste 17500 en Spotify,,0.977,confirmado,,2026-09-22T17:45:00Z,2026-09-22T17:45:03Z
+68,5,5,FG-0004,msg-005-0007,1,app_voz,gaste 16500 en almuerzo,13.7,0.793,confirmado,,2026-09-26T23:19:00Z,2026-09-26T23:19:17Z
+69,5,5,FG-0004,msg-005-0008,1,dispositivo,gaste 23000 en concierto,,0.985,confirmado,,2026-09-28T16:42:00Z,2026-09-28T16:42:04Z
+70,5,5,FG-0004,msg-005-0009,1,app_voz,gaste 12500 en almuerzo,13.2,0.929,confirmado,,2026-10-14T16:43:00Z,2026-10-14T16:43:16Z
+71,5,5,FG-0004,msg-005-0010,1,dispositivo,gaste 12500 en comision bancaria,13.0,0.768,confirmado,,2026-10-15T20:01:00Z,2026-10-15T20:01:10Z
+72,5,5,FG-0004,msg-005-0011,1,app_voz,gaste 9000 en plan de datos,,0.904,confirmado,,2026-10-16T02:57:00Z,2026-10-16T02:57:16Z
+73,5,5,FG-0004,msg-005-0012,1,dispositivo,guarde 167000 para Nuevo celular,15.0,0.901,confirmado,,2026-10-24T14:50:00Z,2026-10-24T14:50:03Z
+74,6,6,FG-0005,msg-006-0001,1,app_voz,gaste 196000 en internet,,0.89,confirmado,,2026-07-27T17:15:00Z,2026-07-27T17:15:11Z
+75,6,6,FG-0005,msg-006-0002,1,app_voz,gaste 63000 en domicilio de comida,13.3,0.773,confirmado,,2026-07-28T13:50:00Z,2026-07-28T13:50:11Z
+76,6,6,FG-0005,msg-006-0003,1,dispositivo,gaste 85000 en Rappi,7.8,0.76,confirmado,,2026-08-02T19:36:00Z,2026-08-02T19:36:07Z
+77,6,6,FG-0005,msg-006-0004,1,dispositivo,gaste 98500 en videojuego,11.7,0.943,confirmado,,2026-08-03T17:41:00Z,2026-08-03T17:41:10Z
+78,6,6,FG-0005,msg-006-0005,1,dispositivo,gaste 81500 en concierto,11.8,0.705,confirmado,,2026-08-07T12:28:00Z,2026-08-07T12:28:10Z
+79,6,6,FG-0005,msg-006-0006,1,dispositivo,gaste 19000 en restaurante,,0.952,confirmado,,2026-08-08T15:18:00Z,2026-08-08T15:18:08Z
+80,6,6,FG-0005,msg-006-0007,1,dispositivo,gaste 21500 en domicilio de comida,,0.778,confirmado,,2026-08-29T17:13:00Z,2026-08-29T17:13:15Z
+81,6,6,FG-0005,msg-006-0008,1,dispositivo,gaste 62000 en gimnasio,,0.96,confirmado,,2026-08-31T02:21:00Z,2026-08-31T02:21:03Z
+82,6,6,FG-0005,msg-006-0009,1,dispositivo,gaste 159500 en compra,15.1,0.931,confirmado,,2026-09-01T23:22:00Z,2026-09-01T23:22:18Z
+83,6,6,FG-0005,msg-006-0010,1,app_voz,gaste 43000 en salida con amigos,,0.89,confirmado,,2026-09-19T17:01:00Z,2026-09-19T17:01:03Z
+84,6,6,FG-0005,msg-006-0011,1,dispositivo,gaste 194000 en servicios publicos,,0.902,confirmado,,2026-09-26T18:56:00Z,2026-09-26T18:56:08Z
+85,6,6,FG-0005,msg-006-0012,1,app_voz,recibi 5132000 de pago de freelance,8.0,0.906,confirmado,,2026-10-06T15:07:00Z,2026-10-06T15:07:04Z
+86,6,6,FG-0005,msg-006-0013,1,dispositivo,guarde 313500 para Moto,,0.983,confirmado,,2026-10-18T00:46:00Z,2026-10-18T00:46:11Z
+87,6,6,FG-0005,msg-006-0014,1,dispositivo,gaste 75500 en cita medica,,0.683,procesado,,2026-10-22T12:45:00Z,2026-10-22T12:45:12Z
+88,6,6,FG-0005,msg-006-0015,1,dispositivo,gaste 84000 en compra,13.1,0.946,confirmado,,2026-10-24T23:05:00Z,2026-10-24T23:05:13Z
+89,6,6,FG-0005,msg-006-voz-fallida,1,dispositivo,,3.4,,recibido,STT_SIN_TEXTO,2026-10-16T01:06:00Z,
+90,7,7,FG-0006,msg-007-0001,1,dispositivo,gaste 52000 en cuota de la tarjeta,3.6,0.815,confirmado,,2026-07-11T15:23:00Z,2026-07-11T15:23:18Z
+91,7,7,FG-0006,msg-007-0002,1,dispositivo,gaste 23000 en comision bancaria,7.6,0.96,confirmado,,2026-07-20T23:45:00Z,2026-07-20T23:45:14Z
+92,7,7,FG-0006,msg-007-0003,1,dispositivo,gaste 22000 en videojuego,6.4,0.764,descartado,,2026-07-29T15:13:00Z,2026-07-29T15:13:15Z
+93,7,7,FG-0006,msg-007-0004,1,app_voz,gaste 194000 en servicios publicos,7.1,0.88,confirmado,,2026-08-07T19:21:00Z,2026-08-07T19:21:09Z
+94,7,7,FG-0006,msg-007-0005,1,dispositivo,gaste 9500 en TransMilenio,6.3,0.685,confirmado,,2026-08-09T12:11:00Z,2026-08-09T12:11:08Z
+95,7,7,FG-0006,msg-007-0006,1,app_voz,gaste 82000 en administracion,11.4,0.647,confirmado,,2026-08-11T17:40:00Z,2026-08-11T17:40:02Z
+96,7,7,FG-0006,msg-007-0007,1,dispositivo,gaste 38500 en almuerzo,13.0,0.946,confirmado,,2026-08-13T16:47:00Z,2026-08-13T16:47:15Z
+97,7,7,FG-0006,msg-007-0008,1,dispositivo,gaste 174000 en administracion,15.5,0.804,confirmado,,2026-08-21T14:29:00Z,2026-08-21T14:29:12Z
+98,7,7,FG-0006,msg-007-0009,1,dispositivo,gaste 17500 en parqueadero,1.5,0.81,confirmado,,2026-09-01T01:36:00Z,2026-09-01T01:36:16Z
+99,7,7,FG-0006,msg-007-0010,1,dispositivo,gaste 37500 en domicilio de comida,1.4,0.95,confirmado,,2026-09-02T00:27:00Z,2026-09-02T00:27:03Z
+100,7,7,FG-0006,msg-007-0011,1,dispositivo,gaste 11000 en envio de dinero,10.3,0.662,confirmado,,2026-09-14T18:49:00Z,2026-09-14T18:49:13Z
+101,7,7,FG-0006,msg-007-0012,1,dispositivo,gaste 20500 en Netflix,2.5,0.8,confirmado,,2026-09-21T02:00:00Z,2026-09-21T02:00:07Z
+102,7,7,FG-0006,msg-007-0013,1,app_voz,gaste 30500 en Netflix,,0.927,confirmado,,2026-10-12T18:56:00Z,2026-10-12T18:56:13Z
+103,7,7,FG-0006,msg-007-0014,1,dispositivo,gaste 11000 en varios,12.0,0.746,descartado,,2026-10-12T22:58:00Z,2026-10-12T22:58:08Z
+104,7,7,FG-0006,msg-007-0015,1,app_voz,gaste 113000 en pago de credito,2.9,0.838,confirmado,,2026-10-18T22:18:00Z,2026-10-18T22:18:03Z
+105,7,7,FG-0006,msg-007-0016,1,app_voz,gaste 43000 en YouTube Premium,,0.684,confirmado,,2026-10-31T16:13:00Z,2026-10-31T16:13:06Z
+106,7,7,FG-0006,msg-007-0017,1,app_voz,gaste 9000 en gasolina,15.1,0.74,confirmado,,2026-11-04T14:27:00Z,2026-11-04T14:27:05Z
+107,8,8,FG-0007,msg-008-0001,1,dispositivo,gaste 8000 en taxi,,0.875,confirmado,,2026-07-10T17:58:00Z,2026-07-10T17:58:13Z
+108,8,8,FG-0007,msg-008-0002,1,app_voz,gaste 15500 en compra,3.7,0.773,confirmado,,2026-07-11T14:17:00Z,2026-07-11T14:17:03Z
+109,8,8,FG-0007,msg-008-0003,1,dispositivo,gaste 12500 en domicilio de comida,15.2,0.81,confirmado,,2026-07-23T23:49:00Z,2026-07-23T23:49:12Z
+110,8,8,FG-0007,msg-008-0004,1,dispositivo,guarde 64500 para Viaje a Santa Marta,10.0,0.849,descartado,,2026-08-28T16:43:00Z,2026-08-28T16:43:04Z
+111,8,8,FG-0007,msg-008-0005,1,dispositivo,gaste 31000 en detalle de cumpleanos,,0.759,descartado,,2026-08-29T21:41:00Z,2026-08-29T21:41:11Z
+112,8,8,FG-0007,msg-008-0006,1,dispositivo,gaste 7500 en desayuno,6.0,0.675,confirmado,,2026-09-02T14:03:00Z,2026-09-02T14:03:04Z
+113,8,8,FG-0007,msg-008-0007,1,app_voz,gaste 19500 en cine,,0.99,confirmado,,2026-09-14T15:29:00Z,2026-09-14T15:29:18Z
+114,8,8,FG-0007,msg-008-0008,1,dispositivo,gaste 16000 en Rappi,,0.912,confirmado,,2026-09-19T19:42:00Z,2026-09-19T19:42:12Z
+115,8,8,FG-0007,msg-008-0009,1,dispositivo,gaste 17000 en pedido de comida,,0.824,confirmado,,2026-09-20T15:52:00Z,2026-09-20T15:52:09Z
+116,8,8,FG-0007,msg-008-0010,1,app_voz,gaste 19500 en detalle de cumpleanos,,0.667,confirmado,,2026-09-21T15:16:00Z,2026-09-21T15:16:13Z
+117,8,8,FG-0007,msg-008-0011,1,dispositivo,gaste 13500 en imprevisto,17.0,0.836,confirmado,,2026-09-28T18:41:00Z,2026-09-28T18:41:07Z
+118,8,8,FG-0007,msg-008-0012,1,dispositivo,gaste 5000 en comision bancaria,2.7,0.904,confirmado,,2026-10-01T02:27:00Z,2026-10-01T02:27:17Z
+119,8,8,FG-0007,msg-008-0013,1,dispositivo,gaste 27000 en videojuego,1.7,0.706,confirmado,,2026-10-04T16:59:00Z,2026-10-04T16:59:18Z
+120,8,8,FG-0007,msg-008-0014,1,dispositivo,gaste 7500 en taxi,,0.942,confirmado,,2026-10-22T23:34:00Z,2026-10-22T23:34:02Z
+121,8,8,FG-0007,msg-008-0015,1,app_voz,gaste 3000 en TransMilenio,1.8,0.685,confirmado,,2026-11-04T14:35:00Z,2026-11-04T14:35:13Z
+122,8,8,FG-0007,msg-008-voz-fallida,1,dispositivo,,6.9,,recibido,STT_SIN_TEXTO,2026-10-21T21:29:00Z,
+123,9,9,FG-0008,msg-009-0001,1,dispositivo,guarde 34000 para Fondo de emergencia,,0.689,confirmado,,2026-08-04T19:17:00Z,2026-08-04T19:17:03Z
+124,9,9,FG-0008,msg-009-0002,1,dispositivo,guarde 166000 para Concierto,,0.961,confirmado,,2026-08-28T01:23:00Z,2026-08-28T01:23:02Z
+125,9,9,FG-0008,msg-009-0003,1,dispositivo,gaste 29000 en videojuego,,0.875,confirmado,,2026-08-30T18:00:00Z,2026-08-30T18:00:13Z
+126,9,9,FG-0008,msg-009-0004,1,dispositivo,recibi 307000 de mesada,8.1,0.806,confirmado,,2026-09-03T14:30:00Z,2026-09-03T14:30:11Z
+127,9,9,FG-0008,msg-009-0005,1,dispositivo,guarde 87000 para Viaje a Santa Marta,,0.864,confirmado,,2026-09-07T22:12:00Z,2026-09-07T22:12:03Z
+128,9,9,FG-0008,msg-009-0006,1,app_voz,gaste 9000 en domicilio de comida,,0.715,confirmado,,2026-09-14T17:26:00Z,2026-09-14T17:26:09Z
+129,9,9,FG-0008,msg-009-0007,1,dispositivo,gaste 12500 en Uber,2.9,0.816,confirmado,,2026-09-28T18:32:00Z,2026-09-28T18:32:12Z
+130,9,9,FG-0008,msg-009-0008,1,app_voz,gaste 8500 en pasaje de bus,3.6,0.81,confirmado,,2026-09-29T13:40:00Z,2026-09-29T13:40:18Z
+131,9,9,FG-0008,msg-009-0009,1,dispositivo,guarde 35500 para Fondo de emergencia,8.3,0.694,confirmado,,2026-09-30T19:48:00Z,2026-09-30T19:48:02Z
+132,9,9,FG-0008,msg-009-0010,1,app_voz,gaste 55500 en compra,12.0,0.922,confirmado,,2026-10-05T23:31:00Z,2026-10-05T23:31:06Z
+133,9,9,FG-0008,msg-009-0011,1,dispositivo,gaste 9000 en varios,,0.628,confirmado,,2026-10-13T23:35:00Z,2026-10-13T23:35:16Z
+134,9,9,FG-0008,msg-009-0012,1,dispositivo,gaste 13500 en restaurante,15.3,0.974,confirmado,,2026-10-16T12:30:00Z,2026-10-16T12:30:16Z
+135,9,9,FG-0008,msg-009-0013,1,dispositivo,guarde 200000 para Viaje a Santa Marta,6.6,0.825,confirmado,,2026-10-22T21:26:00Z,2026-10-22T21:26:03Z
+136,9,9,FG-0008,msg-009-0014,1,app_voz,gaste 9000 en desayuno,16.8,0.734,descartado,,2026-10-29T21:22:00Z,2026-10-29T21:22:12Z
+137,9,9,FG-0008,msg-009-0015,1,dispositivo,gaste 13000 en desayuno,13.2,0.901,confirmado,,2026-10-30T13:00:00Z,2026-10-30T13:00:11Z
+138,9,9,FG-0008,msg-009-0016,1,dispositivo,gaste 24500 en corte de cabello,3.8,0.934,confirmado,,2026-10-31T12:07:00Z,2026-10-31T12:07:12Z
+139,9,9,FG-0008,msg-009-0017,1,app_voz,gaste 12000 en mercado de la casa,,0.69,confirmado,,2026-10-31T21:40:00Z,2026-10-31T21:40:04Z
+140,9,9,FG-0008,msg-009-0018,1,dispositivo,gaste 11000 en almuerzo,5.8,0.85,confirmado,,2026-11-01T18:03:00Z,2026-11-01T18:03:08Z
+141,9,9,FG-0008,msg-009-0019,1,dispositivo,gaste 18000 en almuerzo,4.9,0.832,confirmado,,2026-11-03T02:18:00Z,2026-11-03T02:18:02Z
+142,9,9,FG-0008,msg-009-0020,1,dispositivo,gaste 30000 en concierto,16.3,0.755,confirmado,,2026-11-04T14:51:00Z,2026-11-04T14:51:13Z
+143,10,10,FG-0009,msg-010-0001,1,app_voz,gaste 234000 en arriendo,1.1,0.728,confirmado,,2026-08-07T17:58:00Z,2026-08-07T17:58:11Z
+144,10,10,FG-0009,msg-010-0002,1,dispositivo,guarde 145500 para Viaje a Santa Marta,13.2,0.895,confirmado,,2026-08-08T14:17:00Z,2026-08-08T14:17:18Z
+145,10,10,FG-0009,msg-010-0003,1,dispositivo,gaste 24000 en desayuno,6.6,0.987,confirmado,,2026-08-31T14:10:00Z,2026-08-31T14:10:13Z
+146,10,10,FG-0009,msg-010-0004,1,dispositivo,gaste 37000 en farmacia,4.2,0.738,confirmado,,2026-09-13T01:39:00Z,2026-09-13T01:39:13Z
+147,10,10,FG-0009,msg-010-0005,1,dispositivo,guarde 106500 para Ahorro navideno,,0.764,confirmado,,2026-09-13T23:11:00Z,2026-09-13T23:11:17Z
+148,10,10,FG-0009,msg-010-0006,1,dispositivo,recibi 378000 de apoyo de mis papas,,0.926,confirmado,,2026-10-10T22:33:00Z,2026-10-10T22:33:11Z
+149,10,10,FG-0009,msg-010-0007,1,dispositivo,gaste 118000 en cine,,0.802,confirmado,,2026-11-01T15:45:00Z,2026-11-01T15:45:16Z
+150,10,10,FG-0009,msg-010-0008,1,dispositivo,gaste 79000 en cine,,0.986,confirmado,,2026-11-02T16:32:00Z,2026-11-02T16:32:09Z
+151,11,11,FG-0010,msg-011-0001,1,app_voz,recibi 259000 de mesada,13.1,0.853,confirmado,,2026-07-11T18:39:00Z,2026-07-11T18:39:12Z
+152,11,11,FG-0010,msg-011-0002,1,dispositivo,gaste 19000 en jabon,10.1,0.789,confirmado,,2026-07-16T01:32:00Z,2026-07-16T01:32:02Z
+153,11,11,FG-0010,msg-011-0003,1,dispositivo,gaste 10500 en concierto,,0.776,confirmado,,2026-07-31T15:37:00Z,2026-07-31T15:37:16Z
+154,11,11,FG-0010,msg-011-0004,1,dispositivo,gaste 5000 en comision bancaria,9.3,0.816,confirmado,,2026-08-03T16:32:00Z,2026-08-03T16:32:18Z
+155,11,11,FG-0010,msg-011-0005,1,dispositivo,gaste 7500 en mercado,16.7,0.854,confirmado,,2026-08-18T20:00:00Z,2026-08-18T20:00:02Z
+156,11,11,FG-0010,msg-011-0006,1,dispositivo,gaste 16500 en libro,6.1,0.968,confirmado,,2026-09-02T02:17:00Z,2026-09-02T02:17:02Z
+157,11,11,FG-0010,msg-011-0007,1,dispositivo,gaste 28000 en regalo para mama,15.9,0.882,confirmado,,2026-09-05T00:26:00Z,2026-09-05T00:26:03Z
+158,11,11,FG-0010,msg-011-0008,1,app_voz,gaste 7500 en jabon,,0.778,confirmado,,2026-09-17T00:28:00Z,2026-09-17T00:28:16Z
+159,11,11,FG-0010,msg-011-0009,1,app_voz,gaste 16000 en cine,16.6,0.633,confirmado,,2026-09-20T22:27:00Z,2026-09-20T22:27:06Z
+160,11,11,FG-0010,msg-011-0010,1,app_voz,guarde 48000 para Fondo de emergencia,9.1,0.689,confirmado,,2026-09-26T13:40:00Z,2026-09-26T13:40:18Z
+161,11,11,FG-0010,msg-011-0011,1,dispositivo,gaste 11000 en desayuno,14.2,0.845,confirmado,,2026-09-30T19:49:00Z,2026-09-30T19:49:16Z
+162,11,11,FG-0010,msg-011-0012,1,app_voz,gaste 5500 en mercado,4.4,0.817,confirmado,,2026-10-06T20:47:00Z,2026-10-06T20:47:16Z
+163,11,11,FG-0010,msg-011-0013,1,dispositivo,gaste 12000 en arena del gato,,0.657,procesado,,2026-11-01T17:19:00Z,2026-11-01T17:19:02Z
+164,11,11,FG-0010,msg-011-0014,1,dispositivo,guarde 17000 para Beca de intercambio,,0.643,confirmado,,2026-11-04T18:24:00Z,2026-11-04T18:24:07Z
+165,11,11,FG-0010,msg-011-voz-fallida,1,dispositivo,,7.9,,recibido,STT_SIN_TEXTO,2026-10-14T13:17:00Z,
+166,12,12,FG-0011,msg-012-0001,1,app_voz,gaste 44500 en desayuno,5.5,0.981,confirmado,,2026-07-25T20:14:00Z,2026-07-25T20:14:16Z
+167,12,12,FG-0011,msg-012-0002,1,dispositivo,gaste 54000 en cafe,17.4,0.637,confirmado,,2026-08-11T12:39:00Z,2026-08-11T12:39:04Z
+168,12,12,FG-0011,msg-012-0003,1,dispositivo,gaste 35500 en compra pequena,,0.703,confirmado,,2026-09-22T14:40:00Z,2026-09-22T14:40:09Z
+169,12,12,FG-0011,msg-012-0004,1,dispositivo,gaste 19500 en cafe,12.8,0.646,confirmado,,2026-09-22T20:19:00Z,2026-09-22T20:19:16Z
+170,12,12,FG-0011,msg-012-0005,1,app_voz,gaste 42500 en cafe,6.2,0.983,confirmado,,2026-10-06T19:12:00Z,2026-10-06T19:12:11Z
+171,12,12,FG-0011,msg-012-0006,1,dispositivo,gaste 115000 en regalo para mama,,0.889,confirmado,,2026-10-19T22:09:00Z,2026-10-19T22:09:18Z
+172,12,12,FG-0011,msg-012-0007,1,dispositivo,recibi 7305000 de pago de freelance,7.6,0.977,confirmado,,2026-11-03T21:15:00Z,2026-11-03T21:15:13Z
+173,12,12,FG-0011,msg-012-0008,1,dispositivo,gaste 120500 en cine,3.1,0.635,procesado,,2026-11-03T22:37:00Z,2026-11-03T22:37:18Z
+174,12,12,FG-0011,msg-012-voz-fallida,1,dispositivo,,8.7,,recibido,STT_SIN_TEXTO,2026-11-01T21:43:00Z,
+175,13,13,FG-0012,msg-013-0001,1,app_voz,gaste 50000 en Spotify,14.6,0.659,confirmado,,2026-07-13T23:43:00Z,2026-07-13T23:43:03Z
+176,13,13,FG-0012,msg-013-0002,1,dispositivo,gaste 27000 en cine familiar,5.3,0.988,confirmado,,2026-07-23T01:07:00Z,2026-07-23T01:07:17Z
+177,13,13,FG-0012,msg-013-0003,1,dispositivo,gaste 352000 en internet,11.5,0.986,confirmado,,2026-07-27T02:38:00Z,2026-07-27T02:38:10Z
+178,13,13,FG-0012,msg-013-0004,1,app_voz,gaste 207000 en reparacion,15.4,0.695,confirmado,,2026-08-05T15:34:00Z,2026-08-05T15:34:05Z
+179,13,13,FG-0012,msg-013-0005,1,app_voz,guarde 455000 para Bicicleta,14.1,0.723,confirmado,,2026-08-23T13:14:00Z,2026-08-23T13:14:03Z
+180,13,13,FG-0012,msg-013-0006,1,app_voz,recibi 3713000 de pago de freelance,,0.985,confirmado,,2026-08-31T19:24:00Z,2026-08-31T19:24:05Z
+181,13,13,FG-0012,msg-013-0007,1,dispositivo,gaste 96000 en internet,4.8,0.918,confirmado,,2026-09-03T21:50:00Z,2026-09-03T21:50:06Z
+182,13,13,FG-0012,msg-013-0008,1,dispositivo,gaste 47500 en corte de cabello,,0.945,confirmado,,2026-09-14T00:10:00Z,2026-09-14T00:10:16Z
+183,13,13,FG-0012,msg-013-0009,1,dispositivo,gaste 18000 en TransMilenio,3.2,0.785,confirmado,,2026-09-14T02:28:00Z,2026-09-14T02:28:16Z
+184,13,13,FG-0012,msg-013-0010,1,app_voz,gaste 38000 en restaurante,1.6,0.691,confirmado,,2026-09-25T19:19:00Z,2026-09-25T19:19:05Z
+185,13,13,FG-0012,msg-013-0011,1,dispositivo,gaste 29500 en almuerzo,,0.987,confirmado,,2026-09-26T02:00:00Z,2026-09-26T02:00:15Z
+186,13,13,FG-0012,msg-013-0012,1,app_voz,gaste 6000 en TransMilenio,9.6,0.705,confirmado,,2026-10-17T00:55:00Z,2026-10-17T00:55:13Z
+187,13,13,FG-0012,msg-013-0013,1,app_voz,gaste 29000 en cine familiar,,0.641,confirmado,,2026-10-17T21:54:00Z,2026-10-17T21:54:14Z
+188,13,13,FG-0012,msg-013-0014,1,dispositivo,gaste 24000 en gasolina,15.0,0.701,confirmado,,2026-10-20T14:05:00Z,2026-10-20T14:05:18Z
+189,13,13,FG-0012,msg-013-0015,1,dispositivo,gaste 30500 en cine familiar,5.8,0.92,confirmado,,2026-10-20T21:19:00Z,2026-10-20T21:19:05Z
+190,13,13,FG-0012,msg-013-0016,1,app_voz,gaste 16500 en taxi,6.8,0.725,procesado,,2026-10-25T14:36:00Z,2026-10-25T14:36:07Z
+191,13,13,FG-0012,msg-013-0017,1,dispositivo,gaste 15500 en desayuno,,0.694,procesado,,2026-10-31T18:27:00Z,2026-10-31T18:27:02Z
+192,14,14,FG-0013,msg-014-0001,1,dispositivo,gaste 18000 en varios,6.8,0.851,confirmado,,2026-07-11T19:05:00Z,2026-07-11T19:05:07Z
+193,14,14,FG-0013,msg-014-0002,1,app_voz,gaste 22000 en mercado de la casa,8.7,0.894,confirmado,,2026-07-17T16:14:00Z,2026-07-17T16:14:12Z
+194,14,14,FG-0013,msg-014-0003,1,dispositivo,gaste 11000 en varios,,0.967,confirmado,,2026-07-21T20:41:00Z,2026-07-21T20:41:09Z
+195,14,14,FG-0013,msg-014-0004,1,dispositivo,gaste 13000 en comida del gato,7.8,0.715,confirmado,,2026-08-03T17:36:00Z,2026-08-03T17:36:13Z
+196,14,14,FG-0013,msg-014-0005,1,dispositivo,gaste 7000 en pasaje de bus,1.8,0.849,confirmado,,2026-08-10T16:52:00Z,2026-08-10T16:52:18Z
+197,14,14,FG-0013,msg-014-0006,1,app_voz,gaste 47500 en libros,3.8,0.729,confirmado,,2026-08-11T01:59:00Z,2026-08-11T01:59:18Z
+198,14,14,FG-0013,msg-014-0007,1,dispositivo,gaste 10000 en cita medica,8.8,0.891,confirmado,,2026-08-19T00:11:00Z,2026-08-19T00:11:14Z
+199,14,14,FG-0013,msg-014-0008,1,dispositivo,gaste 18500 en panaderia,,0.98,confirmado,,2026-08-21T02:58:00Z,2026-08-21T02:58:14Z
+200,14,14,FG-0013,msg-014-0009,1,dispositivo,gaste 15500 en mercado,9.2,0.655,confirmado,,2026-09-06T17:59:00Z,2026-09-06T17:59:16Z
+201,14,14,FG-0013,msg-014-0010,1,dispositivo,gaste 20000 en restaurante,8.2,0.626,confirmado,,2026-09-22T22:29:00Z,2026-09-22T22:29:10Z
+202,14,14,FG-0013,msg-014-0011,1,app_voz,gaste 10000 en domicilio de comida,16.9,0.829,confirmado,,2026-09-24T17:08:00Z,2026-09-24T17:08:10Z
+203,14,14,FG-0013,msg-014-0012,1,dispositivo,gaste 118000 en reparacion,5.5,0.881,confirmado,,2026-09-30T20:14:00Z,2026-09-30T20:14:04Z
+204,14,14,FG-0013,msg-014-0013,1,dispositivo,recibi 1081000 de pago de freelance,14.1,0.984,confirmado,,2026-10-08T12:04:00Z,2026-10-08T12:04:08Z
+205,14,14,FG-0013,msg-014-0014,1,app_voz,gaste 19000 en desayuno,9.3,0.656,confirmado,,2026-10-12T19:51:00Z,2026-10-12T19:51:07Z
+206,14,14,FG-0013,msg-014-0015,1,dispositivo,gaste 5000 en gasolina,9.5,0.898,confirmado,,2026-10-17T16:08:00Z,2026-10-17T16:08:12Z
+207,14,14,FG-0013,msg-014-0016,1,app_voz,gaste 3000 en envio de dinero,15.5,0.978,procesado,,2026-10-27T19:25:00Z,2026-10-27T19:25:17Z
+208,14,14,FG-0013,msg-014-0017,1,dispositivo,gaste 34000 en salida con amigos,16.9,0.903,confirmado,,2026-10-27T22:26:00Z,2026-10-27T22:26:05Z
+209,14,14,FG-0013,msg-014-0018,1,dispositivo,gaste 9000 en TransMilenio,12.2,0.739,confirmado,,2026-10-28T17:00:00Z,2026-10-28T17:00:03Z
+210,14,14,FG-0013,msg-014-0019,1,dispositivo,gaste 9000 en parqueadero,,0.967,confirmado,,2026-11-03T02:50:00Z,2026-11-03T02:50:16Z
+211,14,14,FG-0013,msg-014-0020,1,dispositivo,guarde 93000 para Beca de intercambio,15.3,0.751,confirmado,,2026-11-04T21:44:00Z,2026-11-04T21:44:12Z
+212,14,14,FG-0013,msg-014-voz-fallida,1,dispositivo,,3.2,,recibido,STT_SIN_TEXTO,2026-10-18T01:40:00Z,
+213,15,15,FG-0014,msg-015-0001,1,app_voz,gaste 28000 en cine familiar,,0.755,confirmado,,2026-07-23T17:28:00Z,2026-07-23T17:28:12Z
+214,15,15,FG-0014,msg-015-0002,1,app_voz,recibi 2669000 de pago de freelance,4.1,0.961,confirmado,,2026-08-09T13:53:00Z,2026-08-09T13:53:15Z
+215,15,15,FG-0014,msg-015-0003,1,app_voz,gaste 22000 en almuerzo,9.3,0.916,confirmado,,2026-08-09T17:13:00Z,2026-08-09T17:13:04Z
+216,15,15,FG-0014,msg-015-0004,1,app_voz,gaste 28500 en cafe,4.4,0.973,confirmado,,2026-08-24T16:43:00Z,2026-08-24T16:43:06Z
+217,15,15,FG-0014,msg-015-0005,1,dispositivo,gaste 15500 en domicilio de comida,17.2,0.792,confirmado,,2026-09-10T16:47:00Z,2026-09-10T16:47:12Z
+218,15,15,FG-0014,msg-015-0006,1,dispositivo,gaste 20500 en envio de dinero,13.5,0.851,confirmado,,2026-09-10T18:52:00Z,2026-09-10T18:52:12Z
+219,15,15,FG-0014,msg-015-0007,1,dispositivo,gaste 37500 en panaderia,16.3,0.726,confirmado,,2026-09-11T18:30:00Z,2026-09-11T18:30:10Z
+220,15,15,FG-0014,msg-015-0008,1,app_voz,guarde 179000 para Laptop,13.9,0.65,confirmado,,2026-09-12T19:04:00Z,2026-09-12T19:04:07Z
+221,15,15,FG-0014,msg-015-0009,1,app_voz,gaste 12000 en domicilio de comida,4.4,0.697,confirmado,,2026-09-15T12:26:00Z,2026-09-15T12:26:06Z
+222,15,15,FG-0014,msg-015-0010,1,dispositivo,guarde 16000 para Concierto,4.0,0.851,confirmado,,2026-09-18T00:17:00Z,2026-09-18T00:17:18Z
+223,15,15,FG-0014,msg-015-0011,1,app_voz,recibi 138000 de apoyo de mis papas,,0.752,confirmado,,2026-09-28T15:53:00Z,2026-09-28T15:53:17Z
+224,15,15,FG-0014,msg-015-0012,1,app_voz,gaste 38500 en cafe,13.9,0.791,confirmado,,2026-10-13T23:42:00Z,2026-10-13T23:42:13Z
+225,15,15,FG-0014,msg-015-0013,1,dispositivo,recibi 2449000 de salario,,0.895,procesado,,2026-10-21T21:04:00Z,2026-10-21T21:04:06Z
+226,15,15,FG-0014,msg-015-0014,1,dispositivo,gaste 7500 en almuerzo,14.4,0.842,confirmado,,2026-10-22T02:39:00Z,2026-10-22T02:39:06Z
+227,15,15,FG-0014,msg-015-0015,1,dispositivo,gaste 18000 en parqueadero,13.3,0.709,procesado,,2026-10-24T17:29:00Z,2026-10-24T17:29:03Z
+228,15,15,FG-0014,msg-015-0016,1,dispositivo,gaste 57500 en regalo para mama,13.3,0.91,confirmado,,2026-11-01T15:45:00Z,2026-11-01T15:45:09Z
+229,15,15,FG-0014,msg-015-0017,1,dispositivo,gaste 12000 en mercado,,0.791,confirmado,,2026-11-02T00:51:00Z,2026-11-02T00:51:12Z
+230,15,15,FG-0014,msg-015-0018,1,dispositivo,gaste 36500 en almuerzo,,0.951,confirmado,,2026-11-03T18:12:00Z,2026-11-03T18:12:05Z
+231,15,15,FG-0014,msg-015-0019,1,dispositivo,gaste 115000 en internet,10.8,0.68,procesado,,2026-11-04T01:29:00Z,2026-11-04T01:29:14Z
+232,16,16,FG-0015,msg-016-0001,1,dispositivo,gaste 11000 en almuerzo,2.4,0.878,confirmado,,2026-07-17T01:36:00Z,2026-07-17T01:36:11Z
+233,16,16,FG-0015,msg-016-0002,1,dispositivo,gaste 9000 en panaderia,,0.88,confirmado,,2026-07-19T17:14:00Z,2026-07-19T17:14:05Z
+234,16,16,FG-0015,msg-016-0003,1,dispositivo,gaste 17000 en salida con amigos,14.8,0.867,confirmado,,2026-07-21T00:54:00Z,2026-07-21T00:54:13Z
+235,16,16,FG-0015,msg-016-0004,1,dispositivo,gaste 92000 en arriendo,13.8,0.671,confirmado,,2026-08-10T22:55:00Z,2026-08-10T22:55:10Z
+236,16,16,FG-0015,msg-016-0005,1,app_voz,gaste 38000 en pago de credito,13.3,0.884,confirmado,,2026-08-16T20:01:00Z,2026-08-16T20:01:05Z
+237,16,16,FG-0015,msg-016-0006,1,dispositivo,gaste 15000 en restaurante,4.1,0.782,confirmado,,2026-08-29T17:00:00Z,2026-08-29T17:00:08Z
+238,16,16,FG-0015,msg-016-0007,1,dispositivo,gaste 5000 en desayuno,11.0,0.845,confirmado,,2026-09-05T12:43:00Z,2026-09-05T12:43:13Z
+239,16,16,FG-0015,msg-016-0008,1,dispositivo,gaste 24000 en libro,12.3,0.987,confirmado,,2026-09-10T22:41:00Z,2026-09-10T22:41:09Z
+240,16,16,FG-0015,msg-016-0009,1,app_voz,gaste 17500 en gimnasio,7.7,0.963,confirmado,,2026-09-11T21:51:00Z,2026-09-11T21:51:03Z
+241,16,16,FG-0015,msg-016-0010,1,app_voz,gaste 18500 en Spotify,16.0,0.819,confirmado,,2026-09-13T02:31:00Z,2026-09-13T02:31:16Z
+242,16,16,FG-0015,msg-016-0011,1,app_voz,gaste 11500 en almuerzo,18.0,0.966,confirmado,,2026-09-24T21:11:00Z,2026-09-24T21:11:05Z
+243,16,16,FG-0015,msg-016-0012,1,dispositivo,gaste 17000 en almuerzo,3.0,0.774,confirmado,,2026-09-24T23:19:00Z,2026-09-24T23:19:04Z
+244,16,16,FG-0015,msg-016-0013,1,dispositivo,gaste 13000 en regalo para mama,,0.704,confirmado,,2026-09-30T15:47:00Z,2026-09-30T15:47:04Z
+245,16,16,FG-0015,msg-016-0014,1,dispositivo,gaste 15500 en domicilio de comida,12.8,0.754,confirmado,,2026-10-11T13:18:00Z,2026-10-11T13:18:08Z
+246,16,16,FG-0015,msg-016-0015,1,dispositivo,gaste 3500 en parqueadero,16.8,0.738,confirmado,,2026-10-15T20:56:00Z,2026-10-15T20:56:03Z
+247,16,16,FG-0015,msg-016-0016,1,app_voz,guarde 32000 para Mudanza,8.4,0.647,confirmado,,2026-10-24T16:15:00Z,2026-10-24T16:15:05Z
+248,16,16,FG-0015,msg-016-0017,1,dispositivo,gaste 16500 en concierto,8.3,0.848,confirmado,,2026-10-26T00:05:00Z,2026-10-26T00:05:15Z
+249,16,16,FG-0015,msg-016-0018,1,app_voz,gaste 9500 en domicilio de comida,6.3,0.792,confirmado,,2026-11-02T02:49:00Z,2026-11-02T02:49:11Z
+250,16,16,FG-0015,msg-016-voz-fallida,1,dispositivo,,5.1,,recibido,STT_SIN_TEXTO,2026-11-01T22:13:00Z,
+251,17,17,FG-0016,msg-017-0001,1,dispositivo,gaste 19500 en desayuno,,0.816,confirmado,,2026-07-23T21:49:00Z,2026-07-23T21:49:03Z
+252,17,17,FG-0016,msg-017-0002,1,app_voz,gaste 11500 en desayuno,,0.723,confirmado,,2026-07-27T02:31:00Z,2026-07-27T02:31:13Z
+253,17,17,FG-0016,msg-017-0003,1,dispositivo,gaste 82000 en servicios publicos,17.7,0.985,confirmado,,2026-07-31T13:39:00Z,2026-07-31T13:39:16Z
+254,17,17,FG-0016,msg-017-0004,1,dispositivo,gaste 25000 en salida con amigos,1.1,0.91,confirmado,,2026-08-13T14:31:00Z,2026-08-13T14:31:18Z
+255,17,17,FG-0016,msg-017-0005,1,dispositivo,gaste 12500 en pasaje de bus,,0.906,confirmado,,2026-08-21T14:07:00Z,2026-08-21T14:07:06Z
+256,17,17,FG-0016,msg-017-0006,1,dispositivo,gaste 36000 en arena del gato,7.7,0.789,descartado,,2026-09-04T20:07:00Z,2026-09-04T20:07:12Z
+257,17,17,FG-0016,msg-017-0007,1,app_voz,gaste 100000 en administracion,,0.693,confirmado,,2026-09-16T17:27:00Z,2026-09-16T17:27:04Z
+258,17,17,FG-0016,msg-017-0008,1,dispositivo,gaste 7500 en restaurante,,0.894,confirmado,,2026-09-30T12:30:00Z,2026-09-30T12:30:05Z
+259,17,17,FG-0016,msg-017-0009,1,dispositivo,gaste 24500 en salida con amigos,15.8,0.673,confirmado,,2026-10-06T01:30:00Z,2026-10-06T01:30:17Z
+260,17,17,FG-0016,msg-017-0010,1,dispositivo,gaste 23500 en mercado,,0.852,confirmado,,2026-10-25T21:19:00Z,2026-10-25T21:19:14Z
+261,17,17,FG-0016,msg-017-0011,1,app_voz,gaste 18500 en desayuno,17.8,0.802,procesado,,2026-10-26T13:55:00Z,2026-10-26T13:55:14Z
+262,17,17,FG-0016,msg-017-0012,1,dispositivo,gaste 13500 en compra pequena,1.1,0.929,confirmado,,2026-11-04T22:05:00Z,2026-11-04T22:05:13Z
+263,18,18,FG-0017,msg-018-0001,1,dispositivo,gaste 51500 en panaderia,16.6,0.908,descartado,,2026-07-10T15:12:00Z,2026-07-10T15:12:06Z
+264,18,18,FG-0017,msg-018-0002,1,dispositivo,gaste 40000 en cafe,5.1,0.791,confirmado,,2026-08-06T01:05:00Z,2026-08-06T01:05:07Z
+265,18,18,FG-0017,msg-018-0003,1,dispositivo,gaste 113000 en libro,4.2,0.706,confirmado,,2026-08-22T20:06:00Z,2026-08-22T20:06:18Z
+266,18,18,FG-0017,msg-018-0004,1,dispositivo,recibi 3923000 de pago de freelance,14.3,0.733,confirmado,,2026-08-27T14:40:00Z,2026-08-27T14:40:02Z
+267,18,18,FG-0017,msg-018-0005,1,dispositivo,recibi 118000 de venta de algo,,0.693,confirmado,,2026-09-02T14:56:00Z,2026-09-02T14:56:17Z
+268,18,18,FG-0017,msg-018-0006,1,app_voz,gaste 40500 en panaderia,7.3,0.941,confirmado,,2026-09-07T19:19:00Z,2026-09-07T19:19:12Z
+269,18,18,FG-0017,msg-018-0007,1,dispositivo,gaste 227000 en administracion,11.3,0.704,confirmado,,2026-09-13T15:56:00Z,2026-09-13T15:56:17Z
+270,18,18,FG-0017,msg-018-0008,1,dispositivo,gaste 52000 en varios,4.2,0.654,confirmado,,2026-09-24T15:05:00Z,2026-09-24T15:05:11Z
+271,18,18,FG-0017,msg-018-0009,1,dispositivo,gaste 54000 en mercado,13.2,0.711,confirmado,,2026-09-29T13:39:00Z,2026-09-29T13:39:13Z
+272,18,18,FG-0017,msg-018-0010,1,dispositivo,gaste 9500 en parqueadero,,0.707,confirmado,,2026-10-05T02:05:00Z,2026-10-05T02:05:18Z
+273,18,18,FG-0017,msg-018-0011,1,app_voz,gaste 9500 en Uber,6.3,0.809,confirmado,,2026-10-05T16:28:00Z,2026-10-05T16:28:12Z
+274,18,18,FG-0017,msg-018-0012,1,dispositivo,gaste 28000 en compra pequena,,0.668,confirmado,,2026-10-07T14:10:00Z,2026-10-07T14:10:02Z
+275,18,18,FG-0017,msg-018-0013,1,dispositivo,gaste 448000 en servicios publicos,5.0,0.641,confirmado,,2026-10-11T17:11:00Z,2026-10-11T17:11:18Z
+276,18,18,FG-0017,msg-018-0014,1,app_voz,gaste 298000 en reparacion,13.6,0.917,confirmado,,2026-10-13T16:28:00Z,2026-10-13T16:28:04Z
+277,18,18,FG-0017,msg-018-0015,1,app_voz,gaste 65500 en panaderia,,0.717,confirmado,,2026-10-19T20:05:00Z,2026-10-19T20:05:16Z
+278,18,18,FG-0017,msg-018-0016,1,app_voz,gaste 68000 en almuerzo,1.2,0.881,confirmado,,2026-10-21T14:55:00Z,2026-10-21T14:55:11Z
+279,18,18,FG-0017,msg-018-0017,1,dispositivo,gaste 42000 en gimnasio,3.7,0.857,confirmado,,2026-10-22T21:30:00Z,2026-10-22T21:30:03Z
+280,18,18,FG-0017,msg-018-0018,1,app_voz,gaste 67000 en gimnasio,2.7,0.908,confirmado,,2026-11-02T23:44:00Z,2026-11-02T23:44:18Z
+281,18,18,FG-0017,msg-018-0019,1,dispositivo,gaste 51500 en cita medica,,0.692,confirmado,,2026-11-04T17:28:00Z,2026-11-04T17:28:14Z
+282,18,18,FG-0017,msg-018-0020,1,dispositivo,guarde 247500 para Muebles para el cuarto,4.1,0.968,confirmado,,2026-11-05T01:52:00Z,2026-11-05T01:52:06Z
+283,18,18,FG-0017,msg-018-voz-fallida,1,dispositivo,,8.6,,recibido,STT_SIN_TEXTO,2026-10-26T20:58:00Z,
+284,19,,app-19,msg-019-0001,1,app_voz,gaste 12000 en domicilio de comida,1.6,0.765,confirmado,,2026-08-07T16:32:00Z,2026-08-07T16:32:15Z
+285,19,,app-19,msg-019-0002,1,app_voz,gaste 15000 en compra pequena,15.5,0.663,confirmado,,2026-08-31T22:00:00Z,2026-08-31T22:00:09Z
+286,19,,app-19,msg-019-0003,1,app_voz,gaste 14500 en videojuego,10.7,0.893,confirmado,,2026-09-26T18:10:00Z,2026-09-26T18:10:18Z
+287,19,,app-19,msg-019-0004,1,app_voz,gaste 14500 en videojuego,,0.7,confirmado,,2026-09-26T21:49:00Z,2026-09-26T21:49:06Z
+288,19,,app-19,msg-019-0005,1,app_voz,guarde 85500 para Muebles para el cuarto,14.1,0.952,confirmado,,2026-10-27T18:09:00Z,2026-10-27T18:09:18Z
+289,19,,app-19,msg-019-0006,1,app_voz,guarde 157000 para Muebles para el cuarto,15.1,0.66,procesado,,2026-10-31T20:20:00Z,2026-10-31T20:20:16Z
+290,19,,app-19,msg-019-0007,1,app_voz,recibi 886000 de compra,,0.666,confirmado,,2026-11-02T01:29:00Z,2026-11-02T01:29:09Z
+291,19,,app-19,msg-019-0008,1,app_voz,gaste 15500 en concierto,16.1,0.707,confirmado,,2026-11-04T17:09:00Z,2026-11-04T17:09:05Z
+292,20,,app-20,msg-020-0001,1,app_voz,gaste 72000 en compra,,0.819,confirmado,,2026-07-09T17:36:00Z,2026-07-09T17:36:08Z
+293,20,,app-20,msg-020-0002,1,app_voz,gaste 15000 en mercado,,0.868,confirmado,,2026-07-13T13:29:00Z,2026-07-13T13:29:17Z
+294,20,,app-20,msg-020-0003,1,app_voz,gaste 38000 en internet,10.1,0.754,confirmado,,2026-07-31T15:58:00Z,2026-07-31T15:58:15Z
+295,20,,app-20,msg-020-0004,1,app_voz,gaste 9000 en gasolina,16.0,0.801,confirmado,,2026-09-14T23:26:00Z,2026-09-14T23:26:11Z
+296,20,,app-20,msg-020-0005,1,app_voz,guarde 81000 para Concierto,,0.891,confirmado,,2026-09-18T02:07:00Z,2026-09-18T02:07:14Z
+297,20,,app-20,msg-020-0006,1,app_voz,gaste 15500 en envio de dinero,,0.97,confirmado,,2026-09-24T13:57:00Z,2026-09-24T13:57:10Z
+298,21,,app-21,msg-021-0001,1,app_voz,gaste 142000 en arriendo,11.2,0.91,confirmado,,2026-07-12T23:30:00Z,2026-07-12T23:30:04Z
+299,21,,app-21,msg-021-0002,1,app_voz,gaste 109000 en videojuego,,0.961,confirmado,,2026-08-06T01:39:00Z,2026-08-06T01:39:13Z
+300,21,,app-21,msg-021-0003,1,app_voz,gaste 125000 en servicios publicos,3.2,0.663,confirmado,,2026-08-10T13:57:00Z,2026-08-10T13:57:15Z
+301,21,,app-21,msg-021-0004,1,app_voz,gaste 27000 en pasaje de bus,,0.905,confirmado,,2026-08-20T23:35:00Z,2026-08-20T23:35:09Z
+302,21,,app-21,msg-021-0005,1,app_voz,gaste 74000 en gimnasio,17.9,0.643,confirmado,,2026-09-23T17:10:00Z,2026-09-23T17:10:18Z
+303,21,,app-21,msg-021-0006,1,app_voz,gaste 30500 en pasaje de bus,16.4,0.874,confirmado,,2026-10-04T21:17:00Z,2026-10-04T21:17:06Z
+304,21,,app-21,msg-021-0007,1,app_voz,gaste 81500 en corte de cabello,16.4,0.664,confirmado,,2026-10-13T00:49:00Z,2026-10-13T00:49:14Z
+305,21,,app-21,msg-021-0008,1,app_voz,gaste 69500 en jabon,,0.851,procesado,,2026-11-02T16:42:00Z,2026-11-02T16:42:07Z
+306,21,,app-21,msg-021-0009,1,app_voz,gaste 136000 en arriendo,3.2,0.639,confirmado,,2026-11-04T23:32:00Z,2026-11-04T23:32:03Z
+307,22,,app-22,msg-022-0001,1,app_voz,gaste 17500 en cafe,12.0,0.668,descartado,,2026-07-13T21:57:00Z,2026-07-13T21:57:15Z
+308,22,,app-22,msg-022-0002,1,app_voz,gaste 17000 en mercado de la casa,16.0,0.821,confirmado,,2026-08-14T01:11:00Z,2026-08-14T01:11:14Z
+309,22,,app-22,msg-022-0003,1,app_voz,gaste 10500 en almuerzo,,0.655,confirmado,,2026-08-16T01:07:00Z,2026-08-16T01:07:12Z
+310,22,,app-22,msg-022-0004,1,app_voz,gaste 13000 en pedido de comida,13.5,0.834,confirmado,,2026-08-20T12:27:00Z,2026-08-20T12:27:12Z
+311,22,,app-22,msg-022-0005,1,app_voz,gaste 5000 en restaurante,5.0,0.801,confirmado,,2026-08-27T14:35:00Z,2026-08-27T14:35:04Z
+312,22,,app-22,msg-022-0006,1,app_voz,guarde 41000 para Concierto,10.5,0.693,confirmado,,2026-08-29T13:55:00Z,2026-08-29T13:55:17Z
+313,22,,app-22,msg-022-0007,1,app_voz,gaste 6000 en taxi,7.4,0.921,confirmado,,2026-09-02T20:40:00Z,2026-09-02T20:40:08Z
+314,22,,app-22,msg-022-0008,1,app_voz,gaste 7500 en gasolina,5.4,0.783,confirmado,,2026-09-11T16:58:00Z,2026-09-11T16:58:06Z
+315,22,,app-22,msg-022-0009,1,app_voz,gaste 3000 en gasolina,6.1,0.888,confirmado,,2026-09-14T12:40:00Z,2026-09-14T12:40:07Z
+316,22,,app-22,msg-022-0010,1,app_voz,gaste 16000 en domicilio,,0.635,confirmado,,2026-10-14T19:18:00Z,2026-10-14T19:18:13Z
+317,22,,app-22,msg-022-0011,1,app_voz,gaste 22000 en gimnasio,,0.716,confirmado,,2026-10-19T16:13:00Z,2026-10-19T16:13:10Z
+318,22,,app-22,msg-022-0012,1,app_voz,gaste 6500 en jabon,4.5,0.968,confirmado,,2026-11-02T02:50:00Z,2026-11-02T02:50:13Z
+319,22,,app-22,msg-022-0013,1,app_voz,gaste 5500 en YouTube Premium,10.8,0.883,confirmado,,2026-11-04T19:58:00Z,2026-11-04T19:58:09Z
+320,23,,app-23,msg-023-0001,1,app_voz,gaste 22000 en gasolina,17.2,0.814,confirmado,,2026-09-21T17:12:00Z,2026-09-21T17:12:09Z
+321,23,,app-23,msg-023-0002,1,app_voz,gaste 62000 en compra pequena,11.4,0.904,confirmado,,2026-09-21T17:59:00Z,2026-09-21T17:59:08Z
+322,23,,app-23,msg-023-0003,1,app_voz,gaste 29500 en imprevisto,,0.844,confirmado,,2026-09-23T23:06:00Z,2026-09-23T23:06:17Z
+323,23,,app-23,msg-023-0004,1,app_voz,gaste 70000 en salida con amigos,1.7,0.677,confirmado,,2026-10-10T18:02:00Z,2026-10-10T18:02:16Z
+324,23,,app-23,msg-023-0005,1,app_voz,gaste 79000 en plan de datos,14.5,0.812,confirmado,,2026-10-24T18:32:00Z,2026-10-24T18:32:16Z
+325,23,,app-23,msg-023-0006,1,app_voz,gaste 47500 en varios,,0.863,procesado,,2026-10-26T15:58:00Z,2026-10-26T15:58:13Z
+326,23,,app-23,msg-023-0007,1,app_voz,gaste 39500 en almuerzo,14.5,0.727,confirmado,,2026-10-28T18:24:00Z,2026-10-28T18:24:07Z
+327,23,,app-23,msg-023-0008,1,app_voz,gaste 81500 en regalo para mama,,0.979,confirmado,,2026-11-04T23:48:00Z,2026-11-04T23:48:04Z
+328,24,,app-24,msg-024-0001,1,app_voz,gaste 12000 en imprevisto,16.1,0.724,confirmado,,2026-07-11T22:17:00Z,2026-07-11T22:17:12Z
+329,24,,app-24,msg-024-0002,1,app_voz,gaste 174000 en servicios publicos,,0.844,confirmado,,2026-10-08T01:52:00Z,2026-10-08T01:52:04Z
+330,24,,app-24,msg-024-0003,1,app_voz,gaste 28000 en compra,7.2,0.783,confirmado,,2026-10-14T21:17:00Z,2026-10-14T21:17:15Z
+331,24,,app-24,msg-024-0004,1,app_voz,gaste 15500 en desayuno,,0.922,confirmado,,2026-10-29T00:09:00Z,2026-10-29T00:09:14Z
+332,24,,app-24,msg-024-0005,1,app_voz,gaste 7000 en domicilio de comida,4.0,0.815,confirmado,,2026-10-29T15:10:00Z,2026-10-29T15:10:18Z
+333,25,,app-25,msg-025-0001,1,app_voz,gaste 45500 en panaderia,17.3,0.925,confirmado,,2026-07-19T17:44:00Z,2026-07-19T17:44:04Z
+334,25,,app-25,msg-025-0002,1,app_voz,gaste 80500 en jabon,11.4,0.675,confirmado,,2026-07-24T14:21:00Z,2026-07-24T14:21:12Z
+335,25,,app-25,msg-025-0003,1,app_voz,gaste 19500 en desayuno,3.0,0.774,confirmado,,2026-08-03T23:46:00Z,2026-08-03T23:46:06Z
+336,25,,app-25,msg-025-0004,1,app_voz,guarde 236000 para Laptop,,0.687,confirmado,,2026-08-06T01:07:00Z,2026-08-06T01:07:02Z
+337,25,,app-25,msg-025-0005,1,app_voz,gaste 25500 en desayuno,9.7,0.956,confirmado,,2026-08-18T16:47:00Z,2026-08-18T16:47:03Z
+338,25,,app-25,msg-025-0006,1,app_voz,gaste 146000 en compra,2.1,0.803,confirmado,,2026-08-22T14:59:00Z,2026-08-22T14:59:13Z
+339,25,,app-25,msg-025-0007,1,app_voz,gaste 105500 en videojuego,12.1,0.754,confirmado,,2026-09-04T17:21:00Z,2026-09-04T17:21:08Z
+340,25,,app-25,msg-025-0008,1,app_voz,gaste 31000 en cine,,0.636,confirmado,,2026-09-15T18:37:00Z,2026-09-15T18:37:04Z
+341,25,,app-25,msg-025-0009,1,app_voz,gaste 37500 en panaderia,10.1,0.752,confirmado,,2026-09-28T22:40:00Z,2026-09-28T22:40:08Z
+342,25,,app-25,msg-025-0010,1,app_voz,gaste 14500 en gasolina,,0.885,confirmado,,2026-11-04T19:44:00Z,2026-11-04T19:44:16Z
+343,25,,app-25,msg-025-0011,1,app_voz,recibi 4976000 de honorarios,1.6,0.642,confirmado,,2026-11-05T01:33:00Z,2026-11-05T01:33:17Z

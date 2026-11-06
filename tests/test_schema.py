@@ -84,7 +84,7 @@ class SchemaTests(unittest.TestCase):
         ).lastrowid
 
     def test_schema_version_and_catalogs(self):
-        self.assertEqual(init_db.schema_version(self.conn), 3)
+        self.assertEqual(init_db.schema_version(self.conn), 4)
         self.assertEqual(
             self.conn.execute("SELECT COUNT(*) FROM plantilla_categorias").fetchone()[0], 16
         )
