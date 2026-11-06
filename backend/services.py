@@ -6,6 +6,8 @@ from datetime import date as date_cls
 from datetime import datetime
 
 from . import nlp
+from . import finance_engine, optimization
+from .audio import MAX_DURACION_S as MAX_AUDIO_DURACION_S
 from .db import (
     BOGOTA,
     clamp,
@@ -22,6 +24,19 @@ ALLOWED_TRANSACTION_TYPES = ("gasto", "ingreso", "ahorro")
 ALLOWED_TRANSACTION_STATES = ("pendiente", "confirmado", "anulado")
 HEALTH_MIN = -35
 HEALTH_MAX = 25
+PRIORIDAD_MIN = 1
+PRIORIDAD_MAX = 5
+
+
+def parse_priority(value):
+    """Normaliza la prioridad de una meta; devuelve None si es invalida."""
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    if number < PRIORIDAD_MIN or number > PRIORIDAD_MAX:
+        return None
+    return number
 
 
 def parse_date(value):
@@ -43,6 +58,19 @@ def transaction_row(conn, user_id, transaction_id):
         """,
         (user_id, transaction_id),
     ).fetchone()
+
+
+def message_por_message_id(conn, user_id, message_id):
+    """Busca un mensaje por su identificador externo (idempotencia)."""
+    if not message_id:
+        return None
+    row = conn.execute(
+        "SELECT id FROM mensajes_dispositivo WHERE usuario_id = ? AND message_id = ?",
+        (user_id, str(message_id)),
+    ).fetchone()
+    if row is None:
+        return None
+    return message_payload(conn, user_id, row["id"])
 
 
 def message_payload(conn, user_id, message_id):
@@ -117,7 +145,7 @@ def create_message(
             audio_duration_s = float(audio_duration_s)
         except (TypeError, ValueError):
             audio_duration_s = None
-        if audio_duration_s is not None and not 0.5 <= audio_duration_s <= 30:
+        if audio_duration_s is not None and not 0.5 <= audio_duration_s <= MAX_AUDIO_DURACION_S:
             audio_duration_s = None
     confidence_values = [
         proposal.get("confianza")
@@ -185,7 +213,55 @@ def create_message(
     conn.commit()
     payload = message_payload(conn, user_id, internal_id)
     payload["intent"] = result["intent"]
+    payload["origen_interpretacion"] = result.get("origen", "reglas")
+    if result.get("proveedor"):
+        payload["proveedor_interpretacion"] = result["proveedor"]
     return payload
+
+
+def log_ai_interaction(
+    conn,
+    user_id,
+    proveedor,
+    modelo=None,
+    version_prompt=None,
+    entrada=None,
+    salida=None,
+    confianza=None,
+    latencia_ms=None,
+    tokens_entrada=None,
+    tokens_salida=None,
+    mensaje_id=None,
+):
+    """Registra la auditoria de una llamada de IA.
+
+    ``entrada`` y ``salida`` solo deben contener metadatos y texto. El audio
+    nunca se persiste.
+    """
+    cursor = conn.execute(
+        """
+        INSERT INTO interacciones_ia
+            (usuario_id, mensaje_id, proveedor, modelo, version_prompt,
+             entrada_json, salida_json, confianza, latencia_ms,
+             tokens_entrada, tokens_salida)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            mensaje_id,
+            proveedor,
+            modelo,
+            version_prompt,
+            json.dumps(entrada, ensure_ascii=False) if entrada is not None else None,
+            json.dumps(salida, ensure_ascii=False) if salida is not None else None,
+            confianza,
+            latencia_ms,
+            tokens_entrada,
+            tokens_salida,
+        ),
+    )
+    conn.commit()
+    return cursor.lastrowid
 
 
 def create_device_notification(
@@ -1019,7 +1095,7 @@ def close_day(conn, user_id, date_value):
     return payload
 
 
-def home_payload(conn, user_id):
+def home_payload(conn, user_id, incluir_plan=False):
     today = local_date()
     user = conn.execute("SELECT * FROM usuarios WHERE id = ?", (user_id,)).fetchone()
     mascot = conn.execute(
@@ -1035,7 +1111,7 @@ def home_payload(conn, user_id):
         "SELECT COALESCE(SUM(puntos), 0) AS total FROM puntos_log WHERE usuario_id = ?",
         (user_id,),
     ).fetchone()["total"]
-    return {
+    payload = {
         "usuario": {
             "id": user["id"],
             "nombre": user["nombre"],
@@ -1056,6 +1132,9 @@ def home_payload(conn, user_id):
         "puntos": int(points or 0),
         "fecha_local": today,
     }
+    if incluir_plan:
+        payload["plan_ahorro"] = plan_resumen(conn, user_id, today)
+    return payload
 
 
 def metrics_daily(conn, user_id, date_value):
@@ -1104,3 +1183,88 @@ def serialize_goal(conn, user_id, goal_id):
         (user_id, goal_id),
     ).fetchone()
     return dict(row) if row else None
+
+
+def goal_plan(
+    conn,
+    user_id,
+    as_of=None,
+    meses=finance_engine.MESES_POR_DEFECTO,
+    colchon_pct=finance_engine.COLCHON_PCT_POR_DEFECTO,
+    income_override=None,
+    expense_override=None,
+    capacity_override=None,
+    prioridades=None,
+    incluir_metas=None,
+    simulacion=False,
+    overrides=None,
+):
+    """Calcula el plan de metas sin escribir en la base.
+
+    Lee las metas desde `v_metas_progreso` y la capacidad desde
+    `finance_engine`, y delega la optimizacion en `optimization`.
+    """
+    as_of = as_of or local_date()
+    capacity = finance_engine.monthly_capacity(
+        conn,
+        user_id,
+        as_of,
+        meses=meses,
+        colchon_pct=colchon_pct,
+        income_override=income_override,
+        expense_override=expense_override,
+        capacity_override=capacity_override,
+    )
+    rows = conn.execute(
+        """
+        SELECT * FROM v_metas_progreso
+        WHERE usuario_id = ?
+        ORDER BY fecha_limite, meta_id
+        """,
+        (user_id,),
+    ).fetchall()
+
+    plan = optimization.plan_goals(
+        [dict(row) for row in rows],
+        capacity["capacidad_mensual"],
+        as_of,
+        horizon=meses,
+        prioridades=prioridades,
+        incluir_metas=incluir_metas,
+        entradas=capacity["entradas"],
+    )
+    plan["simulacion"] = bool(simulacion)
+    if simulacion:
+        plan["overrides"] = overrides or {}
+    return plan
+
+
+def plan_resumen(conn, user_id, as_of=None):
+    """Resumen compacto del plan para /home?incluir_plan=1."""
+    plan = goal_plan(conn, user_id, as_of=as_of)
+    mes_actual = plan["capacidad_mensual"][0] if plan["capacidad_mensual"] else {}
+    metas = []
+    for meta in plan["metas"]:
+        asignacion = meta["asignacion_mensual"] or [0]
+        metas.append(
+            {
+                "meta_id": meta["meta_id"],
+                "nombre": meta["nombre"],
+                "prioridad": meta["prioridad"],
+                "asignacion_mes_actual": asignacion[0],
+                "total_asignado": meta["total_asignado"],
+                "cumplimiento": meta["cumplimiento"],
+                "estado": meta["estado"],
+                "mes_estimado_cumplimiento": meta["mes_estimado_cumplimiento"],
+            }
+        )
+    return {
+        "horizonte_meses": plan["horizonte_meses"],
+        "factible": plan["factible"],
+        "solver": plan["solver"],
+        "confianza": plan["confianza"],
+        "capacidad_mes_actual": mes_actual.get("capacidad", 0),
+        "metas": metas,
+        "resumen": plan["resumen"],
+        "diagnostico": plan["diagnostico"],
+    }

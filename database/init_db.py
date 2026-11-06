@@ -4,7 +4,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "finagotchi.db"
 SQL_DIR = Path(__file__).resolve().parent / "sql"
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 SCHEMA_FILES = ("001_schema.sql", "002_views.sql", "003_seed.sql")
 
 

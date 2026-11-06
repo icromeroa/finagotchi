@@ -1,0 +1,26 @@
+usuario_id,edad,genero,localidad,ocupacion,nivel_educativo,con_quien_vive,tiene_ingresos_propios,ingreso_trabajo_mensual,apoyo_familiar_mensual,beca_mensual,otros_ingresos_mensual,ingreso_total_mensual,frecuencia_ingreso,estilo_control,gasto_total_mensual_estimado,frecuencia_compras_impulsivas,num_suscripciones,gasto_suscripciones_mensual,pedidos_domicilio_mes,gasto_domicilios_mensual,registros_estimados_semana,usa_app_presupuesto,anota_gastos_manual,dificultad_llevar_cuentas,tiene_deuda_tarjeta,saldo_deuda_tarjeta,paga_a_cuotas,ahorro_mensual,tiene_fondo_emergencia,estres_financiero,se_siente_seguro,actualizado_en
+1,30,prefiero_no_decir,Chapinero,trabajo,secundaria,otra,1,6500000,0,0,50000,6550000,mensual,algunas_veces,5897823,siempre,6,180000,5,105000,14,1,1,2,0,0,0,200000,0,3,1,2026-04-23T14:00:00Z
+2,21,mujer,Fontibon,estudio,secundaria,companeros,1,350000,850000,0,250000,1450000,mensual,algunas_veces,1018451,a_veces,1,31000,16,624000,13,0,1,5,0,0,0,100000,0,6,1,2025-07-14T14:00:00Z
+3,24,hombre,Usaquen,estudio_y_trabajo,universitario,solo,1,1850000,300000,0,0,2150000,quincenal,de_memoria,1270193,a_veces,5,90000,12,396000,2,1,0,5,0,0,0,200000,1,4,1,2025-07-30T14:00:00Z
+4,28,mujer,Chapinero,trabajo,posgrado,solo,1,6400000,200000,0,0,6600000,quincenal,de_memoria,4671660,seguido,5,145000,9,288000,3,0,0,3,0,0,0,100000,0,6,0,2025-11-01T14:00:00Z
+5,22,hombre,Chapinero,estudio,universitario,companeros,0,0,450000,250000,50000,750000,irregular,algunas_veces,653294,a_veces,1,16000,3,132000,4,1,1,4,1,800000,1,0,1,5,0,2025-10-16T14:00:00Z
+6,26,mujer,Kennedy,trabajo,universitario,companeros,1,6200000,0,0,120000,6320000,quincenal,riguroso,5489217,siempre,6,78000,0,0,6,0,0,5,0,0,0,0,0,3,1,2025-12-10T14:00:00Z
+7,31,hombre,Usaquen,trabajo,universitario,otra,1,2100000,400000,0,120000,2620000,mensual,de_memoria,2105661,seguido,2,56000,7,147000,10,1,1,4,0,0,0,200000,0,3,0,2026-02-17T14:00:00Z
+8,19,mujer,Ciudad Bolivar,estudio,secundaria,companeros,0,0,900000,0,0,900000,mensual,de_memoria,574727,casi_nunca,0,0,2,68000,8,1,0,3,0,0,0,200000,1,4,1,2026-01-25T14:00:00Z
+9,23,hombre,Chapinero,estudio_y_trabajo,secundaria,familia,1,900000,450000,0,250000,1600000,mensual,algunas_veces,1016825,casi_nunca,3,117000,0,0,14,0,0,4,0,0,0,100000,1,8,0,2026-01-31T14:00:00Z
+10,25,mujer,Usaquen,trabajo,secundaria,otra,1,4100000,400000,0,50000,4550000,quincenal,de_memoria,2618524,seguido,2,48000,18,270000,6,1,0,2,1,1500000,1,100000,0,5,1,2025-12-01T14:00:00Z
+11,20,hombre,Engativa,estudio,secundaria,companeros,0,0,350000,750000,0,1100000,irregular,de_memoria,744028,a_veces,5,225000,6,234000,13,0,0,4,0,0,0,0,0,2,0,2026-03-03T14:00:00Z
+12,29,mujer,Teusaquillo,trabajo,secundaria,familia,1,6200000,200000,0,50000,6450000,quincenal,algunas_veces,4995174,a_veces,3,57000,18,378000,9,0,0,5,0,0,0,350000,1,5,1,2025-10-01T14:00:00Z
+13,27,hombre,Engativa,trabajo,tecnico,companeros,1,3400000,200000,0,50000,3650000,quincenal,riguroso,2813262,seguido,0,0,2,64000,7,0,0,1,0,0,0,350000,0,7,1,2026-01-15T14:00:00Z
+14,22,mujer,Puente Aranda,estudio_y_trabajo,secundaria,familia,1,1200000,0,0,250000,1450000,mensual,riguroso,839899,casi_nunca,3,135000,18,504000,9,0,1,5,1,250000,1,100000,0,7,1,2025-10-04T14:00:00Z
+15,33,hombre,Fontibon,trabajo,tecnico,solo,1,2400000,0,0,0,2400000,mensual,de_memoria,1762934,casi_nunca,5,90000,1,42000,13,1,1,5,1,800000,1,100000,1,7,0,2026-06-01T14:00:00Z
+16,24,mujer,Bosa,estudio,universitario,companeros,0,0,750000,0,120000,870000,irregular,algunas_veces,793814,a_veces,3,45000,2,42000,7,1,0,3,1,250000,1,100000,0,2,1,2025-11-26T14:00:00Z
+17,21,hombre,Puente Aranda,estudio,secundaria,familia,1,600000,650000,250000,120000,1620000,irregular,riguroso,1318932,seguido,4,176000,3,81000,2,1,0,4,0,0,0,0,1,7,1,2026-01-04T14:00:00Z
+18,30,mujer,Engativa,trabajo,universitario,companeros,1,4800000,0,0,250000,5050000,mensual,riguroso,4752115,siempre,2,64000,7,294000,7,1,0,2,1,250000,1,50000,0,5,1,2025-06-15T14:00:00Z
+19,26,hombre,Puente Aranda,trabajo,secundaria,otra,1,2100000,0,0,0,2100000,quincenal,riguroso,1476060,casi_nunca,1,18000,16,640000,1,1,0,1,1,800000,1,100000,1,5,1,2025-07-15T14:00:00Z
+20,23,mujer,Teusaquillo,estudio_y_trabajo,secundaria,familia,1,1300000,150000,250000,0,1700000,quincenal,riguroso,1139719,siempre,2,70000,5,115000,9,0,1,2,1,250000,0,50000,0,6,1,2026-05-22T14:00:00Z
+21,35,hombre,Engativa,trabajo,secundaria,solo,1,5400000,0,0,0,5400000,quincenal,de_memoria,4059916,casi_nunca,5,110000,16,512000,12,1,0,1,0,0,0,200000,1,6,1,2026-01-27T14:00:00Z
+22,20,mujer,Fontibon,estudio,universitario,otra,1,600000,400000,250000,50000,1300000,irregular,de_memoria,1056677,a_veces,3,45000,6,138000,11,0,1,4,0,0,0,100000,0,2,0,2025-12-07T14:00:00Z
+23,28,hombre,Chapinero,trabajo,universitario,solo,1,5700000,0,0,50000,5750000,mensual,riguroso,3277106,a_veces,3,39000,5,135000,6,1,0,5,1,800000,0,350000,0,7,0,2025-10-15T14:00:00Z
+24,25,mujer,Chapinero,estudio_y_trabajo,secundaria,familia,1,1500000,150000,250000,50000,1950000,quincenal,algunas_veces,1470436,casi_nunca,3,114000,14,518000,7,0,0,5,0,0,0,0,0,6,0,2025-07-08T14:00:00Z
+25,32,hombre,Fontibon,trabajo,tecnico,familia,1,6200000,0,0,250000,6450000,quincenal,riguroso,6039126,a_veces,4,164000,13,221000,14,1,0,2,0,0,0,200000,1,2,0,2025-07-24T14:00:00Z

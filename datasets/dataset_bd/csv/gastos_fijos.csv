@@ -1,0 +1,72 @@
+id,usuario_id,nombre,monto,periodicidad,dia_pago,tipo,categoria_id,cuenta_id,activo,creado_en
+1,1,Gimnasio,172000,mensual,4,gasto,7,2,1,2026-04-23T14:00:00Z
+2,1,Internet,241000,mensual,8,gasto,5,3,1,2026-04-23T14:00:00Z
+3,1,Transporte semanal,57000,semanal,16,gasto,2,1,1,2026-04-23T14:00:00Z
+4,1,Seguro medico,345000,mensual,14,gasto,7,2,1,2026-04-23T14:00:00Z
+5,2,Spotify,22000,mensual,21,gasto,22,8,1,2025-07-14T14:00:00Z
+6,2,Internet,87000,mensual,7,gasto,21,10,1,2025-07-14T14:00:00Z
+7,3,Seguro medico,150000,mensual,25,gasto,39,12,1,2025-07-30T14:00:00Z
+8,3,Gimnasio,172000,mensual,11,gasto,39,12,1,2025-07-30T14:00:00Z
+9,3,Internet,118000,mensual,14,gasto,37,11,1,2025-07-30T14:00:00Z
+10,3,Arriendo,951000,mensual,26,gasto,37,15,1,2025-07-30T14:00:00Z
+11,4,Plan de celular,150000,mensual,22,gasto,54,20,1,2025-11-01T14:00:00Z
+12,4,Transporte semanal,103000,semanal,22,gasto,50,19,1,2025-11-01T14:00:00Z
+13,5,Gimnasio,42000,mensual,6,gasto,71,21,1,2025-10-16T14:00:00Z
+14,5,Spotify,12000,mensual,19,gasto,70,25,1,2025-10-16T14:00:00Z
+15,5,Seguro medico,129000,mensual,18,gasto,71,129,1,2025-10-16T14:00:00Z
+16,6,Seguro medico,368000,mensual,6,gasto,87,131,1,2025-12-10T14:00:00Z
+17,6,Spotify,46000,mensual,23,gasto,86,27,1,2025-12-10T14:00:00Z
+18,6,Transporte semanal,69000,semanal,15,gasto,82,28,1,2025-12-10T14:00:00Z
+19,7,Seguro medico,242000,mensual,18,gasto,103,33,1,2026-02-17T14:00:00Z
+20,7,Internet,138000,mensual,28,gasto,101,32,1,2026-02-17T14:00:00Z
+21,8,Transporte semanal,36000,semanal,7,gasto,114,38,1,2026-01-25T14:00:00Z
+22,8,Arriendo,897000,mensual,7,gasto,117,38,1,2026-01-25T14:00:00Z
+23,8,Plan de celular,27000,mensual,18,gasto,118,36,1,2026-01-25T14:00:00Z
+24,9,Transporte semanal,24000,semanal,12,gasto,130,41,1,2026-01-31T14:00:00Z
+25,9,Spotify,24000,mensual,19,gasto,134,44,1,2026-01-31T14:00:00Z
+26,9,Gimnasio,56000,mensual,27,gasto,135,41,1,2026-01-31T14:00:00Z
+27,9,Netflix,26000,mensual,5,gasto,134,45,1,2026-01-31T14:00:00Z
+28,10,Netflix,75000,mensual,28,gasto,150,46,1,2025-12-01T14:00:00Z
+29,10,Gimnasio,318000,mensual,16,gasto,151,46,1,2025-12-01T14:00:00Z
+30,11,Arriendo,480000,mensual,20,gasto,165,51,1,2026-03-03T14:00:00Z
+31,11,Spotify,12000,mensual,18,gasto,166,51,1,2026-03-03T14:00:00Z
+32,11,Transporte semanal,48000,semanal,28,gasto,162,53,1,2026-03-03T14:00:00Z
+33,12,Arriendo,1886000,mensual,10,gasto,181,56,1,2025-10-01T14:00:00Z
+34,12,Plan de celular,138000,mensual,21,gasto,182,57,1,2025-10-01T14:00:00Z
+35,13,Internet,256000,mensual,20,gasto,197,62,1,2026-01-15T14:00:00Z
+36,13,Gimnasio,256000,mensual,27,gasto,199,63,1,2026-01-15T14:00:00Z
+37,13,Transporte semanal,82000,semanal,16,gasto,194,61,1,2026-01-15T14:00:00Z
+38,14,Transporte semanal,58000,semanal,20,gasto,210,66,1,2025-10-04T14:00:00Z
+39,14,Arriendo,362000,mensual,18,gasto,213,67,1,2025-10-04T14:00:00Z
+40,15,Transporte semanal,48000,semanal,3,gasto,226,74,1,2026-06-01T14:00:00Z
+41,15,Plan de celular,96000,mensual,26,gasto,230,71,1,2026-06-01T14:00:00Z
+42,15,Gimnasio,96000,mensual,15,gasto,231,71,1,2026-06-01T14:00:00Z
+43,16,Seguro medico,132000,mensual,17,gasto,247,79,1,2025-11-26T14:00:00Z
+44,16,Transporte semanal,15000,semanal,21,gasto,242,79,1,2025-11-26T14:00:00Z
+45,17,Arriendo,1004000,mensual,19,gasto,261,82,1,2026-01-04T14:00:00Z
+46,17,Internet,73000,mensual,12,gasto,261,84,1,2026-01-04T14:00:00Z
+47,17,Transporte semanal,32000,semanal,22,gasto,258,81,1,2026-01-04T14:00:00Z
+48,18,Transporte semanal,103000,semanal,12,gasto,274,89,1,2025-06-15T14:00:00Z
+49,18,Internet,299000,mensual,25,gasto,277,87,1,2025-06-15T14:00:00Z
+50,19,Spotify,32000,mensual,10,gasto,294,92,1,2025-07-15T14:00:00Z
+51,19,Seguro medico,105000,mensual,7,gasto,295,91,1,2025-07-15T14:00:00Z
+52,19,Plan de celular,79000,mensual,22,gasto,294,93,1,2025-07-15T14:00:00Z
+53,20,Internet,76000,mensual,9,gasto,309,96,1,2026-05-22T14:00:00Z
+54,20,Seguro medico,94000,mensual,14,gasto,311,96,1,2026-05-22T14:00:00Z
+55,20,Arriendo,1148000,mensual,23,gasto,309,96,1,2026-05-22T14:00:00Z
+56,20,Spotify,13000,mensual,22,gasto,310,97,1,2026-05-22T14:00:00Z
+57,21,Internet,299000,mensual,16,gasto,325,104,1,2026-01-27T14:00:00Z
+58,21,Plan de celular,80000,mensual,16,gasto,326,103,1,2026-01-27T14:00:00Z
+59,21,Seguro medico,207000,mensual,15,gasto,327,145,1,2026-01-27T14:00:00Z
+60,22,Arriendo,994000,mensual,18,gasto,341,106,1,2025-12-07T14:00:00Z
+61,22,Netflix,25000,mensual,11,gasto,342,108,1,2025-12-07T14:00:00Z
+62,22,Gimnasio,91000,mensual,7,gasto,343,106,1,2025-12-07T14:00:00Z
+63,22,Transporte semanal,16000,semanal,22,gasto,338,107,1,2025-12-07T14:00:00Z
+64,23,Plan de celular,80000,mensual,23,gasto,358,113,1,2025-10-15T14:00:00Z
+65,23,Seguro medico,379000,mensual,10,gasto,359,115,1,2025-10-15T14:00:00Z
+66,23,Arriendo,2726000,mensual,3,gasto,357,115,1,2025-10-15T14:00:00Z
+67,23,Netflix,53000,mensual,17,gasto,358,113,1,2025-10-15T14:00:00Z
+68,24,Netflix,27000,mensual,24,gasto,374,120,1,2025-07-08T14:00:00Z
+69,24,Plan de celular,34000,mensual,27,gasto,374,118,1,2025-07-08T14:00:00Z
+70,25,Arriendo,1966000,mensual,24,gasto,389,123,1,2025-07-24T14:00:00Z
+71,25,Seguro medico,529000,mensual,11,gasto,391,124,1,2025-07-24T14:00:00Z

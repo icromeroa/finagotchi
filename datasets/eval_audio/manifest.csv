@@ -1,0 +1,501 @@
+id,archivo,transcripcion,intent,monto_esperado,categoria_esperada,cuenta_esperada,duracion_s,ruido,notas
+001,audio/0001.wav,gasté 14.000 en el almuerzo,registrar,14000,Alimentación,Efectivo,,bajo,
+002,audio/0002.wav,gasté catorce mil en el almuerzo,registrar,14000,Alimentación,Efectivo,,bajo,monto en palabras
+003,audio/0003.wav,pagué 8.000 de transporte,registrar,8000,Transporte,Efectivo,,bajo,
+004,audio/0004.wav,compré un café por 5 mil,registrar,5000,Alimentación,Efectivo,,bajo,mil abreviado
+005,audio/0005.wav,me pagaron 50.000 por un trabajo,registrar,50000,Trabajo,Efectivo,,bajo,
+006,audio/0006.wav,recibí 20.000 de mesada,registrar,20000,Apoyo familiar,Efectivo,,bajo,
+007,audio/0007.wav,ahorré 30.000 para el portátil,registrar,30000,,Efectivo,,bajo,ahorro
+008,audio/0008.wav,gasté 1.5 millones en el apartamento,registrar,1500000,Vivienda y fijos,Efectivo,,medio,millones con decimal
+009,audio/0009.wav,me pagaron dos millones del trabajo,registrar,2000000,Trabajo,Efectivo,,medio,millones en palabras
+010,audio/0010.wav,gasté cuarenta mil en el mercado,registrar,40000,Alimentación,Efectivo,,bajo,monto en palabras
+011,audio/0011.wav,pagué tres mil de bus,registrar,3000,Transporte,Efectivo,,bajo,
+012,audio/0012.wav,gasté 12.000 en almuerzo y 3.000 en bus,registrar,12000,Alimentación,Efectivo,,medio,dos transacciones
+013,audio/0013.wav,¿cómo voy hoy?,consulta_estado,,,,,bajo,consulta
+014,audio/0014.wav,dame mi balance,consulta_estado,,,,,bajo,consulta
+015,audio/0015.wav,cierra el día,cerrar_dia,,,,,bajo,cierre
+016,audio/0016.wav,la verdad no me acuerdo de cuánto gasté,requiere_aclaracion,,,,,medio,sin monto
+017,audio/0017.wav,gasté quince mil en el almuerzo,registrar,15000,Alimentación,Efectivo,,bajo,corrección del monto
+018,audio/0018.wav,me salió un gasto raro,requiere_aclaracion,,,,,medio,sin monto
+019,audio/0019.wav,pagué la cuota de la biking,requiere_aclaracion,,,,,medio,transporte
+020,audio/0020.wav,saqué 50.000 del cajero,registrar,50000,,Efectivo,,bajo,retiro
+021,audio/0021.wav,gasté 25.000 en una chaqueta,registrar,25000,Familia y detalles,Efectivo,,bajo,
+022,audio/0022.wav,me llegó el sueldo de dos millones quinientos mil,registrar,2500000,Trabajo,Efectivo,,medio,millones y miles
+023,audio/0023.wav,pagué 3.500 en el parqueadero,registrar,3500,Transporte,Efectivo,,bajo,monto con decimal
+024,audio/0024.wav,compré gasolina,requiere_aclaracion,,,,,bajo,sin monto
+025,audio/0025.wav,gasté 120.000 en el arriendo,registrar,120000,Vivienda y fijos,Efectivo,,bajo,
+026,audio/0026.wav,guardé 200.000 para el viaje,registrar,200000,,Efectivo,,bajo,ahorro
+027,audio/0027.wav,gasté 8.000 en transporte,registrar,8000,Transporte,Efectivo,,alto,ruido alto
+028,audio/0028.wav,me pagaron 50.000 por un trabajo,registrar,50000,Trabajo,Efectivo,,alto,ruido alto
+029,audio/0029.wav,gasté 40.000 en el mercado,registrar,40000,Alimentación,Efectivo,,medio,
+030,audio/0030.wav,cerrá el día por favor,cerrar_dia,,,,,medio,variante
+031,audio/0031.wav,gasté 350 mil en un CDT con daviplata,registrar,350000,Ahorro e inversión,Daviplata,,medio,mil abreviado; cuenta digital
+032,audio/0032.wav,pagué 250.000 de una acción con nu,registrar,250000,Ahorro e inversión,Nu,,medio,monto con puntos de miles; cuenta digital
+033,audio/0033.wav,pagué 250 mil de una acción con nequi,registrar,250000,Ahorro e inversión,Nequi,,bajo,mil abreviado; cuenta digital
+034,audio/0034.wav,gasté 800k en un CDT en efectivo,registrar,800000,Ahorro e inversión,Efectivo,,bajo,k abreviado
+035,audio/0035.wav,pagué 400.000 de una acción con bancolombia,registrar,400000,Ahorro e inversión,Bancolombia,,bajo,monto con puntos de miles; cuenta digital
+036,audio/0036.wav,gasté 20.000 en almuerzo y 6.000 en bus con nu,registrar,20000,Alimentación,Nu,,medio,dos transacciones; monto con puntos de miles
+037,audio/0037.wav,me gasté 22k en la cena con nu,registrar,22000,Alimentación,Nu,,medio,k abreviado; cuenta digital
+038,audio/0038.wav,gasté 12.000 en almuerzo y 3.000 en bus con bancolombia,registrar,12000,Alimentación,Bancolombia,,bajo,dos transacciones; monto con puntos de miles
+039,audio/0039.wav,gasté 12.000 en el mercado y 3.000 en pasaje en efectivo,registrar,12000,Alimentación,Efectivo,,bajo,dos transacciones; monto con puntos de miles
+040,audio/0040.wav,gasté 15.000 en el mercado y 4.500 en pasaje con daviplata,registrar,15000,Alimentación,Daviplata,,medio,dos transacciones; monto con puntos de miles
+041,audio/0041.wav,gasté 9 mil en el almuerzo en efectivo,registrar,9000,Alimentación,Efectivo,,bajo,mil abreviado
+042,audio/0042.wav,desayuné en un restaurante por 9000 con bancolombia,registrar,9000,Alimentación,Bancolombia,,alto,monto sin separador; cuenta digital
+043,audio/0043.wav,gasté 8.000 en almuerzo y 2.500 en bus en efectivo,registrar,8000,Alimentación,Efectivo,,bajo,dos transacciones; monto con puntos de miles
+044,audio/0044.wav,"pagué 9,000 del desayuno con bancolombia",registrar,9000,Alimentación,Bancolombia,,alto,monto con comas de miles; cuenta digital
+045,audio/0045.wav,desayuné en un restaurante por veintidos mil con daviplata,registrar,22000,Alimentación,Daviplata,,medio,monto en palabras; cuenta digital
+046,audio/0046.wav,gasté 20.000 en el mercado y 6.000 en pasaje con bancolombia,registrar,20000,Alimentación,Bancolombia,,alto,dos transacciones; monto con puntos de miles
+047,audio/0047.wav,compré café por 4.500 con nu,registrar,4500,Alimentación,Nu,,medio,monto con puntos de miles; cuenta digital
+048,audio/0048.wav,me gasté 12000 en la cena con daviplata,registrar,12000,Alimentación,Daviplata,,bajo,monto sin separador; cuenta digital
+049,audio/0049.wav,gasté 15.000 en almuerzo y 4.500 en bus con nequi,registrar,15000,Alimentación,Nequi,,medio,dos transacciones; monto con puntos de miles
+050,audio/0050.wav,me gasté 15k en la cena con nequi,registrar,15000,Alimentación,Nequi,,medio,k abreviado; cuenta digital
+051,audio/0051.wav,la comida del mes costó 80000 con bancolombia,registrar,80000,Alimentación,Bancolombia,,alto,monto sin separador; cuenta digital
+052,audio/0052.wav,gasté 8.000 en el mercado y 2.500 en pasaje con nequi,registrar,8000,Alimentación,Nequi,,bajo,dos transacciones; monto con puntos de miles
+053,audio/0053.wav,pagué 22.000 del desayuno con nu,registrar,22000,Alimentación,Nu,,bajo,monto con puntos de miles; cuenta digital
+054,audio/0054.wav,la comida del mes costó 120.000 con daviplata,registrar,120000,Alimentación,Daviplata,,medio,monto con puntos de miles; cuenta digital
+055,audio/0055.wav,gasté 60k en el mercado en efectivo,registrar,60000,Alimentación,Efectivo,,bajo,k abreviado
+056,audio/0056.wav,pagué 9 mil del desayuno con nequi,registrar,9000,Alimentación,Nequi,,bajo,mil abreviado; cuenta digital
+057,audio/0057.wav,gasté 2.000 en una empanada en efectivo,registrar,2000,Alimentación,Efectivo,,bajo,monto con puntos de miles
+058,audio/0058.wav,pagué 14000 en una comida con bancolombia,registrar,14000,Alimentación,Bancolombia,,alto,monto sin separador; cuenta digital
+059,audio/0059.wav,me gasté 18 mil en la cena con nequi,registrar,18000,Alimentación,Nequi,,medio,mil abreviado; cuenta digital
+060,audio/0060.wav,"compré café por 5,000 con nu",registrar,5000,Alimentación,Nu,,bajo,monto con comas de miles; cuenta digital
+061,audio/0061.wav,gasté 18000 en el almuerzo con nu,registrar,18000,Alimentación,Nu,,medio,monto sin separador; cuenta digital
+062,audio/0062.wav,"compré un corrientazo de 9,000 con daviplata",registrar,9000,Alimentación,Daviplata,,bajo,monto con comas de miles; cuenta digital
+063,audio/0063.wav,me gasté 22.000 en la cena con bancolombia,registrar,22000,Alimentación,Bancolombia,,bajo,monto con puntos de miles; cuenta digital
+064,audio/0064.wav,compré un corrientazo de 14000 en efectivo,registrar,14000,Alimentación,Efectivo,,bajo,monto sin separador
+065,audio/0065.wav,gasté 60000 en el mercado con nequi,registrar,60000,Alimentación,Nequi,,medio,monto sin separador; cuenta digital
+066,audio/0066.wav,gasté 80 mil en el mercado en efectivo,registrar,80000,Alimentación,Efectivo,,bajo,mil abreviado
+067,audio/0067.wav,"gasté 15,000 en el almuerzo con nequi",registrar,15000,Alimentación,Nequi,,medio,monto con comas de miles; cuenta digital
+068,audio/0068.wav,"pagué 15,000 en una comida con bancolombia",registrar,15000,Alimentación,Bancolombia,,alto,monto con comas de miles; cuenta digital
+069,audio/0069.wav,"gasté 3,500 en una empanada con daviplata",registrar,3500,Alimentación,Daviplata,,medio,monto con comas de miles; cuenta digital
+070,audio/0070.wav,pagué 15000 del desayuno con nu,registrar,15000,Alimentación,Nu,,bajo,monto sin separador; cuenta digital
+071,audio/0071.wav,pagué 18k en una comida con nu,registrar,18000,Alimentación,Nu,,bajo,k abreviado; cuenta digital
+072,audio/0072.wav,la comida del mes costó 60.000 con nu,registrar,60000,Alimentación,Nu,,bajo,monto con puntos de miles; cuenta digital
+073,audio/0073.wav,compré café por 3000 con nu,registrar,3000,Alimentación,Nu,,medio,monto sin separador; cuenta digital
+074,audio/0074.wav,la comida del mes costó treinta y cinco mil con bancolombia,registrar,35000,Alimentación,Bancolombia,,alto,monto en palabras; cuenta digital
+075,audio/0075.wav,compré café por 4500 en efectivo,registrar,4500,Alimentación,Efectivo,,bajo,monto sin separador
+076,audio/0076.wav,gasté dos mil quinientos en una empanada con bancolombia,registrar,2500,Alimentación,Bancolombia,,alto,monto en palabras; cuenta digital
+077,audio/0077.wav,compré un corrientazo de 22000 con nu,registrar,22000,Alimentación,Nu,,medio,monto sin separador; cuenta digital
+078,audio/0078.wav,la comida del mes costó 35.000 con bancolombia,registrar,35000,Alimentación,Bancolombia,,alto,monto con puntos de miles; cuenta digital
+079,audio/0079.wav,me gasté 14k en la cena en efectivo,registrar,14000,Alimentación,Efectivo,,bajo,k abreviado
+080,audio/0080.wav,compré un corrientazo de 15 mil con daviplata,registrar,15000,Alimentación,Daviplata,,bajo,mil abreviado; cuenta digital
+081,audio/0081.wav,gasté 3.500 en una empanada con nequi,registrar,3500,Alimentación,Nequi,,medio,monto con puntos de miles; cuenta digital
+082,audio/0082.wav,compré café por 4 mil en efectivo,registrar,4000,Alimentación,Efectivo,,bajo,mil abreviado
+083,audio/0083.wav,compré un corrientazo de 15k con nu,registrar,15000,Alimentación,Nu,,medio,k abreviado; cuenta digital
+084,audio/0084.wav,pagué 120000 de la tarjeta de crédito en efectivo,registrar,120000,Deudas,Efectivo,,bajo,monto sin separador
+085,audio/0085.wav,abonné 90000 a la deuda del banco con daviplata,registrar,90000,Deudas,Daviplata,,medio,monto sin separador; cuenta digital
+086,audio/0086.wav,abonné sesenta mil a la deuda del banco en efectivo,registrar,60000,Deudas,Efectivo,,bajo,monto en palabras
+087,audio/0087.wav,pagué 150.000 de la tarjeta de crédito con nequi,registrar,150000,Deudas,Nequi,,medio,monto con puntos de miles; cuenta digital
+088,audio/0088.wav,pagué sesenta mil de la cuota de la tarjeta con nequi,registrar,60000,Deudas,Nequi,,medio,monto en palabras; cuenta digital
+089,audio/0089.wav,pagué ciento cincuenta mil de la tarjeta de crédito con nequi,registrar,150000,Deudas,Nequi,,medio,monto en palabras; cuenta digital
+090,audio/0090.wav,abonné 60.000 a la deuda del banco en efectivo,registrar,60000,Deudas,Efectivo,,bajo,monto con puntos de miles
+091,audio/0091.wav,"pagué 60,000 de la tarjeta de crédito con nu",registrar,60000,Deudas,Nu,,medio,monto con comas de miles; cuenta digital
+092,audio/0092.wav,abonné 200000 a la deuda del banco con bancolombia,registrar,200000,Deudas,Bancolombia,,alto,monto sin separador; cuenta digital
+093,audio/0093.wav,pagué 60 mil de la tarjeta de crédito con nequi,registrar,60000,Deudas,Nequi,,medio,mil abreviado; cuenta digital
+094,audio/0094.wav,cancelé 60.000 de una deuda pendiente con daviplata,registrar,60000,Deudas,Daviplata,,medio,monto con puntos de miles; cuenta digital
+095,audio/0095.wav,pagué 120000 de la cuota de la tarjeta con daviplata,registrar,120000,Deudas,Daviplata,,bajo,monto sin separador; cuenta digital
+096,audio/0096.wav,cancelé sesenta mil de una deuda pendiente con daviplata,registrar,60000,Deudas,Daviplata,,medio,monto en palabras; cuenta digital
+097,audio/0097.wav,pagué doscientos mil de la tarjeta de crédito en efectivo,registrar,200000,Deudas,Efectivo,,bajo,monto en palabras
+098,audio/0098.wav,pagué 90k de la cuota de la tarjeta con nequi,registrar,90000,Deudas,Nequi,,medio,k abreviado; cuenta digital
+099,audio/0099.wav,pagué doscientos cincuenta mil de la tarjeta de crédito con bancolombia,registrar,250000,Deudas,Bancolombia,,bajo,monto en palabras; cuenta digital
+100,audio/0100.wav,pagué 250000 de la tarjeta de crédito con daviplata,registrar,250000,Deudas,Daviplata,,bajo,monto sin separador; cuenta digital
+101,audio/0101.wav,pagué 120.000 de la cuota de la tarjeta con bancolombia,registrar,120000,Deudas,Bancolombia,,bajo,monto con puntos de miles; cuenta digital
+102,audio/0102.wav,pagué 250000 de la cuota de la tarjeta con bancolombia,registrar,250000,Deudas,Bancolombia,,bajo,monto sin separador; cuenta digital
+103,audio/0103.wav,pagué noventa mil por el regalo de mi hijo en efectivo,registrar,90000,Familia y detalles,Efectivo,,bajo,monto en palabras
+104,audio/0104.wav,pagué cincuenta mil por el regalo de mi hijo con daviplata,registrar,50000,Familia y detalles,Daviplata,,bajo,monto en palabras; cuenta digital
+105,audio/0105.wav,compré un regalo para mi mamá por 25k con nu,registrar,25000,Familia y detalles,Nu,,medio,k abreviado; cuenta digital
+106,audio/0106.wav,pagué 25 mil por el regalo de mi hijo con nequi,registrar,25000,Familia y detalles,Nequi,,medio,mil abreviado; cuenta digital
+107,audio/0107.wav,gasté 25000 en un detalle para mi papá con nu,registrar,25000,Familia y detalles,Nu,,bajo,monto sin separador; cuenta digital
+108,audio/0108.wav,compré un regalo para mi mamá por 25000 en efectivo,registrar,25000,Familia y detalles,Efectivo,,bajo,monto sin separador
+109,audio/0109.wav,pagué 25.000 por el regalo de mi hijo con bancolombia,registrar,25000,Familia y detalles,Bancolombia,,bajo,monto con puntos de miles; cuenta digital
+110,audio/0110.wav,gasté 70.000 en un detalle para mi papá con daviplata,registrar,70000,Familia y detalles,Daviplata,,medio,monto con puntos de miles; cuenta digital
+111,audio/0111.wav,gasté cincuenta mil en un detalle para mi papá con nu,registrar,50000,Familia y detalles,Nu,,bajo,monto en palabras; cuenta digital
+112,audio/0112.wav,pagué 25000 por el regalo de mi hijo con daviplata,registrar,25000,Familia y detalles,Daviplata,,bajo,monto sin separador; cuenta digital
+113,audio/0113.wav,compré un regalo para mi mamá por setenta mil con bancolombia,registrar,70000,Familia y detalles,Bancolombia,,bajo,monto en palabras; cuenta digital
+114,audio/0114.wav,pagué 50 mil por el regalo de mi hijo con bancolombia,registrar,50000,Familia y detalles,Bancolombia,,bajo,mil abreviado; cuenta digital
+115,audio/0115.wav,gasté 25 mil en un regalo de cumpleaños en efectivo,registrar,25000,Familia y detalles,Efectivo,,bajo,mil abreviado
+116,audio/0116.wav,pagué 70000 por el regalo de mi hijo con bancolombia,registrar,70000,Familia y detalles,Bancolombia,,bajo,monto sin separador; cuenta digital
+117,audio/0117.wav,gasté 90.000 en un regalo de cumpleaños con bancolombia,registrar,90000,Familia y detalles,Bancolombia,,alto,monto con puntos de miles; cuenta digital
+118,audio/0118.wav,"gasté 90,000 en un regalo de cumpleaños con nu",registrar,90000,Familia y detalles,Nu,,bajo,monto con comas de miles; cuenta digital
+119,audio/0119.wav,gasté 35.000 en un detalle para mi papá con bancolombia,registrar,35000,Familia y detalles,Bancolombia,,alto,monto con puntos de miles; cuenta digital
+120,audio/0120.wav,pagué 25k por el regalo de mi hijo en efectivo,registrar,25000,Familia y detalles,Efectivo,,bajo,k abreviado
+121,audio/0121.wav,gasté 25000 en un regalo de cumpleaños con nequi,registrar,25000,Familia y detalles,Nequi,,bajo,monto sin separador; cuenta digital
+122,audio/0122.wav,compré un regalo para mi mamá por 35 mil con nu,registrar,35000,Familia y detalles,Nu,,medio,mil abreviado; cuenta digital
+123,audio/0123.wav,gasté 50.000 en un regalo de cumpleaños con nequi,registrar,50000,Familia y detalles,Nequi,,bajo,monto con puntos de miles; cuenta digital
+124,audio/0124.wav,gasté 50000 en un detalle para mi papá con nequi,registrar,50000,Familia y detalles,Nequi,,bajo,monto sin separador; cuenta digital
+125,audio/0125.wav,compré un regalo para mi mamá por 70k en efectivo,registrar,70000,Familia y detalles,Efectivo,,bajo,k abreviado
+126,audio/0126.wav,pagué 12.000 de comisión de la cuenta con bancolombia,registrar,12000,Finanzas,Bancolombia,,bajo,monto con puntos de miles; cuenta digital
+127,audio/0127.wav,pagué 8k de comisión de la cuenta con daviplata,registrar,8000,Finanzas,Daviplata,,bajo,k abreviado; cuenta digital
+128,audio/0128.wav,pagué 25 mil de comisión de la cuenta con nu,registrar,25000,Finanzas,Nu,,bajo,mil abreviado; cuenta digital
+129,audio/0129.wav,pagué 8 mil de comisión de la cuenta con nequi,registrar,8000,Finanzas,Nequi,,bajo,mil abreviado; cuenta digital
+130,audio/0130.wav,pagué 25.000 de comisión de la cuenta en efectivo,registrar,25000,Finanzas,Efectivo,,bajo,monto con puntos de miles
+131,audio/0131.wav,gasté treinta mil en el impuesto con daviplata,registrar,30000,Finanzas,Daviplata,,medio,monto en palabras; cuenta digital
+132,audio/0132.wav,pagué 12000 de comisión de la cuenta con nequi,registrar,12000,Finanzas,Nequi,,medio,monto sin separador; cuenta digital
+133,audio/0133.wav,gasté 30.000 en el impuesto con daviplata,registrar,30000,Finanzas,Daviplata,,bajo,monto con puntos de miles; cuenta digital
+134,audio/0134.wav,gasté 45k en el impuesto con daviplata,registrar,45000,Finanzas,Daviplata,,bajo,k abreviado; cuenta digital
+135,audio/0135.wav,gasté veinte mil en un juego con daviplata,registrar,20000,Ocio y gustos,Daviplata,,medio,monto en palabras; cuenta digital
+136,audio/0136.wav,fui a una fiesta y gasté 80k con daviplata,registrar,80000,Ocio y gustos,Daviplata,,bajo,k abreviado; cuenta digital
+137,audio/0137.wav,me pedí un helado por 4.000 con nu,registrar,4000,Ocio y gustos,Nu,,medio,monto con puntos de miles; cuenta digital
+138,audio/0138.wav,tomé una cerveza en un bar por 8k con daviplata,registrar,8000,Ocio y gustos,Daviplata,,medio,k abreviado; cuenta digital
+139,audio/0139.wav,la salida con amigos me costó cuarenta y cinco mil con bancolombia,registrar,45000,Ocio y gustos,Bancolombia,,alto,monto en palabras; cuenta digital
+140,audio/0140.wav,gasté 120 mil en un concierto con nu,registrar,120000,Ocio y gustos,Nu,,bajo,mil abreviado; cuenta digital
+141,audio/0141.wav,me pedí un helado por seis mil en efectivo,registrar,6000,Ocio y gustos,Efectivo,,bajo,monto en palabras
+142,audio/0142.wav,"gasté 8,000 en un juego en efectivo",registrar,8000,Ocio y gustos,Efectivo,,bajo,monto con comas de miles
+143,audio/0143.wav,fui a una fiesta y gasté 60k con nequi,registrar,60000,Ocio y gustos,Nequi,,medio,k abreviado; cuenta digital
+144,audio/0144.wav,gasté 8 mil en un juego con daviplata,registrar,8000,Ocio y gustos,Daviplata,,medio,mil abreviado; cuenta digital
+145,audio/0145.wav,gasté 90000 en un concierto con nequi,registrar,90000,Ocio y gustos,Nequi,,medio,monto sin separador; cuenta digital
+146,audio/0146.wav,la salida con amigos me costó 45 mil con daviplata,registrar,45000,Ocio y gustos,Daviplata,,medio,mil abreviado; cuenta digital
+147,audio/0147.wav,la salida con amigos me costó 25k con nequi,registrar,25000,Ocio y gustos,Nequi,,medio,k abreviado; cuenta digital
+148,audio/0148.wav,compré cerveza por 10k con nu,registrar,10000,Ocio y gustos,Nu,,medio,k abreviado; cuenta digital
+149,audio/0149.wav,"fui al cine y pagué 35,000 con daviplata",registrar,35000,Ocio y gustos,Daviplata,,medio,monto con comas de miles; cuenta digital
+150,audio/0150.wav,me pedí un helado por cinco mil con bancolombia,registrar,5000,Ocio y gustos,Bancolombia,,alto,monto en palabras; cuenta digital
+151,audio/0151.wav,"fui a una fiesta y gasté 40,000 con daviplata",registrar,40000,Ocio y gustos,Daviplata,,medio,monto con comas de miles; cuenta digital
+152,audio/0152.wav,"fui al cine y pagué 18,000 con bancolombia",registrar,18000,Ocio y gustos,Bancolombia,,alto,monto con comas de miles; cuenta digital
+153,audio/0153.wav,tomé una cerveza en un bar por 8 mil en efectivo,registrar,8000,Ocio y gustos,Efectivo,,bajo,mil abreviado
+154,audio/0154.wav,gasté 8.000 en un juego con bancolombia,registrar,8000,Ocio y gustos,Bancolombia,,bajo,monto con puntos de miles; cuenta digital
+155,audio/0155.wav,la salida con amigos me costó veinticinco mil con daviplata,registrar,25000,Ocio y gustos,Daviplata,,medio,monto en palabras; cuenta digital
+156,audio/0156.wav,"fui al cine y pagué 25,000 en efectivo",registrar,25000,Ocio y gustos,Efectivo,,bajo,monto con comas de miles
+157,audio/0157.wav,"tomé una cerveza en un bar por 12,000 en efectivo",registrar,12000,Ocio y gustos,Efectivo,,bajo,monto con comas de miles
+158,audio/0158.wav,pagué 22k por un tema que no recuerdo con bancolombia,registrar,22000,Otros,Bancolombia,,alto,k abreviado; cuenta digital
+159,audio/0159.wav,pagué 22.000 por un tema que no recuerdo con nu,registrar,22000,Otros,Nu,,bajo,monto con puntos de miles; cuenta digital
+160,audio/0160.wav,gasté 55.000 en unas cosas con nequi,registrar,55000,Otros,Nequi,,medio,monto con puntos de miles; cuenta digital
+161,audio/0161.wav,compré cuatro mil en una tienda con nu,registrar,4000,Otros,Nu,,bajo,monto en palabras; cuenta digital
+162,audio/0162.wav,gasté 9k en unas cosas en efectivo,registrar,9000,Otros,Efectivo,,bajo,k abreviado
+163,audio/0163.wav,pagué 55k por un tema que no recuerdo con nu,registrar,55000,Otros,Nu,,bajo,k abreviado; cuenta digital
+164,audio/0164.wav,"pagué 9,000 por un tema que no recuerdo con bancolombia",registrar,9000,Otros,Bancolombia,,alto,monto con comas de miles; cuenta digital
+165,audio/0165.wav,gasté veintidos mil en unas cosas con daviplata,registrar,22000,Otros,Daviplata,,bajo,monto en palabras; cuenta digital
+166,audio/0166.wav,"compré 17,000 en una tienda en efectivo",registrar,17000,Otros,Efectivo,,bajo,monto con comas de miles
+167,audio/0167.wav,compré 17000 en una tienda con bancolombia,registrar,17000,Otros,Bancolombia,,alto,monto sin separador; cuenta digital
+168,audio/0168.wav,pagué 22 mil por un tema que no recuerdo en efectivo,registrar,22000,Otros,Efectivo,,bajo,mil abreviado
+169,audio/0169.wav,pagué 17.000 por un tema que no recuerdo con bancolombia,registrar,17000,Otros,Bancolombia,,alto,monto con puntos de miles; cuenta digital
+170,audio/0170.wav,compré 17k en una tienda con daviplata,registrar,17000,Otros,Daviplata,,medio,k abreviado; cuenta digital
+171,audio/0171.wav,"pagué 55,000 por un tema que no recuerdo con nequi",registrar,55000,Otros,Nequi,,bajo,monto con comas de miles; cuenta digital
+172,audio/0172.wav,pagué 17000 por un tema que no recuerdo con daviplata,registrar,17000,Otros,Daviplata,,medio,monto sin separador; cuenta digital
+173,audio/0173.wav,gasté 55 mil en varios gastos en efectivo,registrar,55000,Otros,Efectivo,,bajo,mil abreviado
+174,audio/0174.wav,pagué 22000 por un tema que no recuerdo con nequi,registrar,22000,Otros,Nequi,,bajo,monto sin separador; cuenta digital
+175,audio/0175.wav,compré 55k en una tienda en efectivo,registrar,55000,Otros,Efectivo,,bajo,k abreviado
+176,audio/0176.wav,compré 55.000 en una tienda con bancolombia,registrar,55000,Otros,Bancolombia,,alto,monto con puntos de miles; cuenta digital
+177,audio/0177.wav,gasté 9k en varios gastos con daviplata,registrar,9000,Otros,Daviplata,,bajo,k abreviado; cuenta digital
+178,audio/0178.wav,"gasté 4,000 en varios gastos con nequi",registrar,4000,Otros,Nequi,,medio,monto con comas de miles; cuenta digital
+179,audio/0179.wav,compré 22.000 en una tienda en efectivo,registrar,22000,Otros,Efectivo,,bajo,monto con puntos de miles
+180,audio/0180.wav,pagué cuatro mil por un tema que no recuerdo con nequi,registrar,4000,Otros,Nequi,,bajo,monto en palabras; cuenta digital
+181,audio/0181.wav,gasté 9000 en unas cosas con daviplata,registrar,9000,Otros,Daviplata,,bajo,monto sin separador; cuenta digital
+182,audio/0182.wav,compré 9k en una tienda con nu,registrar,9000,Otros,Nu,,bajo,k abreviado; cuenta digital
+183,audio/0183.wav,pagué 120k de la cuota del préstamo en efectivo,registrar,120000,Préstamos,Efectivo,,bajo,k abreviado
+184,audio/0184.wav,gasté 80 mil en el préstamo con daviplata,registrar,80000,Préstamos,Daviplata,,medio,mil abreviado; cuenta digital
+185,audio/0185.wav,gasté 120.000 en el préstamo con nu,registrar,120000,Préstamos,Nu,,bajo,monto con puntos de miles; cuenta digital
+186,audio/0186.wav,pagué 200k de la cuota del préstamo con daviplata,registrar,200000,Préstamos,Daviplata,,bajo,k abreviado; cuenta digital
+187,audio/0187.wav,"pagué 200,000 de la cuota del préstamo con nequi",registrar,200000,Préstamos,Nequi,,medio,monto con comas de miles; cuenta digital
+188,audio/0188.wav,"pagué 60,000 del gimnasio con nu",registrar,60000,Salud y aseo,Nu,,bajo,monto con comas de miles; cuenta digital
+189,audio/0189.wav,pagué 45.000 del gimnasio con nequi,registrar,45000,Salud y aseo,Nequi,,medio,monto con puntos de miles; cuenta digital
+190,audio/0190.wav,gasté 150 mil en la consulta con el médico con nu,registrar,150000,Salud y aseo,Nu,,bajo,mil abreviado; cuenta digital
+191,audio/0191.wav,"pagué 35,000 del gimnasio con nequi",registrar,35000,Salud y aseo,Nequi,,bajo,monto con comas de miles; cuenta digital
+192,audio/0192.wav,pagué 35 mil del gimnasio con nu,registrar,35000,Salud y aseo,Nu,,bajo,mil abreviado; cuenta digital
+193,audio/0193.wav,pagué 25 mil en la droguería con bancolombia,registrar,25000,Salud y aseo,Bancolombia,,alto,mil abreviado; cuenta digital
+194,audio/0194.wav,pagué 18.000 en la droguería en efectivo,registrar,18000,Salud y aseo,Efectivo,,bajo,monto con puntos de miles
+195,audio/0195.wav,pagué 20k por la salud en efectivo,registrar,20000,Salud y aseo,Efectivo,,bajo,k abreviado
+196,audio/0196.wav,gasté 150.000 en la consulta con el médico en efectivo,registrar,150000,Salud y aseo,Efectivo,,bajo,monto con puntos de miles
+197,audio/0197.wav,pagué veinticinco mil en la droguería con nequi,registrar,25000,Salud y aseo,Nequi,,bajo,monto en palabras; cuenta digital
+198,audio/0198.wav,pagué 35k del gimnasio con bancolombia,registrar,35000,Salud y aseo,Bancolombia,,bajo,k abreviado; cuenta digital
+199,audio/0199.wav,"gasté 80,000 en la consulta con el médico con bancolombia",registrar,80000,Salud y aseo,Bancolombia,,alto,monto con comas de miles; cuenta digital
+200,audio/0200.wav,"gasté 50,000 en la farmacia con nu",registrar,50000,Salud y aseo,Nu,,bajo,monto con comas de miles; cuenta digital
+201,audio/0201.wav,gasté treinta y cinco mil en la farmacia con nequi,registrar,35000,Salud y aseo,Nequi,,bajo,monto en palabras; cuenta digital
+202,audio/0202.wav,gasté veinticinco mil en la farmacia en efectivo,registrar,25000,Salud y aseo,Efectivo,,bajo,monto en palabras
+203,audio/0203.wav,"pagué 45,000 del gimnasio con daviplata",registrar,45000,Salud y aseo,Daviplata,,medio,monto con comas de miles; cuenta digital
+204,audio/0204.wav,"pagué 20,000 de la suscripción de spotify con nu",registrar,20000,Suscripciones,Nu,,bajo,monto con comas de miles; cuenta digital
+205,audio/0205.wav,renové spotify por 25k en efectivo,registrar,25000,Suscripciones,Efectivo,,bajo,k abreviado
+206,audio/0206.wav,renové spotify por 20000 con bancolombia,registrar,20000,Suscripciones,Bancolombia,,bajo,monto sin separador; cuenta digital
+207,audio/0207.wav,pagué 45.000 de netflix en efectivo,registrar,45000,Suscripciones,Efectivo,,bajo,monto con puntos de miles
+208,audio/0208.wav,"pagué 25,000 de netflix con nu",registrar,25000,Suscripciones,Nu,,bajo,monto con comas de miles; cuenta digital
+209,audio/0209.wav,renové spotify por 20 mil con nequi,registrar,20000,Suscripciones,Nequi,,medio,mil abreviado; cuenta digital
+210,audio/0210.wav,pagué 25 mil de la suscripción de spotify con bancolombia,registrar,25000,Suscripciones,Bancolombia,,alto,mil abreviado; cuenta digital
+211,audio/0211.wav,pagué 40 mil de gasolina con nequi,registrar,40000,Transporte,Nequi,,bajo,mil abreviado; cuenta digital
+212,audio/0212.wav,tomé un taxi por 9 mil en efectivo,registrar,9000,Transporte,Efectivo,,bajo,mil abreviado
+213,audio/0213.wav,"gasté 2,500 en bus con nu",registrar,2500,Transporte,Nu,,bajo,monto con comas de miles; cuenta digital
+214,audio/0214.wav,gasté cuatro mil en bus con bancolombia,registrar,4000,Transporte,Bancolombia,,alto,monto en palabras; cuenta digital
+215,audio/0215.wav,pagué 40000 de gasolina en efectivo,registrar,40000,Transporte,Efectivo,,bajo,monto sin separador
+216,audio/0216.wav,pagué 6k en transmilenio en efectivo,registrar,6000,Transporte,Efectivo,,bajo,k abreviado
+217,audio/0217.wav,"dejé 5,000 de parqueadero en efectivo",registrar,5000,Transporte,Efectivo,,bajo,monto con comas de miles
+218,audio/0218.wav,gasté 120000 en transporte en efectivo,registrar,120000,Transporte,Efectivo,,bajo,monto sin separador
+219,audio/0219.wav,gasté 250000 en transporte con bancolombia,registrar,250000,Transporte,Bancolombia,,bajo,monto sin separador; cuenta digital
+220,audio/0220.wav,dejé cuatro mil de parqueadero con nu,registrar,4000,Transporte,Nu,,bajo,monto en palabras; cuenta digital
+221,audio/0221.wav,"pagué 55,000 de gasolina en efectivo",registrar,55000,Transporte,Efectivo,,bajo,monto con comas de miles
+222,audio/0222.wav,pagué noventa mil de gasolina con nequi,registrar,90000,Transporte,Nequi,,bajo,monto en palabras; cuenta digital
+223,audio/0223.wav,"el viaje me costó 120,000 con bancolombia",registrar,120000,Transporte,Bancolombia,,alto,monto con comas de miles; cuenta digital
+224,audio/0224.wav,"pagué 3,000 de pasaje en efectivo",registrar,3000,Transporte,Efectivo,,bajo,monto con comas de miles
+225,audio/0225.wav,pagué 6.000 en transmilenio con nequi,registrar,6000,Transporte,Nequi,,medio,monto con puntos de miles; cuenta digital
+226,audio/0226.wav,"el viaje me costó 250,000 con nu",registrar,250000,Transporte,Nu,,bajo,monto con comas de miles; cuenta digital
+227,audio/0227.wav,tomé un uber por 25k con bancolombia,registrar,25000,Transporte,Bancolombia,,bajo,k abreviado; cuenta digital
+228,audio/0228.wav,gasté 180 mil en transporte con bancolombia,registrar,180000,Transporte,Bancolombia,,bajo,mil abreviado; cuenta digital
+229,audio/0229.wav,pagué 40k de gasolina con daviplata,registrar,40000,Transporte,Daviplata,,bajo,k abreviado; cuenta digital
+230,audio/0230.wav,el viaje me costó ciento ochenta mil con bancolombia,registrar,180000,Transporte,Bancolombia,,alto,monto en palabras; cuenta digital
+231,audio/0231.wav,dejé 3 mil de parqueadero en efectivo,registrar,3000,Transporte,Efectivo,,bajo,mil abreviado
+232,audio/0232.wav,dejé 5.000 de parqueadero con bancolombia,registrar,5000,Transporte,Bancolombia,,bajo,monto con puntos de miles; cuenta digital
+233,audio/0233.wav,pagué setenta mil de gasolina en efectivo,registrar,70000,Transporte,Efectivo,,bajo,monto en palabras
+234,audio/0234.wav,gasté tres mil quinientos en bus con daviplata,registrar,3500,Transporte,Daviplata,,medio,monto en palabras; cuenta digital
+235,audio/0235.wav,"gasté 120,000 en transporte con nu",registrar,120000,Transporte,Nu,,medio,monto con comas de miles; cuenta digital
+236,audio/0236.wav,"pagué 5,000 en transmilenio con nequi",registrar,5000,Transporte,Nequi,,bajo,monto con comas de miles; cuenta digital
+237,audio/0237.wav,tomé un uber por veinticinco mil con nequi,registrar,25000,Transporte,Nequi,,medio,monto en palabras; cuenta digital
+238,audio/0238.wav,tomé un taxi por veinticinco mil con daviplata,registrar,25000,Transporte,Daviplata,,medio,monto en palabras; cuenta digital
+239,audio/0239.wav,"came la factura de luz por 80,000 con nu",registrar,80000,Vivienda y fijos,Nu,,bajo,monto con comas de miles; cuenta digital
+240,audio/0240.wav,pagué 45.000 del gas con nequi,registrar,45000,Vivienda y fijos,Nequi,,medio,monto con puntos de miles; cuenta digital
+241,audio/0241.wav,pagué 110000 de los servicios con daviplata,registrar,110000,Vivienda y fijos,Daviplata,,bajo,monto sin separador; cuenta digital
+242,audio/0242.wav,pagué 200 mil de arriendo con bancolombia,registrar,200000,Vivienda y fijos,Bancolombia,,bajo,mil abreviado; cuenta digital
+243,audio/0243.wav,pagué ciento veinte mil de arriendo con daviplata,registrar,120000,Vivienda y fijos,Daviplata,,bajo,monto en palabras; cuenta digital
+244,audio/0244.wav,pagué 250.000 de alquiler con nequi,registrar,250000,Vivienda y fijos,Nequi,,bajo,monto con puntos de miles; cuenta digital
+245,audio/0245.wav,pagué 25k del agua con nequi,registrar,25000,Vivienda y fijos,Nequi,,medio,k abreviado; cuenta digital
+246,audio/0246.wav,pagué 45 mil del gas con bancolombia,registrar,45000,Vivienda y fijos,Bancolombia,,alto,mil abreviado; cuenta digital
+247,audio/0247.wav,"pagué 300,000 de arriendo con bancolombia",registrar,300000,Vivienda y fijos,Bancolombia,,bajo,monto con comas de miles; cuenta digital
+248,audio/0248.wav,"pagué 300,000 de alquiler en efectivo",registrar,300000,Vivienda y fijos,Efectivo,,bajo,monto con comas de miles
+249,audio/0249.wav,pagué 45000 del gas con nu,registrar,45000,Vivienda y fijos,Nu,,medio,monto sin separador; cuenta digital
+250,audio/0250.wav,pagué 70k de los servicios con daviplata,registrar,70000,Vivienda y fijos,Daviplata,,bajo,k abreviado; cuenta digital
+251,audio/0251.wav,"pagué 250,000 de arriendo con daviplata",registrar,250000,Vivienda y fijos,Daviplata,,bajo,monto con comas de miles; cuenta digital
+252,audio/0252.wav,gasté 60k en internet con nu,registrar,60000,Vivienda y fijos,Nu,,medio,k abreviado; cuenta digital
+253,audio/0253.wav,pagué ciento ochenta mil de alquiler con daviplata,registrar,180000,Vivienda y fijos,Daviplata,,medio,monto en palabras; cuenta digital
+254,audio/0254.wav,came la factura de luz por cuarenta y cinco mil en efectivo,registrar,45000,Vivienda y fijos,Efectivo,,bajo,monto en palabras
+255,audio/0255.wav,pagué 90 mil de los servicios con daviplata,registrar,90000,Vivienda y fijos,Daviplata,,medio,mil abreviado; cuenta digital
+256,audio/0256.wav,pagué trescientos mil de alquiler con nu,registrar,300000,Vivienda y fijos,Nu,,bajo,monto en palabras; cuenta digital
+257,audio/0257.wav,"gasté 70,000 en internet con nequi",registrar,70000,Vivienda y fijos,Nequi,,bajo,monto con comas de miles; cuenta digital
+258,audio/0258.wav,pagué trescientos mil de arriendo con daviplata,registrar,300000,Vivienda y fijos,Daviplata,,bajo,monto en palabras; cuenta digital
+259,audio/0259.wav,gasté sesenta mil en internet con bancolombia,registrar,60000,Vivienda y fijos,Bancolombia,,alto,monto en palabras; cuenta digital
+260,audio/0260.wav,pagué 200k de alquiler con daviplata,registrar,200000,Vivienda y fijos,Daviplata,,medio,k abreviado; cuenta digital
+261,audio/0261.wav,pagué 180000 de arriendo en efectivo,registrar,180000,Vivienda y fijos,Efectivo,,bajo,monto sin separador
+262,audio/0262.wav,gasté 90k en internet en efectivo,registrar,90000,Vivienda y fijos,Efectivo,,bajo,k abreviado
+263,audio/0263.wav,pagué 300 mil de alquiler con bancolombia,registrar,300000,Vivienda y fijos,Bancolombia,,alto,mil abreviado; cuenta digital
+264,audio/0264.wav,pagué 150000 de arriendo con nu,registrar,150000,Vivienda y fijos,Nu,,medio,monto sin separador; cuenta digital
+265,audio/0265.wav,gasté 45k en internet con daviplata,registrar,45000,Vivienda y fijos,Daviplata,,bajo,k abreviado; cuenta digital
+266,audio/0266.wav,pagué 180 mil de arriendo con daviplata,registrar,180000,Vivienda y fijos,Daviplata,,bajo,mil abreviado; cuenta digital
+267,audio/0267.wav,pagué 120.000 de alquiler con nu,registrar,120000,Vivienda y fijos,Nu,,bajo,monto con puntos de miles; cuenta digital
+268,audio/0268.wav,gasté 70k en internet con bancolombia,registrar,70000,Vivienda y fijos,Bancolombia,,bajo,k abreviado; cuenta digital
+269,audio/0269.wav,pagué 120000 de arriendo con nequi,registrar,120000,Vivienda y fijos,Nequi,,medio,monto sin separador; cuenta digital
+270,audio/0270.wav,pagué 200 mil de alquiler en efectivo,registrar,200000,Vivienda y fijos,Efectivo,,bajo,mil abreviado
+271,audio/0271.wav,gasté 60 mil en internet con daviplata,registrar,60000,Vivienda y fijos,Daviplata,,medio,mil abreviado; cuenta digital
+272,audio/0272.wav,"pagué 45,000 del gas con daviplata",registrar,45000,Vivienda y fijos,Daviplata,,medio,monto con comas de miles; cuenta digital
+273,audio/0273.wav,pagué 180000 de alquiler con nequi,registrar,180000,Vivienda y fijos,Nequi,,bajo,monto sin separador; cuenta digital
+274,audio/0274.wav,pagué 25 mil del agua en efectivo,registrar,25000,Vivienda y fijos,Efectivo,,bajo,mil abreviado
+275,audio/0275.wav,pagué 60 mil del gas en efectivo,registrar,60000,Vivienda y fijos,Efectivo,,bajo,mil abreviado
+276,audio/0276.wav,"recibí el apoyo económico de 450,000 con nu",registrar,450000,Apoyo familiar,Nu,,bajo,monto con comas de miles; ingreso; cuenta digital
+277,audio/0277.wav,recibí la mesada de 300.000 con nequi,registrar,300000,Apoyo familiar,Nequi,,bajo,monto con puntos de miles; ingreso; cuenta digital
+278,audio/0278.wav,"recibí la mesada de 450,000 con daviplata",registrar,450000,Apoyo familiar,Daviplata,,bajo,monto con comas de miles; ingreso; cuenta digital
+279,audio/0279.wav,recibí el apoyo económico de doscientos cincuenta mil con bancolombia,registrar,250000,Apoyo familiar,Bancolombia,,alto,monto en palabras; ingreso; cuenta digital
+280,audio/0280.wav,recibí el apoyo económico de 450k con daviplata,registrar,450000,Apoyo familiar,Daviplata,,bajo,k abreviado; ingreso; cuenta digital
+281,audio/0281.wav,recibí la mesada que me mandaron de 450 mil en efectivo,registrar,450000,Apoyo familiar,Efectivo,,bajo,mil abreviado; ingreso
+282,audio/0282.wav,recibí el apoyo económico de 250.000 con bancolombia,registrar,250000,Apoyo familiar,Bancolombia,,bajo,monto con puntos de miles; ingreso; cuenta digital
+283,audio/0283.wav,recibí la mesada de 250k en efectivo,registrar,250000,Apoyo familiar,Efectivo,,bajo,k abreviado; ingreso
+284,audio/0284.wav,recibí la mesada de 300 mil en efectivo,registrar,300000,Apoyo familiar,Efectivo,,bajo,mil abreviado; ingreso
+285,audio/0285.wav,"recibí la mesada que me mandaron de 300,000 con nequi",registrar,300000,Apoyo familiar,Nequi,,medio,monto con comas de miles; ingreso; cuenta digital
+286,audio/0286.wav,recibí el apoyo económico de 600.000 con nu,registrar,600000,Apoyo familiar,Nu,,medio,monto con puntos de miles; ingreso; cuenta digital
+287,audio/0287.wav,recibí la mesada que me mandaron de 450000 con daviplata,registrar,450000,Apoyo familiar,Daviplata,,medio,monto sin separador; ingreso; cuenta digital
+288,audio/0288.wav,recibí la mesada de 600 mil con nequi,registrar,600000,Apoyo familiar,Nequi,,medio,mil abreviado; ingreso; cuenta digital
+289,audio/0289.wav,recibí la mesada que me mandaron de 600.000 con bancolombia,registrar,600000,Apoyo familiar,Bancolombia,,alto,monto con puntos de miles; ingreso; cuenta digital
+290,audio/0290.wav,recibí la mesada que me mandaron de seiscientos mil con bancolombia,registrar,600000,Apoyo familiar,Bancolombia,,bajo,monto en palabras; ingreso; cuenta digital
+291,audio/0291.wav,"recibí la mesada de 300,000 con bancolombia",registrar,300000,Apoyo familiar,Bancolombia,,bajo,monto con comas de miles; ingreso; cuenta digital
+292,audio/0292.wav,recibí la mesada que me mandaron de doscientos cincuenta mil en efectivo,registrar,250000,Apoyo familiar,Efectivo,,bajo,monto en palabras; ingreso
+293,audio/0293.wav,recibí el apoyo económico de 250 mil con nu,registrar,250000,Apoyo familiar,Nu,,bajo,mil abreviado; ingreso; cuenta digital
+294,audio/0294.wav,"recibí la mesada que me mandaron de 450,000 con bancolombia",registrar,450000,Apoyo familiar,Bancolombia,,bajo,monto con comas de miles; ingreso; cuenta digital
+295,audio/0295.wav,recibí la beca de ochocientos mil con daviplata,registrar,800000,Beca,Daviplata,,medio,monto en palabras; ingreso; cuenta digital
+296,audio/0296.wav,recibí el pago de la beca de un millón quinientos mil con bancolombia,registrar,1500000,Beca,Bancolombia,,bajo,millones y miles; ingreso; cuenta digital
+297,audio/0297.wav,recibí la beca de un millón doscientos mil en efectivo,registrar,1200000,Beca,Efectivo,,bajo,millones y miles; ingreso
+298,audio/0298.wav,recibí el pago de la beca de un millón doscientos mil con nequi,registrar,1200000,Beca,Nequi,,medio,millones y miles; ingreso; cuenta digital
+299,audio/0299.wav,recibí 30k por una regalía con nequi,registrar,30000,Otros ingresos,Nequi,,bajo,k abreviado; ingreso; cuenta digital
+300,audio/0300.wav,recibí 90 mil por una regalía con bancolombia,registrar,90000,Otros ingresos,Bancolombia,,bajo,mil abreviado; ingreso; cuenta digital
+301,audio/0301.wav,recibí 90k por una regalía con daviplata,registrar,90000,Otros ingresos,Daviplata,,medio,k abreviado; ingreso; cuenta digital
+302,audio/0302.wav,recibí 30 mil por la venta de una consola con nequi,registrar,30000,Otros ingresos,Nequi,,medio,mil abreviado; ingreso; cuenta digital
+303,audio/0303.wav,"recibí 150,000 por la venta de un mueble en efectivo",registrar,150000,Otros ingresos,Efectivo,,bajo,monto con comas de miles; ingreso
+304,audio/0304.wav,"recibí 30,000 por la venta de un mueble con nequi",registrar,30000,Otros ingresos,Nequi,,bajo,monto con comas de miles; ingreso; cuenta digital
+305,audio/0305.wav,recibí 30.000 por la venta de una consola con daviplata,registrar,30000,Otros ingresos,Daviplata,,medio,monto con puntos de miles; ingreso; cuenta digital
+306,audio/0306.wav,recibí 30k por la venta de un mueble en efectivo,registrar,30000,Otros ingresos,Efectivo,,bajo,k abreviado; ingreso
+307,audio/0307.wav,recibí 60 mil por la venta de un mueble en efectivo,registrar,60000,Otros ingresos,Efectivo,,bajo,mil abreviado; ingreso
+308,audio/0308.wav,recibí 60k por una regalía con bancolombia,registrar,60000,Otros ingresos,Bancolombia,,alto,k abreviado; ingreso; cuenta digital
+309,audio/0309.wav,"recibí 60,000 por una regalía en efectivo",registrar,60000,Otros ingresos,Efectivo,,bajo,monto con comas de miles; ingreso
+310,audio/0310.wav,recibí 150k por una regalía en efectivo,registrar,150000,Otros ingresos,Efectivo,,bajo,k abreviado; ingreso
+311,audio/0311.wav,recibí 150 mil por una regalía con daviplata,registrar,150000,Otros ingresos,Daviplata,,bajo,mil abreviado; ingreso; cuenta digital
+312,audio/0312.wav,recibí 90k por la venta de un mueble con nequi,registrar,90000,Otros ingresos,Nequi,,medio,k abreviado; ingreso; cuenta digital
+313,audio/0313.wav,gané 2 millones por un proyecto de trabajo con nu,registrar,2000000,Trabajo,Nu,,bajo,millones; ingreso; cuenta digital
+314,audio/0314.wav,me pagaron 1.5 millones del trabajo con bancolombia,registrar,1500000,Trabajo,Bancolombia,,bajo,millones con decimal; ingreso; cuenta digital
+315,audio/0315.wav,me pagaron dos millones del trabajo con nequi,registrar,2000000,Trabajo,Nequi,,medio,millones en palabras; ingreso; cuenta digital
+316,audio/0316.wav,recibí el sueldo de un millón doscientos mil con nequi,registrar,1200000,Trabajo,Nequi,,medio,millones y miles; ingreso; cuenta digital
+317,audio/0317.wav,me pagaron 1200000 por un trabajo con daviplata,registrar,1200000,Trabajo,Daviplata,,bajo,monto sin separador; ingreso; cuenta digital
+318,audio/0318.wav,me pagaron 2 millones del trabajo con daviplata,registrar,2000000,Trabajo,Daviplata,,bajo,millones; ingreso; cuenta digital
+319,audio/0319.wav,cobré 2.5 millones de honorarios con daviplata,registrar,2500000,Trabajo,Daviplata,,medio,millones con decimal; ingreso; cuenta digital
+320,audio/0320.wav,me llegó la quincena de dos millones con bancolombia,registrar,2000000,Trabajo,Bancolombia,,bajo,millones en palabras; ingreso; cuenta digital
+321,audio/0321.wav,recibí el sueldo de 2.000.000 en efectivo,registrar,2000000,Trabajo,Efectivo,,bajo,monto con puntos de miles; ingreso
+322,audio/0322.wav,me pagaron 800000 del trabajo con bancolombia,registrar,800000,Trabajo,Bancolombia,,alto,monto sin separador; ingreso; cuenta digital
+323,audio/0323.wav,me llegó la quincena de 2 millones en efectivo,registrar,2000000,Trabajo,Efectivo,,bajo,millones; ingreso
+324,audio/0324.wav,me pagaron 1.2 millones por un trabajo con nequi,registrar,1200000,Trabajo,Nequi,,bajo,millones con decimal; ingreso; cuenta digital
+325,audio/0325.wav,gané dos millones por un proyecto de trabajo con daviplata,registrar,2000000,Trabajo,Daviplata,,medio,millones en palabras; ingreso; cuenta digital
+326,audio/0326.wav,cobré un millón quinientos mil de honorarios en efectivo,registrar,1500000,Trabajo,Efectivo,,bajo,millones y miles; ingreso
+327,audio/0327.wav,cobré ochocientos mil de honorarios con bancolombia,registrar,800000,Trabajo,Bancolombia,,alto,monto en palabras; ingreso; cuenta digital
+328,audio/0328.wav,me pagaron 800000 por un trabajo con bancolombia,registrar,800000,Trabajo,Bancolombia,,bajo,monto sin separador; ingreso; cuenta digital
+329,audio/0329.wav,recibí el sueldo de 2 millones con nu,registrar,2000000,Trabajo,Nu,,medio,millones; ingreso; cuenta digital
+330,audio/0330.wav,me pagaron 1.5 millones por un trabajo con bancolombia,registrar,1500000,Trabajo,Bancolombia,,alto,millones con decimal; ingreso; cuenta digital
+331,audio/0331.wav,recibí el sueldo de dos millones con daviplata,registrar,2000000,Trabajo,Daviplata,,bajo,millones en palabras; ingreso; cuenta digital
+332,audio/0332.wav,cobré dos millones quinientos mil de honorarios con nequi,registrar,2500000,Trabajo,Nequi,,bajo,millones y miles; ingreso; cuenta digital
+333,audio/0333.wav,gané ochocientos mil por un proyecto de trabajo con nu,registrar,800000,Trabajo,Nu,,bajo,monto en palabras; ingreso; cuenta digital
+334,audio/0334.wav,recibí el sueldo de 2500000 con daviplata,registrar,2500000,Trabajo,Daviplata,,medio,monto sin separador; ingreso; cuenta digital
+335,audio/0335.wav,recibí mi salario de 2 millones con nequi,registrar,2000000,Trabajo,Nequi,,bajo,millones; ingreso; cuenta digital
+336,audio/0336.wav,recibí el sueldo de 1.2 millones con daviplata,registrar,1200000,Trabajo,Daviplata,,bajo,millones con decimal; ingreso; cuenta digital
+337,audio/0337.wav,me pagaron dos millones por un trabajo con nequi,registrar,2000000,Trabajo,Nequi,,bajo,millones en palabras; ingreso; cuenta digital
+338,audio/0338.wav,recibí mi salario de un millón doscientos mil con bancolombia,registrar,1200000,Trabajo,Bancolombia,,alto,millones y miles; ingreso; cuenta digital
+339,audio/0339.wav,recibí el sueldo de ochocientos mil con nu,registrar,800000,Trabajo,Nu,,medio,monto en palabras; ingreso; cuenta digital
+340,audio/0340.wav,me pagaron 2 millones por un trabajo con daviplata,registrar,2000000,Trabajo,Daviplata,,medio,millones; ingreso; cuenta digital
+341,audio/0341.wav,me llegó la quincena de 2.5 millones con nu,registrar,2500000,Trabajo,Nu,,medio,millones con decimal; ingreso; cuenta digital
+342,audio/0342.wav,recibí mi salario de dos millones en efectivo,registrar,2000000,Trabajo,Efectivo,,bajo,millones en palabras; ingreso
+343,audio/0343.wav,me llegó la quincena de 800000 con daviplata,registrar,800000,Trabajo,Daviplata,,medio,monto sin separador; ingreso; cuenta digital
+344,audio/0344.wav,cobré 2 millones de honorarios con bancolombia,registrar,2000000,Trabajo,Bancolombia,,alto,millones; ingreso; cuenta digital
+345,audio/0345.wav,recibí mi salario de 1.5 millones con nu,registrar,1500000,Trabajo,Nu,,bajo,millones con decimal; ingreso; cuenta digital
+346,audio/0346.wav,cobré dos millones de honorarios con nu,registrar,2000000,Trabajo,Nu,,bajo,millones en palabras; ingreso; cuenta digital
+347,audio/0347.wav,cobré 2.500.000 de honorarios con bancolombia,registrar,2500000,Trabajo,Bancolombia,,bajo,monto con puntos de miles; ingreso; cuenta digital
+348,audio/0348.wav,recibí el sueldo de 1200000 con nu,registrar,1200000,Trabajo,Nu,,bajo,monto sin separador; ingreso; cuenta digital
+349,audio/0349.wav,cobré 1.2 millones de honorarios con nu,registrar,1200000,Trabajo,Nu,,bajo,millones con decimal; ingreso; cuenta digital
+350,audio/0350.wav,recibí mi salario de un millón quinientos mil con daviplata,registrar,1500000,Trabajo,Daviplata,,medio,millones y miles; ingreso; cuenta digital
+351,audio/0351.wav,aparté 80k para la meta del portátil con nu,registrar,80000,,Nu,,bajo,k abreviado; ahorro; cuenta digital
+352,audio/0352.wav,ahorré 20 mil para el portátil con bancolombia,registrar,20000,,Bancolombia,,bajo,mil abreviado; ahorro; cuenta digital
+353,audio/0353.wav,"guardé 50,000 para el viaje en efectivo",registrar,50000,,Efectivo,,bajo,monto con comas de miles; ahorro
+354,audio/0354.wav,ahorré 50.000 para el portátil con bancolombia,registrar,50000,,Bancolombia,,alto,monto con puntos de miles; ahorro; cuenta digital
+355,audio/0355.wav,separé ciento cincuenta mil para la meta con nequi,registrar,150000,,Nequi,,medio,monto en palabras; ahorro; cuenta digital
+356,audio/0356.wav,ahorré 300000 para el portátil con bancolombia,registrar,300000,,Bancolombia,,alto,monto sin separador; ahorro; cuenta digital
+357,audio/0357.wav,puse 300k en ahorro con daviplata,registrar,300000,,Daviplata,,bajo,k abreviado; ahorro; cuenta digital
+358,audio/0358.wav,aparté 50 mil para la meta del portátil con nu,registrar,50000,,Nu,,medio,mil abreviado; ahorro; cuenta digital
+359,audio/0359.wav,"ahorré 50,000 para el portátil con bancolombia",registrar,50000,,Bancolombia,,bajo,monto con comas de miles; ahorro; cuenta digital
+360,audio/0360.wav,guardé 20.000 para el viaje en efectivo,registrar,20000,,Efectivo,,bajo,monto con puntos de miles; ahorro
+361,audio/0361.wav,guardé ochenta mil para el viaje en efectivo,registrar,80000,,Efectivo,,bajo,monto en palabras; ahorro
+362,audio/0362.wav,guardé 150000 para el viaje en efectivo,registrar,150000,,Efectivo,,bajo,monto sin separador; ahorro
+363,audio/0363.wav,puse 500k en ahorro con daviplata,registrar,500000,,Daviplata,,bajo,k abreviado; ahorro; cuenta digital
+364,audio/0364.wav,ahorré 500 mil para el portátil con bancolombia,registrar,500000,,Bancolombia,,bajo,mil abreviado; ahorro; cuenta digital
+365,audio/0365.wav,"separé 300,000 para la meta con nequi",registrar,300000,,Nequi,,medio,monto con comas de miles; ahorro; cuenta digital
+366,audio/0366.wav,ahorré 150.000 para el portátil con bancolombia,registrar,150000,,Bancolombia,,alto,monto con puntos de miles; ahorro; cuenta digital
+367,audio/0367.wav,ahorré ochenta mil para el portátil con bancolombia,registrar,80000,,Bancolombia,,bajo,monto en palabras; ahorro; cuenta digital
+368,audio/0368.wav,guardé 300000 para el viaje en efectivo,registrar,300000,,Efectivo,,bajo,monto sin separador; ahorro
+369,audio/0369.wav,puse 80k en ahorro con daviplata,registrar,80000,,Daviplata,,bajo,k abreviado; ahorro; cuenta digital
+370,audio/0370.wav,separé 500 mil para la meta con nequi,registrar,500000,,Nequi,,medio,mil abreviado; ahorro; cuenta digital
+371,audio/0371.wav,"puse 50,000 en ahorro con daviplata",registrar,50000,,Daviplata,,medio,monto con comas de miles; ahorro; cuenta digital
+372,audio/0372.wav,aparté 50.000 para la meta del portátil con nu,registrar,50000,,Nu,,bajo,monto con puntos de miles; ahorro; cuenta digital
+373,audio/0373.wav,puse quinientos mil en ahorro con daviplata,registrar,500000,,Daviplata,,medio,monto en palabras; ahorro; cuenta digital
+374,audio/0374.wav,aparté 150000 para la meta del portátil con nu,registrar,150000,,Nu,,bajo,monto sin separador; ahorro; cuenta digital
+375,audio/0375.wav,separé 20k para la meta con nequi,registrar,20000,,Nequi,,bajo,k abreviado; ahorro; cuenta digital
+376,audio/0376.wav,guardé 300 mil para el viaje en efectivo,registrar,300000,,Efectivo,,bajo,mil abreviado; ahorro
+377,audio/0377.wav,"puse 500,000 en ahorro con daviplata",registrar,500000,,Daviplata,,medio,monto con comas de miles; ahorro; cuenta digital
+378,audio/0378.wav,aparté 150.000 para la meta del portátil con nu,registrar,150000,,Nu,,bajo,monto con puntos de miles; ahorro; cuenta digital
+379,audio/0379.wav,aparté trescientos mil para la meta del portátil con nu,registrar,300000,,Nu,,medio,monto en palabras; ahorro; cuenta digital
+380,audio/0380.wav,separé 300000 para la meta con nequi,registrar,300000,,Nequi,,bajo,monto sin separador; ahorro; cuenta digital
+381,audio/0381.wav,separé 50k para la meta con nequi,registrar,50000,,Nequi,,bajo,k abreviado; ahorro; cuenta digital
+382,audio/0382.wav,ahorré 150 mil para el portátil con bancolombia,registrar,150000,,Bancolombia,,bajo,mil abreviado; ahorro; cuenta digital
+383,audio/0383.wav,"puse 150,000 en ahorro con daviplata",registrar,150000,,Daviplata,,medio,monto con comas de miles; ahorro; cuenta digital
+384,audio/0384.wav,aparté 20.000 para la meta del portátil con nu,registrar,20000,,Nu,,bajo,monto con puntos de miles; ahorro; cuenta digital
+385,audio/0385.wav,guardé trescientos mil para el viaje en efectivo,registrar,300000,,Efectivo,,bajo,monto en palabras; ahorro
+386,audio/0386.wav,aparté 80000 para la meta del portátil con nu,registrar,80000,,Nu,,bajo,monto sin separador; ahorro; cuenta digital
+387,audio/0387.wav,guardé 80k para el viaje en efectivo,registrar,80000,,Efectivo,,bajo,k abreviado; ahorro
+388,audio/0388.wav,puse 80 mil en ahorro con daviplata,registrar,80000,,Daviplata,,medio,mil abreviado; ahorro; cuenta digital
+389,audio/0389.wav,"aparté 80,000 para la meta del portátil con nu",registrar,80000,,Nu,,medio,monto con comas de miles; ahorro; cuenta digital
+390,audio/0390.wav,puse 80.000 en ahorro con daviplata,registrar,80000,,Daviplata,,bajo,monto con puntos de miles; ahorro; cuenta digital
+391,audio/0391.wav,ahorré ciento cincuenta mil para el portátil con bancolombia,registrar,150000,,Bancolombia,,bajo,monto en palabras; ahorro; cuenta digital
+392,audio/0392.wav,puse 300000 en ahorro con daviplata,registrar,300000,,Daviplata,,bajo,monto sin separador; ahorro; cuenta digital
+393,audio/0393.wav,guardé 500k para el viaje en efectivo,registrar,500000,,Efectivo,,bajo,k abreviado; ahorro
+394,audio/0394.wav,cuánto llevo de ahorro,consulta_estado,,,,,alto,consulta
+395,audio/0395.wav,muéstrame mi estado,consulta_estado,,,,,medio,consulta
+396,audio/0396.wav,¿cómo me fue esta semana?,consulta_estado,,,,,bajo,consulta
+397,audio/0397.wav,hazme un resumen de la semana,consulta_estado,,,,,bajo,consulta
+398,audio/0398.wav,cuánto llevo en total,consulta_estado,,,,,bajo,consulta
+399,audio/0399.wav,cómo va mi semana,consulta_estado,,,,,bajo,consulta
+400,audio/0400.wav,cómo va mi ahorro,consulta_estado,,,,,bajo,consulta
+401,audio/0401.wav,dime el estado de mis finanzas,consulta_estado,,,,,medio,consulta
+402,audio/0402.wav,necesito el balance,consulta_estado,,,,,medio,consulta
+403,audio/0403.wav,hazme un resumen de mis gastos,consulta_estado,,,,,bajo,consulta
+404,audio/0404.wav,dame el balance de hoy,consulta_estado,,,,,bajo,consulta
+405,audio/0405.wav,muéstrame el balance,consulta_estado,,,,,bajo,consulta
+406,audio/0406.wav,quiero saber cómo voy,consulta_estado,,,,,bajo,consulta
+407,audio/0407.wav,por favor dime cómo voy,consulta_estado,,,,,medio,consulta
+408,audio/0408.wav,dame el estado de mis finanzas,consulta_estado,,,,,medio,consulta
+409,audio/0409.wav,hazme un resumen del mes,consulta_estado,,,,,bajo,consulta
+410,audio/0410.wav,necesito el estado de mis cuentas,consulta_estado,,,,,alto,consulta
+411,audio/0411.wav,muéstrame cómo va el mes,consulta_estado,,,,,alto,consulta
+412,audio/0412.wav,revises el balance,consulta_estado,,,,,bajo,consulta
+413,audio/0413.wav,cómo va el mes,consulta_estado,,,,,bajo,consulta
+414,audio/0414.wav,¿cómo va mi mes?,consulta_estado,,,,,bajo,consulta
+415,audio/0415.wav,hazme un resumen,consulta_estado,,,,,alto,consulta
+416,audio/0416.wav,cómo voy financieramente,consulta_estado,,,,,medio,consulta
+417,audio/0417.wav,quiero ver el balance del mes,consulta_estado,,,,,medio,consulta
+418,audio/0418.wav,dime cómo voy hoy,consulta_estado,,,,,medio,consulta
+419,audio/0419.wav,cómo va mi mes hasta ahora,consulta_estado,,,,,bajo,consulta
+420,audio/0420.wav,cuánto llevo gastado,consulta_estado,,,,,bajo,consulta
+421,audio/0421.wav,cómo me fue hoy,consulta_estado,,,,,bajo,consulta
+422,audio/0422.wav,cómo voy hoy,consulta_estado,,,,,bajo,consulta
+423,audio/0423.wav,dame el estado de la semana,consulta_estado,,,,,medio,consulta
+424,audio/0424.wav,quiero un balance de hoy,consulta_estado,,,,,bajo,consulta
+425,audio/0425.wav,muéstrame el estado de hoy,consulta_estado,,,,,medio,consulta
+426,audio/0426.wav,cuánto llevo del mes,consulta_estado,,,,,bajo,consulta
+427,audio/0427.wav,dame el balance de la semana,consulta_estado,,,,,medio,consulta
+428,audio/0428.wav,necesito saber el balance,consulta_estado,,,,,medio,consulta
+429,audio/0429.wav,cuánto llevo gastado hoy,consulta_estado,,,,,medio,consulta
+430,audio/0430.wav,necesito saber cómo voy,consulta_estado,,,,,bajo,consulta
+431,audio/0431.wav,cómo va mi presupuesto,consulta_estado,,,,,bajo,consulta
+432,audio/0432.wav,muéstrame el resumen del mes,consulta_estado,,,,,bajo,consulta
+433,audio/0433.wav,quiero ver el resumen del mes,consulta_estado,,,,,bajo,consulta
+434,audio/0434.wav,cuánto llevo en gastos,consulta_estado,,,,,medio,consulta
+435,audio/0435.wav,dame el estado de hoy,consulta_estado,,,,,bajo,consulta
+436,audio/0436.wav,por favor hazme un resumen,consulta_estado,,,,,bajo,consulta
+437,audio/0437.wav,cuánto llevo ahorrado,consulta_estado,,,,,medio,consulta
+438,audio/0438.wav,revisemos cómo voy,consulta_estado,,,,,bajo,consulta
+439,audio/0439.wav,¿cómo voy?,consulta_estado,,,,,bajo,consulta
+440,audio/0440.wav,por favor dame mi balance,consulta_estado,,,,,bajo,consulta
+441,audio/0441.wav,necesito un resumen,consulta_estado,,,,,bajo,consulta
+442,audio/0442.wav,finaliza el día,cerrar_dia,,,,,bajo,cierre
+443,audio/0443.wav,cerrar el día,cerrar_dia,,,,,bajo,cierre
+444,audio/0444.wav,cerrá el día,cerrar_dia,,,,,bajo,cierre
+445,audio/0445.wav,por favor cierra el día,cerrar_dia,,,,,alto,cierre
+446,audio/0446.wav,termina el día de una vez,cerrar_dia,,,,,alto,cierre
+447,audio/0447.wav,termina el día por favor,cerrar_dia,,,,,bajo,cierre
+448,audio/0448.wav,listo cierra el día,cerrar_dia,,,,,bajo,cierre
+449,audio/0449.wav,por favor cerrar el día,cerrar_dia,,,,,bajo,cierre
+450,audio/0450.wav,termina el día porfa,cerrar_dia,,,,,medio,cierre
+451,audio/0451.wav,cierra el día por favor,cerrar_dia,,,,,bajo,cierre
+452,audio/0452.wav,bueno termina el día,cerrar_dia,,,,,bajo,cierre
+453,audio/0453.wav,termina el día,cerrar_dia,,,,,bajo,cierre
+454,audio/0454.wav,finaliza el día ya,cerrar_dia,,,,,medio,cierre
+455,audio/0455.wav,es hora de cerrar el día,cerrar_dia,,,,,medio,cierre
+456,audio/0456.wav,hora de cerrar el día,cerrar_dia,,,,,medio,cierre
+457,audio/0457.wav,por favor finaliza el día,cerrar_dia,,,,,bajo,cierre
+458,audio/0458.wav,cerrar el día por favor,cerrar_dia,,,,,bajo,cierre
+459,audio/0459.wav,ya es hora de cerrar el día,cerrar_dia,,,,,bajo,cierre
+460,audio/0460.wav,quiero cerrar el día,cerrar_dia,,,,,bajo,cierre
+461,audio/0461.wav,cierra el día de una vez,cerrar_dia,,,,,bajo,cierre
+462,audio/0462.wav,ya cerra el día,cerrar_dia,,,,,bajo,cierre
+463,audio/0463.wav,haz el cierre del día,cerrar_dia,,,,,bajo,cierre
+464,audio/0464.wav,vamos a cerrar el día,cerrar_dia,,,,,medio,cierre
+465,audio/0465.wav,podés cerrar el día,cerrar_dia,,,,,medio,cierre
+466,audio/0466.wav,cerrar el día porfa,cerrar_dia,,,,,medio,cierre
+467,audio/0467.wav,cierre del día,cerrar_dia,,,,,medio,cierre
+468,audio/0468.wav,por favor termina el día,cerrar_dia,,,,,medio,cierre
+469,audio/0469.wav,por favor cerra el día,cerrar_dia,,,,,bajo,cierre
+470,audio/0470.wav,no sé cuánto gasté en el bus,requiere_aclaracion,,,,,bajo,sin monto
+471,audio/0471.wav,gasté en el mercado pero no sé cuánto,requiere_aclaracion,,,,,alto,sin monto
+472,audio/0472.wav,se me olvidó cuánto pagué,requiere_aclaracion,,,,,medio,sin monto
+473,audio/0473.wav,hice una compra pero no sé el monto,requiere_aclaracion,,,,,medio,sin monto
+474,audio/0474.wav,invertí una cantidad pero no sé cuál,requiere_aclaracion,,,,,bajo,sin monto
+475,audio/0475.wav,se me fue la cifra de lo que gasté,requiere_aclaracion,,,,,bajo,sin monto
+476,audio/0476.wav,no me acuerdo de cuánto pagué en la farmacia,requiere_aclaracion,,,,,bajo,sin monto
+477,audio/0477.wav,no recuerdo cuánto gasté en el mercado,requiere_aclaracion,,,,,medio,sin monto
+478,audio/0478.wav,no tengo idea de cuánto gasté hoy,requiere_aclaracion,,,,,bajo,sin monto
+479,audio/0479.wav,no sé el valor de la compra,requiere_aclaracion,,,,,medio,sin monto
+480,audio/0480.wav,pagué por el servicio pero no sé el monto,requiere_aclaracion,,,,,bajo,sin monto
+481,audio/0481.wav,se me olvidó la cantidad del gasto,requiere_aclaracion,,,,,bajo,sin monto
+482,audio/0482.wav,compré gasolina pero no me acuerdo del valor,requiere_aclaracion,,,,,bajo,sin monto
+483,audio/0483.wav,pagué el arriendo pero se me olvidó el valor,requiere_aclaracion,,,,,bajo,sin monto
+484,audio/0484.wav,no tengo el dato de cuánto gasté,requiere_aclaracion,,,,,bajo,sin monto
+485,audio/0485.wav,gasté en el cine pero no me acuerdo cuánto,requiere_aclaracion,,,,,bajo,sin monto
+486,audio/0486.wav,me gasté una platita pero no sé cuánto,requiere_aclaracion,,,,,bajo,sin monto
+487,audio/0487.wav,hice un gasto pero no sé la cantidad,requiere_aclaracion,,,,,medio,sin monto
+488,audio/0488.wav,no sé cuánto pagué por el desayuno,requiere_aclaracion,,,,,bajo,sin monto
+489,audio/0489.wav,gasté en una empanada pero no recuerdo la cantidad,requiere_aclaracion,,,,,alto,sin monto
+490,audio/0490.wav,no me acuerdo cuánto pagué en la cena,requiere_aclaracion,,,,,medio,sin monto
+491,audio/0491.wav,no sé cuánto pagué en el almuerzo,requiere_aclaracion,,,,,bajo,sin monto
+492,audio/0492.wav,no sé cuánto costó la cena,requiere_aclaracion,,,,,bajo,sin monto
+493,audio/0493.wav,compré algo en la tienda y no sé cuánto fue,requiere_aclaracion,,,,,bajo,sin monto
+494,audio/0494.wav,pagué por el parqueadero pero se me olvidó el monto,requiere_aclaracion,,,,,medio,sin monto
+495,audio/0495.wav,no sé cuánto fue la factura,requiere_aclaracion,,,,,bajo,sin monto
+496,audio/0496.wav,no sé el precio de lo que compré,requiere_aclaracion,,,,,alto,sin monto
+497,audio/0497.wav,quedó sin saber el monto de la compra,requiere_aclaracion,,,,,bajo,sin monto
+498,audio/0498.wav,perdí la cuenta de lo que gasté,requiere_aclaracion,,,,,medio,sin monto
+499,audio/0499.wav,compré gasolina y no me acuerdo del monto,requiere_aclaracion,,,,,alto,sin monto
+500,audio/0500.wav,gasté en un regalo pero no sé el valor,requiere_aclaracion,,,,,bajo,sin monto

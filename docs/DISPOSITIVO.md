@@ -144,7 +144,7 @@ El pinout usa 10 GPIO y deja `GPIO3` libre. Debe validarse contra la placa físi
 | TFT_MOSI | GPIO6 | Salida | Datos SPI |
 | TFT_CS | GPIO5 | Salida | Chip select |
 | TFT_DC | GPIO4 | Salida | Data/Command |
-| TFT_RST | EN | Reset | Conectar al reset de la placa; no consume GPIO |
+| TFT_RST | GPIO8 | Reset | Reset |
 | TFT_VCC | 3V3 | Alimentación | Confirmar que el módulo acepte 3.3 V |
 | TFT_GND | GND | Tierra | Común con el resto del sistema |
 | TFT_BL | — | — | No existe pin BLK/BL; el backlight queda fijo |
@@ -155,46 +155,49 @@ Reglas:
 - Si el módulo expone un pad `LED`/`BL` interno, conectarlo a 3V3 mediante la resistencia que indique el fabricante.
 - Si `TFT_RST` no puede soldarse a `EN`, usar un reset RC de encendido o liberar un GPIO reduciendo otra función.
 
-### 4.2 Bus I2S compartido
-
-| Señal | GPIO propuesto | Dirección | Nota |
-|---|---:|---|---|
-| I2S_BCLK | GPIO8 | Salida | Reloj compartido por micrófono y amplificador |
-| I2S_WS | GPIO9 | Salida | Word select compartido |
-| MIC_SD | GPIO10 | Entrada | Datos del INMP441 |
-| AMP_DIN | GPIO11 | Salida | Datos hacia el MAX98357A |
-| MIC_L/R | GND | — | Canal izquierdo |
-| MIC_VDD | 3V3 | Alimentación | Con condensador de desacople |
-| AMP_VIN | VBAT o 5V | Alimentación | Verificar límite del módulo; no alimentar desde un GPIO |
-| AMP_GND | GND | Tierra | Común |
-| SPK+ / SPK- | Altavoz | Salida | Altavoz de 80 ohmios |
-| GAIN / SD | Según módulo | Configuración | Definir ganancia y canal |
-| MIC_GND | GND | Tierra | Común |
-
 Reglas:
 
 - Validar que el ESP32-S3 pueda compartir BCLK y WS entre recepción y reproducción.
 - Si el driver no permite relojes compartidos, usar el bus en modo half-duplex: primero grabar y luego reproducir.
 - Mantener el amplificador separado de la alimentación sensible del micrófono.
 
-### 4.3 Botones
+### o en su defecto:
 
-| Señal | Conexión | Modo | Nota |
-|---|---|---|---|
-| BTN_ADC | GPIO2 | ADC1 | Nodo común de la escalera resistiva |
-| BTN_BACK | 0 ohm a GND | Analógico | Botón Atrás |
-| BTN_OK | 4.7 kohm a GND | Analógico | Botón OK |
-| BTN_PTT | 10 kohm a GND | Analógico | Mantener para hablar |
-| Pull-up | 10 kohm a 3V3 | — | Sin botón, el ADC lee cerca de 3.3 V |
+### 4.2 Micrófono INMP441
 
-Reglas:
+| Señal | GPIO propuesto | Dirección | Nota |
+|---|---:|---|---|
+| MIC_SCK | GPIO3 | Salida | Reloj I2S |
+| MIC_WS | GPIO2 | Salida | Word select |
+| MIC_SD | GPIO9 | Entrada | Datos del micrófono |
+| MIC_L/R | GND | — | Canal izquierdo |
+| MIC_VDD | 3V3 | Alimentación | Con condensador de desacople |
+| MIC_GND | GND | Tierra | Común |
 
-- El firmware distingue los botones por rangos de ADC, no por pines digitales.
-- Si se presionan dos botones a la vez, la lectura puede ser ambigua; dar prioridad a `PTT`.
-- Validar los valores con la tolerancia real de las resistencias y del ADC.
-- Si una versión futura de la placa expone más GPIO, se pueden separar los botones.
+### 4.3 Amplificador MAX98357A
 
-### 4.4 Batería y alimentación
+| Señal | GPIO propuesto | Dirección | Nota |
+|---|---:|---|---|
+| AMP_BCLK | GPIO11 | Salida | Reloj I2S |
+| AMP_LRC | GPIO12 | Salida | Word select |
+| AMP_DIN | GPIO17 | Salida | Datos hacia el amplificador |
+| AMP_VIN | VBAT o 5V | Alimentación | Verificar límite del módulo; no alimentar desde un GPIO |
+| AMP_GND | GND | Tierra | Común |
+| SPK+ / SPK- | Altavoz | Salida | Altavoz de 80 ohmios |
+| GAIN / SD | Según módulo | Configuración | Definir ganancia y canal |
+
+### 4.4 Botones
+
+| Señal | GPIO propuesto | Modo | Nota |
+|---|---:|---|---|
+| BTN_BACK | GPIO1 | Entrada pull-up | Activo en bajo |
+| BTN_OK | GPIO21 | Entrada pull-up | Activo en bajo |
+| BTN_PTT | GPIO47 | Entrada pull-up | Mantener para hablar; activo en bajo |
+| GND | GND | Tierra | Un terminal del pulsador a GND |
+
+Si GPIO47 no está disponible en la placa, usar GPIO2 como alternativa y actualizar este documento. Evitar GPIO0, GPIO45 y GPIO46 porque son pines de arranque.
+
+### 4.5 Batería y alimentación
 
 | Señal | GPIO propuesto | Nota |
 |---|---:|---|
@@ -217,18 +220,17 @@ Reglas:
 - No conectar la batería directamente a un GPIO.
 - No medir la batería sin divisor de voltaje.
 - Verificar la corriente pico del amplificador y del backlight.
+- Mantener el amplificador separado de la alimentación sensible del micrófono.
 - Agregar condensadores de desacople cerca de la pantalla, el micrófono y el amplificador.
 - El switch debe cortar la alimentación de potencia, no solo una señal lógica.
 
-### 4.5 Pines reservados y precauciones
+### 4.6 Pines reservados y precauciones
 
-- `GPIO3`: strapping; queda libre y no se usa.
-- `GPIO0`, `GPIO45` y `GPIO46`: pines de arranque; no usar para botones ni pantalla.
-- `GPIO19` y `GPIO20`: USB nativo; no usar.
-- `GPIO43` y `GPIO44`: UART de consola; evitar si se necesita depuración serial.
-- Confirmar que la placa exponga `GPIO1` a `GPIO11` y el pad `EN`.
+- GPIO0, GPIO45 y GPIO46: pines de arranque; no usar para botones ni pantalla.
+- GPIO19 y GPIO20: pueden estar conectados al USB nativo; evitar si la placa los usa para programación.
+- GPIO43 y GPIO44: pueden ser UART de consola; evitar si se necesita depuración serial.
+- Confirmar que la placa exponga GPIO47.
 - Confirmar que la pantalla y el amplificador funcionen a 3.3 V o prever nivel lógico adecuado.
-- Si la placa real no coincide con este mapa, reasignar manteniendo el mismo número de señales: 3 SPI + 4 I2S + 1 ADC de botones + 1 ADC de batería.
 
 ---
 

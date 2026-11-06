@@ -376,8 +376,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend import nlp, services  # noqa: E402
-from backend.api_utils import body, error, ok, require_fields  # noqa: E402
+from backend import ai, audio, nlp, services  # noqa: E402
+from backend import finance_engine  # noqa: E402
+from backend.api_utils import body, datos_entrantes, error, ok, require_fields  # noqa: E402
 from backend.auth import (  # noqa: E402
     auth_required,
     create_access_token,
@@ -407,6 +408,304 @@ def public_user(row):
     return user
 
 
+MIME_AUDIO_ACEPTADOS = {
+    "audio/wav",
+    "audio/x-wav",
+    "audio/wave",
+    "audio/vnd.wave",
+    "application/octet-stream",
+}
+
+
+class ErrorSolicitud(Exception):
+    """Error de negocio que se traduce a una respuesta de la API."""
+
+    def __init__(self, codigo, mensaje, estado=400, detalles=None):
+        super().__init__(mensaje)
+        self.codigo = codigo
+        self.mensaje = mensaje
+        self.estado = estado
+        self.detalles = detalles or {}
+
+
+def _mime_audio(archivo):
+    mime = (getattr(archivo, "content_type", "") or "").split(";")[0].strip().lower()
+    if mime in MIME_AUDIO_ACEPTADOS:
+        return mime
+    nombre = (getattr(archivo, "filename", "") or "").lower()
+    if nombre.endswith(".wav"):
+        return audio.MIME_TYPE
+    return mime or "application/octet-stream"
+
+
+def _plan_int(value, nombre, minimo, maximo):
+    try:
+        number = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "El parametro {0} debe ser un entero".format(nombre),
+            422,
+            {"campo": nombre},
+        ) from exc
+    if number < minimo or number > maximo:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "El parametro {0} debe estar entre {1} y {2}".format(nombre, minimo, maximo),
+            422,
+            {"campo": nombre},
+        )
+    return number
+
+
+def _plan_pct(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "El parametro colchon_pct debe ser numerico",
+            422,
+            {"campo": "colchon_pct"},
+        ) from exc
+    if number < 0 or number > 50:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "El parametro colchon_pct debe estar entre 0 y 50",
+            422,
+            {"campo": "colchon_pct"},
+        )
+    return number
+
+
+def _plan_options(source):
+    """Opciones comunes de plan: meses, fecha y colchon."""
+    fecha = source.get("fecha") or local_date()
+    if finance_engine.parse_date(fecha) is None:
+        raise ErrorSolicitud(
+            "PARAMETRO_INVALIDO",
+            "La fecha no es valida",
+            422,
+            {"campo": "fecha"},
+        )
+    return {
+        "as_of": str(fecha)[:10],
+        "meses": _plan_int(source.get("meses", 12), "meses", 1, 24),
+        "colchon_pct": _plan_pct(source.get("colchon_pct", 10)),
+    }
+
+
+def _plan_overrides(data):
+    """Opciones adicionales de simulacion y los overrides aplicados."""
+    overrides = {}
+    result = {}
+    for nombre, clave in (
+        ("ingreso_mensual", "income_override"),
+        ("gasto_mensual", "expense_override"),
+        ("capacidad_mensual", "capacity_override"),
+    ):
+        value = data.get(nombre)
+        if value is not None:
+            number = _plan_int(value, nombre, 0, 10**15)
+            result[clave] = number
+            overrides[nombre] = number
+
+    prioridades = data.get("prioridades")
+    if prioridades is not None:
+        if not isinstance(prioridades, dict):
+            raise ErrorSolicitud(
+                "PARAMETRO_INVALIDO",
+                "prioridades debe ser un objeto meta_id -> prioridad",
+                422,
+                {"campo": "prioridades"},
+            )
+        normalizadas = {}
+        for key, value in prioridades.items():
+            try:
+                meta_id = int(key)
+            except (TypeError, ValueError) as exc:
+                raise ErrorSolicitud(
+                    "PARAMETRO_INVALIDO",
+                    "Las claves de prioridades deben ser meta_id",
+                    422,
+                    {"campo": "prioridades"},
+                ) from exc
+            prioridad = services.parse_priority(value)
+            if prioridad is None:
+                raise ErrorSolicitud(
+                    "PARAMETRO_INVALIDO",
+                    "La prioridad debe estar entre 1 y 5",
+                    422,
+                    {"campo": "prioridades"},
+                )
+            normalizadas[meta_id] = prioridad
+        result["prioridades"] = normalizadas
+        overrides["prioridades"] = normalizadas
+
+    incluir = data.get("incluir_metas")
+    if incluir is not None:
+        if not isinstance(incluir, list):
+            raise ErrorSolicitud(
+                "PARAMETRO_INVALIDO",
+                "incluir_metas debe ser un arreglo de meta_id",
+                422,
+                {"campo": "incluir_metas"},
+            )
+        ids = []
+        for value in incluir:
+            try:
+                ids.append(int(value))
+            except (TypeError, ValueError) as exc:
+                raise ErrorSolicitud(
+                    "PARAMETRO_INVALIDO",
+                    "incluir_metas debe contener meta_id enteros",
+                    422,
+                    {"campo": "incluir_metas"},
+                ) from exc
+        result["incluir_metas"] = ids
+        overrides["incluir_metas"] = ids
+
+    return result, overrides
+
+
+def _verificar_metas(conn, user_id, meta_ids):
+    ids = sorted({int(value) for value in meta_ids})
+    if not ids:
+        return []
+    placeholders = ",".join("?" for _ in ids)
+    rows = conn.execute(
+        "SELECT id FROM metas WHERE usuario_id = ? AND is_deleted = 0 AND id IN ({0})".format(
+            placeholders
+        ),
+        (user_id, *ids),
+    ).fetchall()
+    existentes = {int(row["id"]) for row in rows}
+    return [meta_id for meta_id in ids if meta_id not in existentes]
+
+
+def procesar_mensaje_voz(
+    conn,
+    user_id,
+    texto=None,
+    archivo=None,
+    message_id=None,
+    device_id=None,
+    device_uid=None,
+    origen="app_voz",
+    idioma=None,
+):
+    """Procesa un mensaje enviado como audio o como texto.
+
+    El audio se transcribe con el proveedor de STT configurado. El archivo no
+    se guarda en disco ni en la base: solo se conserva el texto, la duracion y
+    los metadatos de la llamada en ``interacciones_ia``.
+    """
+    if archivo is not None:
+        if not message_id:
+            raise ErrorSolicitud(
+                "CAMPOS_REQUERIDOS",
+                "El campo message_id es obligatorio cuando se envia audio",
+                422,
+                {"campos": ["message_id"]},
+            )
+
+        # Idempotencia antes de gastar una llamada al proveedor.
+        existente = services.message_por_message_id(conn, user_id, message_id)
+        if existente is not None:
+            existente["duplicado"] = True
+            existente.setdefault("puntos_otorgados", 0)
+            return existente, 200
+
+        audio_bytes = archivo.read()
+        try:
+            info = audio.validar_wav(audio_bytes)
+        except audio.AudioMuyGrande as exc:
+            raise ErrorSolicitud(exc.codigo, exc.mensaje, 413, exc.detalles) from exc
+        except audio.AudioInvalido as exc:
+            raise ErrorSolicitud(exc.codigo, exc.mensaje, 422, exc.detalles) from exc
+
+        mime = _mime_audio(archivo)
+        idioma = (idioma or ai.IDIOMA_POR_DEFECTO).strip()
+        hotwords = nlp.palabras_clave_usuario(conn, user_id)
+        try:
+            resultado = ai.transcribe_audio(
+                audio_bytes, mime_type=mime, language=idioma, initial_prompt=hotwords
+            )
+        except ai.ErrorSTT as exc:
+            services.log_ai_interaction(
+                conn,
+                user_id,
+                proveedor=ai.proveedor_preferido(),
+                modelo=ai.modelo(),
+                version_prompt=ai.PROMPT_TRANSCRIPCION,
+                entrada={"mime_type": mime, "duracion_s": info.duracion_s, "idioma": idioma},
+                salida={
+                    "error": exc.codigo,
+                    "mensaje": exc.mensaje,
+                    "detalles": exc.detalles,
+                },
+                mensaje_id=None,
+            )
+            raise ErrorSolicitud(exc.codigo, exc.mensaje, exc.estado_http, exc.detalles) from exc
+
+        payload = services.create_message(
+            conn,
+            user_id,
+            resultado["texto"],
+            message_id=message_id,
+            device_id=device_id,
+            device_uid=device_uid,
+            origen=origen,
+            audio_duration_s=info.duracion_s,
+        )
+        salida_ia = {"texto": resultado["texto"]}
+        if resultado.get("motivo_fallback"):
+            salida_ia["caida_de_proveedor"] = resultado.get("error_proveedor")
+            salida_ia["motivo"] = resultado["motivo_fallback"]
+        services.log_ai_interaction(
+            conn,
+            user_id,
+            proveedor=resultado.get("proveedor") or "gemini",
+            modelo=resultado.get("modelo"),
+            version_prompt=ai.PROMPT_TRANSCRIPCION,
+            entrada={"mime_type": mime, "duracion_s": info.duracion_s, "idioma": idioma},
+            salida=salida_ia,
+            latencia_ms=resultado.get("latencia_ms"),
+            tokens_entrada=resultado.get("tokens_entrada"),
+            tokens_salida=resultado.get("tokens_salida"),
+            mensaje_id=payload.get("id"),
+        )
+        payload.setdefault("duplicado", False)
+        payload.setdefault("puntos_otorgados", 0)
+        payload["proveedor_stt"] = resultado.get("proveedor")
+        payload["modelo_stt"] = resultado.get("modelo")
+        if resultado.get("motivo_fallback"):
+            payload["stt_caida"] = resultado["motivo_fallback"]
+        return payload, 201
+
+    texto = (texto or "").strip()
+    if not texto:
+        raise ErrorSolicitud(
+            "CAMPOS_REQUERIDOS",
+            "Envia el campo audio o el campo texto",
+            422,
+            {"campos": ["audio", "texto"]},
+        )
+
+    payload = services.create_message(
+        conn,
+        user_id,
+        texto,
+        message_id=message_id,
+        device_id=device_id,
+        device_uid=device_uid,
+        origen=origen,
+    )
+    payload.setdefault("duplicado", False)
+    payload.setdefault("puntos_otorgados", 0)
+    return payload, 200 if payload.get("duplicado") else 201
+
+
 def create_app(database=None):
     app = Flask(__name__)
     database = database or os.environ.get("FINAGOTCHI_DB") or str(ROOT / "finagotchi.db")
@@ -415,6 +714,7 @@ def create_app(database=None):
         DATABASE=database,
         CORS_ORIGIN=os.environ.get("FINAGOTCHI_CORS_ORIGIN", "*"),
         JSON_SORT_KEYS=False,
+        MAX_CONTENT_LENGTH=audio.MAX_BYTES,
     )
 
     path = Path(app.config["DATABASE"])
@@ -435,11 +735,36 @@ def create_app(database=None):
             "Content-Type, Authorization, X-Device-Token"
         )
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
+        # Chrome (desde la version 115) exige este permiso cuando la app web
+        # le pide al backend que esta en la red local. Sin esta linea el
+        # navegador bloquea la peticion y ni siquiera llega al servidor.
+        if request.headers.get("Access-Control-Request-Private-Network") == "true":
+            response.headers["Access-Control-Allow-Private-Network"] = "true"
         return response
 
     @app.errorhandler(ValueError)
     def value_error(exc):
         return error("DATOS_INVALIDOS", str(exc), 400)
+
+    @app.errorhandler(413)
+    def payload_too_large(exc):
+        return error(
+            "AUDIO_MUY_GRANDE",
+            "El archivo enviado supera el tamano maximo permitido",
+            413,
+            {"max_bytes": audio.MAX_BYTES},
+        )
+
+    @app.errorhandler(Exception)
+    def error_inesperado(exc):
+        """La API siempre responde JSON, nunca la pagina de depuracion de Flask."""
+        app.logger.exception("Error no controlado: %s", exc)
+        return error(
+            "ERROR_INTERNO",
+            "Ocurrio un error inesperado al procesar la peticion",
+            500,
+            {"tipo": type(exc).__name__},
+        )
 
     @app.get("/api/v1/health")
     def health():
@@ -708,7 +1033,15 @@ def create_app(database=None):
     @app.get("/api/v1/home")
     @auth_required
     def home():
-        return ok(services.home_payload(get_db(), g.user_id))
+        incluir_plan = (request.args.get("incluir_plan") or "").strip().lower() in (
+            "1",
+            "true",
+            "si",
+            "sí",
+        )
+        return ok(
+            services.home_payload(get_db(), g.user_id, incluir_plan=incluir_plan)
+        )
 
     @app.get("/api/v1/accounts")
     @auth_required
@@ -1033,23 +1366,21 @@ def create_app(database=None):
     @app.post("/api/v1/messages")
     @auth_required
     def post_message():
-        data = body()
-        text = data.get("texto") or request.form.get("texto")
-        if not text:
-            return error("STT_NO_CONFIGURADO", "Envía texto o configura un proveedor de transcripción", 422)
-        duration = data.get("audio_duracion_s") or request.form.get("audio_duracion_s")
-        payload = services.create_message(
-            get_db(),
-            g.user_id,
-            text,
-            message_id=data.get("message_id") or request.form.get("message_id"),
-            device_id=data.get("device_id"),
-            origen=data.get("origen") or "app_voz",
-            audio_duration_s=duration,
-        )
-        payload.setdefault("duplicado", False)
-        payload.setdefault("puntos_otorgados", 0)
-        return ok(payload, 200 if payload["duplicado"] else 201)
+        data = datos_entrantes()
+        try:
+            payload, status = procesar_mensaje_voz(
+                get_db(),
+                g.user_id,
+                texto=data.get("texto"),
+                archivo=request.files.get("audio"),
+                message_id=data.get("message_id"),
+                device_id=data.get("device_id"),
+                origen=data.get("origen") or "app_voz",
+                idioma=data.get("idioma"),
+            )
+        except ErrorSolicitud as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+        return ok(payload, status)
 
     @app.get("/api/v1/messages/<int:message_id>")
     @auth_required
@@ -1263,6 +1594,47 @@ def create_app(database=None):
         ).fetchall()
         return ok(dict_rows(rows))
 
+    @app.get("/api/v1/goals/plan")
+    @auth_required
+    def get_goal_plan():
+        try:
+            options = _plan_options(request.args)
+        except ErrorSolicitud as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+        return ok(services.goal_plan(get_db(), g.user_id, **options))
+
+    @app.post("/api/v1/goals/plan/simulate")
+    @auth_required
+    def simulate_goal_plan():
+        data = body()
+        try:
+            options = _plan_options(data)
+            extra, overrides = _plan_overrides(data)
+        except ErrorSolicitud as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+
+        conn = get_db()
+        solicitadas = set(extra.get("incluir_metas") or [])
+        solicitadas.update(extra.get("prioridades") or {})
+        faltantes = _verificar_metas(conn, g.user_id, solicitadas)
+        if faltantes:
+            return error(
+                "META_INEXISTENTE",
+                "Alguna meta no existe o no pertenece al usuario",
+                404,
+                {"metas": faltantes},
+            )
+
+        plan = services.goal_plan(
+            conn,
+            g.user_id,
+            simulacion=True,
+            overrides=overrides,
+            **options,
+            **extra,
+        )
+        return ok(plan)
+
     @app.post("/api/v1/goals")
     @auth_required
     def create_goal():
@@ -1278,6 +1650,14 @@ def create_app(database=None):
             return error("MONTOS_INVALIDOS", "Los montos deben ser positivos", 422)
         if services.parse_date(data["fecha_limite"]) is None:
             return error("FECHA_INVALIDA", "La fecha límite no es válida", 422)
+        prioridad = services.parse_priority(data.get("prioridad", 1))
+        if prioridad is None:
+            return error(
+                "PRIORIDAD_INVALIDA",
+                "La prioridad debe estar entre 1 y 5",
+                422,
+                {"campo": "prioridad"},
+            )
         conn = get_db()
         cursor = conn.execute(
             """
@@ -1297,7 +1677,7 @@ def create_app(database=None):
                 contribution,
                 data.get("dia_aporte"),
                 data.get("hora_recordatorio") or "08:00",
-                int(data.get("prioridad", 1)),
+                prioridad,
             ),
         )
         conn.commit()
@@ -1337,6 +1717,16 @@ def create_app(database=None):
         ):
             if field in data:
                 allowed[field] = data[field]
+        if "prioridad" in allowed:
+            prioridad = services.parse_priority(allowed["prioridad"])
+            if prioridad is None:
+                return error(
+                    "PRIORIDAD_INVALIDA",
+                    "La prioridad debe estar entre 1 y 5",
+                    422,
+                    {"campo": "prioridad"},
+                )
+            allowed["prioridad"] = prioridad
         if not allowed:
             return ok(services.serialize_goal(conn, g.user_id, goal_id))
         assignments = ", ".join(f"{column} = ?" for column in allowed)
@@ -1697,23 +2087,22 @@ def create_app(database=None):
     def device_message():
         if not g.device["usuario_id"]:
             return error("DISPOSITIVO_NO_VINCULADO", "El dispositivo no está vinculado", 403)
-        data = body()
-        text = data.get("texto") or request.form.get("texto")
-        if not text:
-            return error("STT_NO_CONFIGURADO", "El dispositivo debe enviar texto transcrito o audio", 422)
-        payload = services.create_message(
-            get_db(),
-            g.device["usuario_id"],
-            text,
-            message_id=data.get("message_id"),
-            device_id=g.device["id"],
-            device_uid=g.device["device_uid"],
-            origen="dispositivo",
-            audio_duration_s=data.get("audio_duracion_s"),
-        )
-        payload.setdefault("duplicado", False)
-        payload.setdefault("puntos_otorgados", 0)
-        return ok(payload, 200 if payload["duplicado"] else 201)
+        data = datos_entrantes()
+        try:
+            payload, status = procesar_mensaje_voz(
+                get_db(),
+                g.device["usuario_id"],
+                texto=data.get("texto"),
+                archivo=request.files.get("audio"),
+                message_id=data.get("message_id"),
+                device_id=g.device["id"],
+                device_uid=g.device["device_uid"],
+                origen="dispositivo",
+                idioma=data.get("idioma"),
+            )
+        except ErrorSolicitud as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+        return ok(payload, status)
 
     @app.post("/api/v1/device/messages/<int:message_id>/confirm")
     @device_required
@@ -1778,5 +2167,19 @@ app = create_app()
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+>>>>>>> michelle
+=======
+    # El reinicio automatico de Flask (debug) corta las peticiones en vuelo
+    # cuando se cambia un archivo: durante una demo eso parte el audio a
+    # medio enviar. Se deja desactivado por defecto y se puede activar con
+    # FLASK_DEBUG=1.
+    depurar = os.environ.get("FLASK_DEBUG", "0") == "1"
+    app.run(
+        host=os.environ.get("HOST", "0.0.0.0"),
+        port=int(os.environ.get("PORT", 5000)),
+        debug=depurar,
+        use_reloader=depurar,
+    )
 >>>>>>> michelle

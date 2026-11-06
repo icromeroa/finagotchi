@@ -1,0 +1,347 @@
+{
+  "generado_en": "2026-11-04T17:36:47",
+  "fuente": "finagotchi.db",
+  "archivo": "dataset_completo.csv",
+  "separador": ";",
+  "codificacion": "UTF-8 con BOM",
+  "incluye_vacios": true,
+  "columnas": [
+    "tabla",
+    "id_registro",
+    "usuario_id",
+    "fecha",
+    "columna_fecha",
+    "campo",
+    "valor"
+  ],
+  "total_tablas": 40,
+  "total_filas": 65017,
+  "bytes": 4308278,
+  "sha256": "150bf704e78ae4a27803fb27f645f1a1295be2e35508121f5e7026ff7b437905",
+  "tablas": {
+    "alertas_log": {
+      "filas": 173,
+      "columnas": 19,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "fecha_local"
+    },
+    "categoria_palabras": {
+      "filas": 1408,
+      "columnas": 4,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": null
+    },
+    "categorias": {
+      "filas": 425,
+      "columnas": 10,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "cierres_dia": {
+      "filas": 151,
+      "columnas": 17,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "fecha_local"
+    },
+    "consentimientos": {
+      "filas": 75,
+      "columnas": 6,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "aceptado_en"
+    },
+    "cuenta_palabras": {
+      "filas": 369,
+      "columnas": 4,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": null
+    },
+    "cuentas": {
+      "filas": 147,
+      "columnas": 13,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "dispositivos": {
+      "filas": 18,
+      "columnas": 18,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "dispositivos_comandos": {
+      "filas": 38,
+      "columnas": 11,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "dispositivos_notificaciones": {
+      "filas": 132,
+      "columnas": 13,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "dispositivos_telemetria": {
+      "filas": 190,
+      "columnas": 12,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "fecha_local"
+    },
+    "estado_mascota": {
+      "filas": 25,
+      "columnas": 4,
+      "clave": [
+        "usuario_id"
+      ],
+      "columna_fecha": "ultima_actualizacion"
+    },
+    "gastos_fijos": {
+      "filas": 71,
+      "columnas": 11,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "interacciones_ia": {
+      "filas": 575,
+      "columnas": 13,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "mensajes_dispositivo": {
+      "filas": 343,
+      "columnas": 14,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "recibido_en"
+    },
+    "metas": {
+      "filas": 81,
+      "columnas": 17,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "metas_eventos": {
+      "filas": 100,
+      "columnas": 10,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "perfil_financiero": {
+      "filas": 25,
+      "columnas": 33,
+      "clave": [
+        "usuario_id"
+      ],
+      "columna_fecha": "actualizado_en"
+    },
+    "perfil_secciones": {
+      "filas": 150,
+      "columnas": 5,
+      "clave": [
+        "usuario_id",
+        "seccion"
+      ],
+      "columna_fecha": "actualizado_en"
+    },
+    "plantilla_categoria_palabras": {
+      "filas": 53,
+      "columnas": 3,
+      "clave": [
+        "tipo",
+        "categoria_nombre",
+        "palabra"
+      ],
+      "columna_fecha": null
+    },
+    "plantilla_categorias": {
+      "filas": 16,
+      "columnas": 6,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": null
+    },
+    "plantilla_cuenta_palabras": {
+      "filas": 13,
+      "columnas": 2,
+      "clave": [
+        "cuenta_nombre",
+        "palabra"
+      ],
+      "columna_fecha": null
+    },
+    "plantilla_cuentas": {
+      "filas": 5,
+      "columnas": 6,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": null
+    },
+    "preferencias_notificacion": {
+      "filas": 25,
+      "columnas": 9,
+      "clave": [
+        "usuario_id"
+      ],
+      "columna_fecha": null
+    },
+    "presupuesto_categoria": {
+      "filas": 164,
+      "columnas": 6,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": null
+    },
+    "presupuesto_diario_historial": {
+      "filas": 43,
+      "columnas": 7,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "fecha_local"
+    },
+    "presupuestos": {
+      "filas": 25,
+      "columnas": 8,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "progreso_etapa": {
+      "filas": 25,
+      "columnas": 10,
+      "clave": [
+        "usuario_id"
+      ],
+      "columna_fecha": "actualizado_en"
+    },
+    "puntos_log": {
+      "filas": 546,
+      "columnas": 10,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "fecha_local"
+    },
+    "retos_respuestas": {
+      "filas": 34,
+      "columnas": 6,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "respondido_en"
+    },
+    "salud_log": {
+      "filas": 151,
+      "columnas": 13,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "fecha_local"
+    },
+    "schema_migrations": {
+      "filas": 1,
+      "columnas": 3,
+      "clave": [
+        "version"
+      ],
+      "columna_fecha": "aplicado_en"
+    },
+    "sesiones_refresco": {
+      "filas": 55,
+      "columnas": 8,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "solicitudes_eliminacion_cuenta": {
+      "filas": 3,
+      "columnas": 7,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "solicitada_en"
+    },
+    "tokens_recuperacion": {
+      "filas": 16,
+      "columnas": 6,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "tokens_verificacion_correo": {
+      "filas": 23,
+      "columnas": 6,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "transacciones": {
+      "filas": 500,
+      "columnas": 24,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "fecha_local"
+    },
+    "transacciones_versiones": {
+      "filas": 22,
+      "columnas": 15,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "fecha_local"
+    },
+    "usuarios": {
+      "filas": 25,
+      "columnas": 16,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    },
+    "vinculacion_codigos": {
+      "filas": 27,
+      "columnas": 10,
+      "clave": [
+        "id"
+      ],
+      "columna_fecha": "creado_en"
+    }
+  }
+}
