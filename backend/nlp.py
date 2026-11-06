@@ -790,9 +790,11 @@ def detectar_intencion_conversacional(text):
     if any(word_in_text(palabra, normalized) for palabra in ("mis movimientos", "ultimos movimientos", "movimientos de")):
         return {"intent": "consultar_movimientos", "entidades": {}, "confianza": 0.85}
     if any(word_in_text(palabra, normalized) for palabra in ("presupuesto", "cupo")):
-        return {"intent": "consultar_presupuesto", "entidades": {}, "confianza": 0.85}
+        if parse_amount(normalized) is None:
+            return {"intent": "consultar_presupuesto", "entidades": {}, "confianza": 0.85}
     if any(word_in_text(palabra, normalized) for palabra in ("mi perfil", "mi ingreso", "mis ingresos")):
-        return {"intent": "consultar_perfil", "entidades": {}, "confianza": 0.8}
+        if parse_amount(normalized) is None:
+            return {"intent": "consultar_perfil", "entidades": {}, "confianza": 0.8}
 
     for frase, periodo in INTENCIONES_CONSULTA.items():
         if word_in_text(frase, normalized):
@@ -809,6 +811,34 @@ def detectar_intencion_conversacional(text):
             "entidades": {"periodo": periodo},
             "confianza": 0.8,
         }
+
+    if any(word_in_text(palabra, normalized) for palabra in ("elimina", "borra", "anula", "quita")):
+        if any(word_in_text(palabra, normalized) for palabra in ("meta", "objetivo")):
+            return {"intent": "eliminar_meta", "entidades": {}, "confianza": 0.85}
+        if any(word_in_text(palabra, normalized) for palabra in ("movimiento", "gasto", "ingreso", "registro")):
+            return {"intent": "eliminar_movimiento", "entidades": {}, "confianza": 0.85}
+    if any(word_in_text(palabra, normalized) for palabra in ("edita", "editar", "cambia", "cambiar", "corrige")):
+        if any(word_in_text(palabra, normalized) for palabra in ("movimiento", "gasto", "ingreso", "registro")):
+            return {"intent": "editar_movimiento", "entidades": {}, "confianza": 0.8}
+    if any(word_in_text(palabra, normalized) for palabra in ("crea", "crear", "nueva", "nuevo", "agrega")):
+        if any(word_in_text(palabra, normalized) for palabra in ("cuenta",)):
+            return {"intent": "crear_cuenta", "entidades": {}, "confianza": 0.85}
+        if any(word_in_text(palabra, normalized) for palabra in ("categoria", "categoría")):
+            return {"intent": "crear_categoria", "entidades": {}, "confianza": 0.85}
+    if any(word_in_text(palabra, normalized) for palabra in ("presupuesto diario", "presupuesto", "cupo diario")):
+        if parse_amount(normalized) is not None:
+            return {
+                "intent": "actualizar_presupuesto",
+                "entidades": {"monto": parse_amount(normalized)},
+                "confianza": 0.85,
+            }
+    if any(word_in_text(palabra, normalized) for palabra in ("mi ingreso", "ingreso mensual", "gano al mes", "sueldo mensual")):
+        if parse_amount(normalized) is not None:
+            return {
+                "intent": "actualizar_perfil",
+                "entidades": {"monto": parse_amount(normalized)},
+                "confianza": 0.85,
+            }
 
     ahorro_pasado = any(
         word_in_text(palabra, normalized)

@@ -205,6 +205,51 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(self.decir("mi presupuesto").get("intent"), "consultar_presupuesto")
         self.assertEqual(self.decir("mi perfil").get("intent"), "consultar_perfil")
 
+    # --- Otras operaciones por voz -------------------------------------
+    def test_crear_cuenta_por_voz(self):
+        propuesta = self.decir("crea una cuenta llamada Ahorros de tipo cuenta de ahorros")
+        self.assertTrue(propuesta["requiere_confirmacion"])
+        self.assertEqual(propuesta["datos"]["accion"]["tipo"], "crear_cuenta")
+        self.decir("sí")
+        cuentas = self.client.get("/api/v1/accounts", headers=self.user["headers"]).get_json()["data"]
+        self.assertTrue(any(cuenta["nombre"] == "ahorros" for cuenta in cuentas))
+
+    def test_crear_categoria_por_voz(self):
+        propuesta = self.decir("crea una categoría llamada Mascotas de gasto")
+        self.assertEqual(propuesta["datos"]["accion"]["tipo"], "crear_categoria")
+        self.decir("ok")
+        categorias = self.client.get("/api/v1/categories", headers=self.user["headers"]).get_json()["data"]
+        self.assertTrue(any(categoria["nombre"] == "mascotas" for categoria in categorias))
+
+    def test_actualizar_presupuesto_por_voz(self):
+        propuesta = self.decir("cambia mi presupuesto diario a 30 mil")
+        self.assertEqual(propuesta["datos"]["accion"]["tipo"], "actualizar_presupuesto")
+        self.decir("sí")
+        self.assertEqual(self.home()["hoy"]["presupuesto_diario"], 30000)
+
+    def test_actualizar_ingreso_por_voz(self):
+        propuesta = self.decir("mi ingreso mensual es 2 millones")
+        self.assertEqual(propuesta["datos"]["accion"]["tipo"], "actualizar_perfil")
+        self.decir("sí")
+        perfil = self.client.get("/api/v1/me/profile", headers=self.user["headers"]).get_json()["data"]
+        self.assertEqual(perfil["perfil"]["ingreso_trabajo_mensual"], 2000000)
+
+    def test_eliminar_movimiento_por_voz(self):
+        self.decir("gasté 20 mil en almuerzo")
+        self.decir("sí")
+        propuesta = self.decir("elimina el último movimiento")
+        self.assertEqual(propuesta["datos"]["accion"]["tipo"], "eliminar_movimiento")
+        self.decir("sí")
+        self.assertEqual(self.home()["hoy"]["gastos"], 0)
+
+    def test_eliminar_meta_por_voz(self):
+        self.crear_meta(nombre="Viaje")
+        propuesta = self.decir("elimina la meta Viaje")
+        self.assertEqual(propuesta["datos"]["accion"]["tipo"], "eliminar_meta")
+        self.decir("sí")
+        metas = self.client.get("/api/v1/goals", headers=self.user["headers"]).get_json()["data"]
+        self.assertEqual(metas, [])
+
     def test_mensaje_duplicado_no_procesa_dos_veces(self):
         primero = self.decir("gasté 12.000 en almuerzo", "repetido-1")
         segundo = self.decir("otra cosa", "repetido-1")

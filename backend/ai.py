@@ -538,6 +538,13 @@ INTENCIONES_CONVERSACION = (
     "consultar_movimientos",
     "consultar_presupuesto",
     "consultar_perfil",
+    "editar_movimiento",
+    "eliminar_movimiento",
+    "crear_cuenta",
+    "crear_categoria",
+    "actualizar_presupuesto",
+    "actualizar_perfil",
+    "eliminar_meta",
     "confirmar",
     "cancelar",
     "corregir",
@@ -577,6 +584,13 @@ Intenciones permitidas:
 - consultar_plan: cuanto debo ahorrar o que plan recomienda.
 - consultar_cuentas, consultar_categorias, consultar_movimientos,
   consultar_presupuesto, consultar_perfil: consultas del catalogo o del perfil.
+- editar_movimiento: cambiar monto, categoria, cuenta o meta de un movimiento.
+- eliminar_movimiento: borrar o anular un movimiento.
+- crear_cuenta: crear una cuenta nueva.
+- crear_categoria: crear una categoria nueva.
+- actualizar_presupuesto: cambiar el presupuesto diario.
+- actualizar_perfil: cambiar el ingreso mensual declarado.
+- eliminar_meta: borrar una meta existente.
 - confirmar: acepta la accion o propuesta pendiente.
 - cancelar: descarta la accion pendiente.
 - corregir: quiere cambiar un dato de la accion pendiente.
@@ -588,7 +602,8 @@ Entidades posibles (usa null cuando no aparezcan):
 tipo ("gasto", "ingreso" o "ahorro"), monto (entero en pesos), categoria,
 cuenta, meta, nombre (de la meta), plazo_meses (entero), plazo_dias (entero),
 frecuencia ("diaria", "semanal", "quincenal" o "mensual"), prioridad (1 a 5),
-periodo ("hoy", "semana" o "mes"), concepto.
+periodo ("hoy", "semana" o "mes"), concepto, tipo_cuenta ("efectivo",
+"billetera_digital", "tarjeta", "cuenta_ahorros" o "inversion").
 
 Reglas:
 - No inventes montos, fechas, nombres, cuentas ni metas.

@@ -1030,6 +1030,7 @@ def create_app(database=None):
         payload = services.confirm_message(get_db(), g.user_id, message_id)
         if payload is None:
             return error("MENSAJE_NO_ENCONTRADO", "El mensaje no existe", 404)
+        conversation.invalidar_accion_pendiente(g.user_id, message_id)
         return ok(payload)
 
     @app.post("/api/v1/messages/<int:message_id>/discard")
@@ -1055,6 +1056,7 @@ def create_app(database=None):
             (g.user_id, message_id),
         )
         conn.commit()
+        conversation.invalidar_accion_pendiente(g.user_id, message_id)
         return ok({"descartado": True})
 
     @app.get("/api/v1/days/<date_value>")
@@ -1707,6 +1709,7 @@ def create_app(database=None):
         payload = services.confirm_message(get_db(), g.device["usuario_id"], message_id)
         if payload is None:
             return error("MENSAJE_NO_ENCONTRADO", "El mensaje no existe", 404)
+        conversation.invalidar_accion_pendiente(g.device["usuario_id"], message_id)
         return ok(payload)
 
     @app.post("/api/v1/device/close-day")

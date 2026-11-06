@@ -1440,6 +1440,142 @@ def categories_summary(conn, user_id):
     return dict_rows(rows)
 
 
+def create_account(conn, user_id, data):
+    """Crea una cuenta desde la API o desde el agente."""
+    nombre = str(data.get("nombre") or "").strip()
+    tipo_cuenta = data.get("tipo_cuenta") or "efectivo"
+    if not nombre:
+        raise ValueError("El nombre de la cuenta es obligatorio")
+    if tipo_cuenta not in (
+        "efectivo",
+        "billetera_digital",
+        "tarjeta",
+        "cuenta_ahorros",
+        "inversion",
+    ):
+        raise ValueError("Tipo de cuenta inválido")
+    try:
+        saldo_inicial = int(data.get("saldo_inicial") or 0)
+    except (TypeError, ValueError):
+        raise ValueError("El saldo inicial debe ser un entero")
+    if tipo_cuenta == "tarjeta" and saldo_inicial != 0:
+        raise ValueError("Una tarjeta no puede tener saldo inicial")
+    order = conn.execute(
+        "SELECT COALESCE(MAX(orden), 0) + 1 FROM cuentas WHERE usuario_id = ?",
+        (user_id,),
+    ).fetchone()[0]
+    cursor = conn.execute(
+        """
+        INSERT INTO cuentas
+            (usuario_id, nombre, tipo_cuenta, icono, ultimos_4, saldo_inicial,
+             es_sistema, es_por_defecto, oculta, orden)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?)
+        """,
+        (
+            user_id,
+            nombre[:24],
+            tipo_cuenta,
+            data.get("icono"),
+            data.get("ultimos_4"),
+            saldo_inicial,
+            order,
+        ),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT * FROM v_cuentas_resumen WHERE usuario_id = ? AND cuenta_id = ?",
+        (user_id, cursor.lastrowid),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def create_category(conn, user_id, data):
+    """Crea una categoria de gasto o ingreso desde la API o el agente."""
+    nombre = str(data.get("nombre") or "").strip()
+    tipo = data.get("tipo") or "gasto"
+    if not nombre:
+        raise ValueError("El nombre de la categoría es obligatorio")
+    if tipo not in ("gasto", "ingreso"):
+        raise ValueError("El tipo de categoría es inválido")
+    order = conn.execute(
+        "SELECT COALESCE(MAX(orden), 0) + 1 FROM categorias WHERE usuario_id = ?",
+        (user_id,),
+    ).fetchone()[0]
+    cursor = conn.execute(
+        """
+        INSERT INTO categorias
+            (usuario_id, nombre, tipo, icono, es_sistema, es_fija, activa, orden)
+        VALUES (?, ?, ?, ?, 0, 0, 1, ?)
+        """,
+        (user_id, nombre[:24], tipo, data.get("icono") or "🏷️", order),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT id, nombre, tipo, icono, activa FROM categorias WHERE usuario_id = ? AND id = ?",
+        (user_id, cursor.lastrowid),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def set_daily_budget(conn, user_id, amount):
+    """Ajusta el presupuesto diario y deja registro en el historial."""
+    try:
+        valor = int(amount)
+    except (TypeError, ValueError):
+        raise ValueError("El presupuesto debe ser un entero")
+    if valor < 0:
+        raise ValueError("El presupuesto no puede ser negativo")
+    today = local_date()
+    conn.execute(
+        "UPDATE usuarios SET presupuesto_diario = ?, actualizado_en = ? WHERE id = ?",
+        (valor, iso_utc(), user_id),
+    )
+    conn.execute(
+        """
+        INSERT INTO presupuesto_diario_historial
+            (usuario_id, fecha_local, monto, motivo, actualizado_en)
+        VALUES (?, ?, ?, 'ajuste', ?)
+        ON CONFLICT (usuario_id, fecha_local)
+        DO UPDATE SET monto = excluded.monto, motivo = 'ajuste',
+                      actualizado_en = excluded.actualizado_en
+        """,
+        (user_id, today, valor, iso_utc()),
+    )
+    conn.commit()
+    return {"presupuesto_diario": valor, "fecha_local": today}
+
+
+def set_profile_income(conn, user_id, amount):
+    """Actualiza el ingreso mensual declarado en el perfil financiero."""
+    try:
+        valor = int(amount)
+    except (TypeError, ValueError):
+        raise ValueError("El ingreso debe ser un entero")
+    if valor < 0:
+        raise ValueError("El ingreso no puede ser negativo")
+    conn.execute(
+        "UPDATE perfil_financiero SET ingreso_trabajo_mensual = ? WHERE usuario_id = ?",
+        (valor, user_id),
+    )
+    conn.execute(
+        "UPDATE usuarios SET actualizado_en = ? WHERE id = ?", (iso_utc(), user_id)
+    )
+    conn.commit()
+    return {"ingreso_trabajo_mensual": valor}
+
+
+def delete_goal(conn, user_id, goal_id):
+    result = conn.execute(
+        """
+        UPDATE metas SET is_deleted = 1, deleted_at = ?, actualizado_en = ?
+        WHERE usuario_id = ? AND id = ? AND is_deleted = 0
+        """,
+        (iso_utc(), iso_utc(), user_id, goal_id),
+    )
+    conn.commit()
+    return result.rowcount > 0
+
+
 def profile_summary(conn, user_id):
     user = conn.execute(
         "SELECT nombre, correo, presupuesto_diario, zona_horaria FROM usuarios WHERE id = ?",
