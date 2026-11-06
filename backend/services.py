@@ -157,6 +157,23 @@ def create_message(
             "transacciones": [],
         }
     )
+    # La base exige monto > 0. Ninguna propuesta puede insertarse sin monto:
+    # si el LLM o las reglas no lo encontraron, se degrada a aclaracion en
+    # lugar de romper la peticion con un 500.
+    propuestas = result.get("transacciones", [])
+    validas = []
+    for proposal in propuestas:
+        try:
+            monto = int(proposal.get("monto"))
+        except (TypeError, ValueError):
+            monto = None
+        if monto and monto > 0:
+            validas.append({**proposal, "monto": monto})
+    if result.get("intent") == "registrar" and len(validas) != len(propuestas):
+        result = {**result, "transacciones": validas}
+        if not validas:
+            result["intent"] = "requiere_aclaracion"
+            result["error"] = "No se identificó un monto"
     if audio_duration_s is not None:
         try:
             audio_duration_s = float(audio_duration_s)

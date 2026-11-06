@@ -5,10 +5,10 @@ idealmente debería existir.
 
 | Dato | Valor |
 |---|---|
-| Versión del documento | 1.1 |
+| Versión del documento | 1.2 |
 | Fecha de corte | 2026-11-05 |
 | Rama de referencia | `michelle` |
-| Commit de código revisado | `c3f8ffe` |
+| Commits revisados | `e5290f5` (Fase 11) y `a554b68` (Fase 12 parcial) |
 | Base de datos | SQLite, esquema 4 |
 | Moneda | peso colombiano (COP), enteros |
 | Zona horaria usada por el backend | `America/Bogota` (UTC-5) |
@@ -79,7 +79,8 @@ Consecuencias importantes de lo que hay hoy:
 | `backend/services.py` | Dominio: mensajes, transacciones, puntos, presupuesto, metas, salud, cierre, notificaciones y orquestación del plan. |
 | `backend/finance_engine.py` | Ingreso, gasto planificado, colchón y capacidad de ahorro on-the-fly. |
 | `backend/optimization.py` | Modelo LP, solver HiGHS, redondeo, fallback greedy y diagnóstico del plan. |
-| `backend/nlp.py` | Intención, tipo, monto, categoría, cuenta y validación de la respuesta del LLM. |
+| `backend/nlp.py` | Intención, tipo, monto, categoría, cuenta, palabra clave, metas y validación de la respuesta del LLM. |
+| `backend/conversation.py` | Agente conversacional: estado en memoria, confirmaciones naturales, consultas por voz y creación de metas por diálogo. |
 | `backend/ai.py` | Transcripción (Gemini o faster-whisper local) y extracción con LLM (Ollama o Gemini). |
 | `backend/audio.py` | Contrato y validación del WAV. |
 | `backend/auth.py` | Tokens de acceso, refresh, login y autenticación de dispositivo. |
@@ -119,8 +120,15 @@ en la rama `respaldo-frontend-conectado`.
 | Función | Proveedor | Dónde corre |
 |---|---|---|
 | Transcribir audio | Gemini (`google-genai`) o faster-whisper | PC/servidor |
-| Interpretar la frase | Ollama con `qwen3:4b` o Gemini | PC/servidor |
+| Interpretar la conversación | Ollama con `qwen3:4b` o Gemini | PC/servidor |
 | Clasificar por reglas | `backend/nlp.py` | PC/servidor |
+
+La interpretación por conversación tiene un contrato estricto: JSON con `intent`,
+`entidades` y `confianza`. El LLM **solo interpreta**; nunca calcula montos,
+fechas ni el plan. Si el LLM falla, responde `desconocido` o entrega entidades
+vacías, el respaldo por reglas de `nlp.py` toma el control. Una frase larga
+está impedida de confirmar o cancelar una acción pendiente solo con la opinión
+del modelo; solo cuentan los disparadores de confirmación/cancelación.
 
 La ESP32 no ejecuta modelos. Solo captura audio, lo envía por Wi-Fi y muestra
 el resultado. El firmware es un pendiente del proyecto; el contrato que debería
@@ -498,7 +506,9 @@ otros).
 
 ### 4.3 Interpretación de la frase
 
-`backend/nlp.py::interpret`:
+La interpretación normal ahora pasa por el agente conversacional (`backend/conversation.py`), que aplica primero su propio contexto conversacional y delega la extracción en `nlp.interpretar_con_ia` / `nlp.detectar_intencion_conversacional`. Ver `19. El agente conversacional`.
+
+`backend/nlp.py::interpret` (ruta heredada, sin agente):
 
 1. Normaliza el texto: minúsculas, sin tildes, espacios colapsados.
 2. Detecta la intención:
@@ -542,13 +552,10 @@ La extracción con LLM (`nlp.interpretar_con_ia`) valida la respuesta:
 La IA **propone**, no confirma. Aunque el LLM devuelva una transacción, esta se
 inserta como `pendiente`.
 
-**Riesgo real de la ruta con IA:** si el LLM responde sin `monto` y el texto no
-tiene cifras que las reglas puedan rescatar, `interpretar_con_ia` devuelve una
-propuesta con `monto: null`. A diferencia de la ruta por reglas, no devuelve
-`requiere_aclaracion`. `services.create_message` intenta insertar esa propuesta
-en `transacciones`, donde `monto` es `NOT NULL CHECK (monto > 0)`; la inserción
-falla y la API responde `500 ERROR_INTERNO`. Está registrado como error abierto
-en `PROBLEMAS_CONOCIDOS.md`.
+`services.create_message` valida la propuesta antes de insertar: ninguna
+sugerencia sin `monto > 0` llega a `transacciones`; se degrada a
+`requiere_aclaracion` con el mensaje "No se identificó un monto". Hay prueba de
+regresión en `tests/test_mensajes.py`.
 
 ### 4.4 Creación del mensaje y de las propuestas
 
@@ -579,6 +586,11 @@ se crean transacciones. El cliente debe ejecutar la acción correspondiente.
    `device_id` y el dispositivo pertenece al usuario.
 6. Devuelve `puntos_otorgados` (cantidad de pendientes confirmadas) y una
    proyección de salud.
+
+Después de confirmar o descartar, la ruta invalida cualquier estado
+conversacional pendiente por voz (`conversation.invalidar_accion_pendiente`),
+de modo que la siguiente frase no se tome como respuesta a una acción ya
+resuelta.
 
 No hay confirmación individual por endpoint: si un mensaje tuviera tres
 propuestas, se confirman las tres o se descartan las tres. El `puntos_otorgados`
@@ -1431,6 +1443,20 @@ pendientes se borran lógicamente.
 4. `GET /budget` lo devuelve si cubre la fecha de hoy.
 5. Las reglas de salud empiezan a usar sus límites mensuales por categoría.
 
+### 12.8 Crear una meta por voz
+
+1. El usuario dice: “quiero una meta para comprar unos audífonos”.
+2. Nancy pregunta, una por una: monto → plazo → frecuencia → prioridad.
+3. Python calcula la fecha límite desde el plazo; el LLM nunca calcula fechas.
+4. La meta se simula como virtual (`meta_id = -1`); el LP evalúa capacidad
+   mensual y prioridades y devuelve un diagnóstico (aporte esperado,
+   cumplimiento ponderado, faltante). No se escribe nada aún.
+5. Nancy vuelve a preguntar “¿la creo?”.
+6. Con “sí”/“ok”/“correcto” se persiste con `services.create_goal` y se crea
+   el flujo normal de ahorro (12.5).
+
+Si el usuario cancela en cualquier punto, la meta no existe en la base.
+
 ---
 
 ## 13. Diferencias entre especificación, esquema y código
@@ -1439,6 +1465,8 @@ pendientes se borran lógicamente.
 |---|---|---|
 | Estado de transacción | Se habla de anulación | Solo `pendiente` y `confirmado`; “anulado” es `is_deleted = 1` en la API. |
 | Confirmación | Se describe confirmación por movimiento | Es por mensaje: confirma todas las pendientes del mensaje. |
+| Confirmación por voz | Se especula en el texto "OK" | Acepta frases naturales: sí, ok, correcto, está bien, confirmo. |
+| Consulta de estado | Se describe solo en la app | El agente responde por voz/texto y calcula sin escribir. |
 | Frontend | La especificación describe un cliente completo | La app actual es un prototipo visual sin HTTP; la versión conectada está en `respaldo-frontend-conectado`. |
 | Zona horaria | `usuarios.zona_horaria` por usuario | El backend siempre usa `America/Bogota`. |
 | Recordatorios | Se especifican notificaciones y recordatorios | No hay scheduler; solo se crea `movimiento_registrado` al confirmar. |
@@ -1491,9 +1519,7 @@ pendientes se borran lógicamente.
     registro.** Se usa el presupuesto actual como fallback.
 13. **El cierre acepta fechas futuras o pasadas sin validación.**
 14. **La app Flutter no es un cliente real.** Es un prototipo visual.
-15. **Una propuesta de IA sin monto termina en 500.** Si el LLM no da monto y
-    las reglas tampoco lo encuentran, `create_message` intenta insertar
-    `monto = NULL` y la restricción de la tabla aborta la petición.
+15. **Una propuesta de IA sin monto ya no rompe la base.** Está validada antes de insertar; degrada a `requiere_aclaracion`. Ver sección 19.
 16. **Algunos campos numéricos opcionales responden 500 si llegan en `null`.**
     `int(None)` lanza `TypeError`, que no captura el manejador de `ValueError`.
     Por ejemplo, `POST /auth/register` con `presupuesto_diario: null` devuelve
@@ -1508,6 +1534,18 @@ pendientes se borran lógicamente.
 20. **El primer mes se prorratea.** Si el usuario consulta el plan a fin de
     mes, la capacidad del primer mes puede ser pequeña y concentrar el ahorro
     en los meses siguientes.
+21. **El diálogo vive en memoria.** Si el backend se reinicia, el borrador
+     conversacional pendiente se pierde (el mensaje pendiente y su
+     confirmación siguen disponibles por API; solo se pierde el contexto de
+     qué se estaba respondiendo).
+22. **La clasificación del LLM no es un contrato.** Puede responder `confirmar`
+     ante una frase larga; el agente ignora esa clasificación y exige que la
+     frase misma sea afirmativa corta. Aún así, la basura semántica puede
+     forzar aclaraciones o rutas asistidas; los accesos destructivos dependen
+     del turno de confirmación, no del LLM.
+23. **Una transacción por mensaje.** La segmentación multi-movimiento está
+     pendiente; “gasté y también ahorré” es una sola transacción.
+
 
 ### 14.2 Seguridad y operación
 
@@ -1573,6 +1611,11 @@ pendientes se borran lógicamente.
 | Contrato de audio | `backend/audio.py::validar_wav` |
 | Interpretación por reglas | `backend/nlp.py::interpret` |
 | Extracción con LLM | `backend/nlp.py::interpretar_con_ia` y `backend/ai.py::extraer_estructura` |
+| Agente conversacional | `backend/conversation.py::procesar_turno` |
+| Confirmación natural | `conversation._es_confirmacion` y `conversation._es_cancelacion` |
+| Invalidación de estado por confirmación API | `conversation.invalidar_accion_pendiente` |
+| Metas por diálogo con viabilidad LP | `conversation._recopilar_meta`, `services.simulate_goal_draft`, `services.create_goal` |
+| Consultas sin escritura | `conversation._consulta_*` con `services.metrics_daily`, `period_totals`, `budget_for_day` y vistas |
 | Transcripción con fallback | `backend/ai.py::transcribe_audio` |
 | Idempotencia de mensajes | `mensajes_dispositivo` `UNIQUE (usuario_id, message_id)` y `services.create_message` |
 | Borrado lógico | `services.delete_transaction`, `services.restore_transaction` |
@@ -1594,7 +1637,7 @@ py -3 -m unittest discover -s tests -v
 
 La suite cubre esquema, API, audio, IA, seguridad, CORS, codificación,
 simulador, comandos, dataset y optimización. Al cierre de este documento son
-**161 pruebas**.
+**206 pruebas**.
 
 ### 16.2 Backend en marcha
 
@@ -2008,7 +2051,155 @@ trabajo futuro están en `docs/OPTIMIZACION_IO.md`.
 
 
 
+## 19. El agente conversacional
+
+Desde la versión 1.2 el camino de voz no va directo de `/messages` a
+`nlp.interpret`. Todas las frases — voz y texto — pasan por el agente
+(`backend/conversation.py`), que conserva el estado del diálogo y decide entre
+ejecutar, preguntar o confirmar.
+
+### 19.1 Dónde vive y dónde no vive el estado
+
+El estado vive **en memoria**, identificado por `(usuario_id,
+dispositivo_uid)`, con TTL de 30 minutos. No está versionado ni
+timestamped. **No es fuente de verdad financiera**: los movimientos
+pendientes siguen en `mensajes_dispositivo` y `transacciones`; si el backend
+se reinicia solo se pierde el borrador en curso y el mensaje pendiente queda
+huyendo en la base. La confirmación siempre es legible desde la API aunque el
+estado en memoria haya expirado.
+
+### 19.2 Los estados
+
+| Estado | Significado |
+|---|---|
+| `inactiva` | No hay acción pendiente. |
+| `confirmando_movimiento` | Se propuso un movimiento; espera "sí", "ok" o corrección. |
+| `recopilando_meta` | El usuario está completando una meta nueva (nombre, monto, plazo, frecuencia, prioridad). |
+| `confirmando_meta` | La meta está simulada; espera confirmación. |
+| `confirmando_accion` | Hay otra escritura pendiente (eliminar/editar movimiento, cuenta, categoría, presupuesto, perfil, meta). |
+
+La identidad del dispositivo es la clave: dos dispositivos del mismo usuario
+no pueden usar el diálogo del otro.
+
+### 19.3 El ciclo de un turno
+
+1. `procesar_turno` recibe texto (transcriptor), `device_id` y `origen`.
+2. Si el mensaje ya existe por `message_id`, devuelve el payload guardado;
+   no vuelve a llamar a la IA (idempotencia).
+3. Con estado `confirmando_*`, una frase de confirmación se evalua antes que
+   cualquier otra cosa:
+   - **Confirmación natural**: "sí", "ok", "okay", "correcto", "está bien",
+     "confirmo", "dale". Nada fuera de estas (y ningún vocabulario en
+     negativo).
+   - **Cancelación natural**: "no", "cancela", "cancelar", "olvídalo",
+     "descarta".
+   - **Corrección**: "cambia el monto a 25 mil"; el dato nuevo se aplica a la
+     propuesta antes de confirmarla.
+4. Frase larga solo confirma si empieza por una afirmación corta
+   (`_es_confirmacion`): "gasté 20 mil" nunca confirma. El LLM no puede
+   marcar como confirmación una frase larga aunque así lo diga.
+5. Si el intent es de consulta, el backend **calcula sin escribir** y responde
+   en lenguaje natural.
+6. Si intenta escribir, se crea una propuesta y el estado pasa a
+   `confirmando_*`. Nada se persiste hasta que la persona confirme.
+7. `_recordar` mantiene un historial corto (máximo 12 turnos) en memoria para
+   depuración; no se escribe en la base.
+
+### 19.4 Consultas naturales (sin escribir)
+
+| Pregunta | Respuesta |
+|---|---|
+| "¿cómo me fue hoy?" | gastos, ahorro e balance del día del usuario + cupo restante. |
+| "balance de esta semana" | totales del rango Lunes→hoy (7 días). |
+| "balance del mes" | totales del mes calendario. |
+| "¿cómo van mis metas?" | progreso, porcentaje y estado `v_metas_estado`. |
+| "¿cuánto debo ahorrar este mes?" | plan LP: capacidad y aportes recomendados. |
+| cuentas, categorías, movimientos, presupuesto, perfil | resúmenes desde catálogos reales. |
+
+Las consultas devuelven `tipo_respuesta: "consulta"`, `intent` legible y
+`datos` con los números exactos; **nunca escribe**.
+
+### 19.5 Creación de metas por diálogo
+
+1. "quiero una meta para comprar unos audífonos" abre `recopilando_meta`.
+2. Nancy pregunta, uno por uno, lo que falta: **monto → plazo → frecuencia → prioridad**.
+   Nunca acepta inventar un dato; si el usuario lo dijo en la misma frase, la
+   respuesta se entiende de una vez; si falta, se pregunta.
+3. El plazo se evalúa en Python (`nlp.parse_plazo`), no en el LLM.
+4. La meta se simula como meta virtual con `meta_id = -1`
+   (`services.simulate_goal_draft`); el LP (`optimization.plan_goals`) asigna
+   capacidad respetando prioridades, colchón e ingresos declarados, y
+   **proponga** sin escribir.
+5. Nancy narra la viabilidad (aportes estimados, cumplimiento esperado,
+   déficit) y pregunta "¿la creo?".
+6. Solo al confirmar con "sí"/"ok"/"correcto" se crea la meta
+   (`services.create_goal`) y se transiciona a `inactiva`.
+
+### 19.6 Otras operaciones por voz (Fase 11)
+
+Todas pasan por la misma ruta de confirmación que un registro:
+
+| Intención | Acción tras confirmar |
+|---|---|
+| `editar_movimiento` | Aplica `changes` (monto / categoría / cuenta) con `services.update_transaction`. |
+| `eliminar_movimiento` | `is_deleted = 1` vía `services.delete_transaction` (vía `voz`). |
+| `crear_cuenta` | `services.create_account` validada contra el catálogo. |
+| `crear_categoria` | `services.create_category` validada contra el catálogo. |
+| `actualizar_presupuesto` | `services.set_daily_budget` (ingresa a historial). |
+| `actualizar_perfil` | `services.set_profile_income`. |
+| `eliminar_meta` | `services.delete_goal` (borrado lógico). |
+
+Nada se ejecuta sin la frase de confirmación.
+
+### 19.7 Cómo se apaga la IA
+
+| Variable | Efecto |
+|---|---|
+| `NLP_USAR_IA=off` | El agente usa solo `nlp.detectar_intencion_conversacional`, determinístico. |
+| Sin `LLM_PROVEEDOR`/`OLLAMA_URL` válido | El intento IA devuelve `None`; el agente cae a reglas. |
+| LLM responde `desconocido` o entidades vacías | El respaldo por reglas toma el turno (antes: el error devolvía "No entendí"). |
+
+### 19.8 Contrato de respuesta al cliente
+
+Toda respuesta agrega:
+
+```json
+{
+  "mensaje_nancy": "...",
+  "tipo_respuesta": "confirmacion|resultado|consulta|aclaracion|error|ayuda",
+  "estado_conversacion": "inactiva|confirmando_movimiento|...",
+  "datos": { "transaccion|borrador|resumen|cierre": ... },
+  "requiere_confirmacion": true|false
+}
+```
+
+Los campos previos (`transacciones`, `intent`, `id`, `duplicado`, ...) se conservan.
+
+### 19.9 Confirmación externa (API)
+
+`POST /api/v1/messages/<id>/confirm`, `POST /api/v1/device/messages/<id>/confirm`
+y `POST /api/v1/messages/<id>/discard` llaman a
+`conversation.invalidar_accion_pendiente`, que busca sesiones en memoria del
+usuario cuyo pedido pendiente coincide con ese mensaje y las borra (sin
+importar el dispositivo). Sin esto, el estado quedaba colgado y la siguiente
+frase se tomaba como respuesta a un pendiente que ya no existía.
+
+### 19.10 Guardas y límites
+
+- **Idempotencia** por `message_id`: la respuesta de una retransmisión es la
+  misma primera respuesta, sin repetir IA.
+- **Ventana de palabras de confirmación** limitada a 8 palabras y con
+  `len(palabras) <= 6` para frases cortas; el LLM no sobreescribe.
+- **Una transacción por mensaje**: la segmentación multi-movimiento está
+  pendiente.
+- **TTL 30 minutos**: el diálogo pendiente se olvida solo.
+- **Sin escritura fuera de confirmación**: ninguna ruta nueva escribe sin
+  frase afirmativa; inclusive el cierre de día exige la palabra de confirmación.
+
+---
+
 ## Apéndice A. Dataset de demostración
+
 
 La base `finagotchi.db` del repositorio contiene un dataset sintético
 reproducible:

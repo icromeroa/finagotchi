@@ -280,6 +280,10 @@ movimiento y la respuesta trae `"duplicado": true`.
 }
 ```
 
+El contrato conserva estos campos y agrega `mensaje_nancy`, `tipo_respuesta`,
+`estado_conversacion`, `datos` y `requiere_confirmacion`. El dispositivo solo
+pinta `mensaje_nancy` y el estado; toda la lógica del diálogo vive en el backend.
+
 Una sola frase puede producir **varias transacciones**. `requiere_confirmacion`
 indica si hay que mostrar la pantalla de confirmación.
 
@@ -290,6 +294,13 @@ indica si hay que mostrar la pantalla de confirmación.
 | `POST` | `/api/v1/messages/{id}/confirm` | Las transacciones pasan a `confirmado` y afectan saldos, puntos y salud |
 | `POST` | `/api/v1/messages/{id}/discard` | Se descartan las pendientes |
 | `GET` | `/api/v1/messages/{id}` | Consultar el mensaje y sus transacciones |
+
+La confirmación también se responde por voz o texto: "sí", "ok", "correcto",
+"está bien" o "confirmo" confirman; "no" o "cancela" descartan. Los endpoints
+anteriores llaman a `conversation.invalidar_accion_pendiente` para limpiar el
+estado conversacional pendiente del usuario; la siguiente frase vuelve a
+empezar su propio turno en vez de tomarse como respuesta a una acción ya
+resuelta.
 
 **Regla de negocio: nada afecta el dinero hasta que el usuario confirma.**
 

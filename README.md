@@ -104,8 +104,9 @@ py -3 -m unittest discover -s tests -v
 py -3 -m compileall -q backend simulator tests
 ```
 
-Al cierre de esta versión son **161 pruebas**. Incluyen esquema, API, audio, IA,
-seguridad, codificación, simulador y optimización con programación lineal.
+Al cierre de esta versión son **206 pruebas**. Incluyen esquema, API, audio, IA,
+seguridad, codificación, simulador, el agente conversacional y la optimización
+con programación lineal.
 
 Con el backend levantado se puede probar el flujo completo con audio real:
 

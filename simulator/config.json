@@ -4,7 +4,6 @@
   "email": "simulador@finagotchi.local",
   "password": "simulador123",
   "nombre": "Simulador",
-  "auto_confirm": false,
   "sample_rate": 16000,
   "language": "es-CO",
   "stt_provider": "gemini",

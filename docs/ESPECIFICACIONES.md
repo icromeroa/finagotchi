@@ -1,6 +1,6 @@
 # FinaGotchi · Especificaciones funcionales y técnicas
 
-Versión del documento: 2.1  
+Versión del documento: 2.2  
 Estado: vigente para implementación  
 Base de datos: SQLite 3.31+ · portable a PostgreSQL 12+  
 Moneda: peso colombiano (COP), enteros sin decimales  
@@ -33,8 +33,8 @@ simulador funcionan de extremo a extremo. Al cierre de este documento:
 |---|---|
 | Backend | Flask en `backend/server.py`, 63 rutas HTTP tras añadir la IO. |
 | Base de datos | SQLite, esquema 4, 40 tablas, 15 vistas y 11 triggers. |
-| Agente de voz | STT y LLM con proveedores intercambiables; Gemini es opcional. |
-| Simulador | Cliente real del backend en `simulator/`; opción `[P]` para el plan de ahorro. |
+| Agente de voz | STT y LLM con proveedores intercambiables; Gemini es opcional. El agente conversacional (`backend/conversation.py`) conoce el diálogo en curso y confirma con frases naturales. |
+| Simulador | Cliente real del backend en `simulator/`; entrada voz-primero con `[T]` texto y `[A]` prueba de micrófono; pantallas D14 plan de ahorro, D15 respuesta de Nancy, D16 error explicado y D17 prueba de micrófono. |
 | App Flutter | Prototipo visual sin capa HTTP; la versión conectada está en la rama `respaldo-frontend-conectado`. |
 | Automatización temporal | No existe scheduler; todo cálculo ocurre dentro de una petición. |
 | Optimización de metas | Implementada on-the-fly con programación lineal; ver `docs/OPTIMIZACION_IO.md`. |
@@ -130,8 +130,10 @@ Una transacción anulada conserva su vínculo con el mensaje para que un reinten
 ### 4.4 Confirmación
 
 - Toda captura por voz se muestra al usuario antes de afectar el dinero.
-- La confirmación puede ser total o por transacción.
-- El usuario puede editar tipo, monto, categoría, cuenta, meta y concepto.
+- La confirmación es por mensaje (todas las pendientes del mensaje), sea en la app, en el dispositivo o por el endpoint.
+- La confirmación es afirmativa **natural**: “sí”, “ok”, “okay”, “correcto”, “está bien”, “confirmo”, “dale”. La corrección se hace con el dato nuevo (“cambia el monto a 25 mil”) y descarta con “no”, “cancela”, “olvídalo” o “descarta”.
+- Una frase larga nunca confirma ni cancela por decisión del LLM; el agente exige que la propia frase sea afirmativa (< 8 palabras).
+- Los endpoints de confirmación y descarte invalidan el estado conversacional pendiente del usuario (`conversation.invalidar_accion_pendiente`).
 - Después de guardar, existe una ventana de 10 segundos para deshacer.
 - El registro manual usa la misma validación que el registro por voz.
 - La confirmación del dispositivo solo se muestra cuando el backend confirma la persistencia.
@@ -302,14 +304,14 @@ Reglas:
 
 ### 5.9 Registro por voz
 
-Pantallas: V07.1, V07.2.
+Pantallas: V07.1, V07.2, y en el simulador D04-D06, D15 (respuesta de Nancy).
 
 1. El usuario mantiene presionado para hablar.
 2. El dispositivo o la app captura audio y lo envía al backend.
 3. La IA del backend transcribe el audio.
-4. La IA detecta la categoría y propone una o varias transacciones.
-5. La app o el dispositivo muestra “¿Lo entendí bien?”.
-6. El usuario confirma, edita o descarta.
+4. El agente conversacional decide el intent y la categoría y propone una o varias transacciones.
+5. La app o el dispositivo muestra “Entendí un GASTO de … ¿Está correcto?”.
+6. El usuario confirma hablando ("sí", "ok", "correcto", "está bien", "confirmo") o descarta, o corrige (“cambia el monto a 25 mil”).
 7. Al guardar, se crea el movimiento, se actualiza el cupo y se encola una notificación para el dispositivo.
 8. El dispositivo recibe “Registro guardado” cuando el backend confirma la persistencia.
 9. Durante 10 segundos puede deshacer.
@@ -795,7 +797,11 @@ El detalle matemático, los contratos y los ejemplos están en
 
 ### 9.1 Interfaz
 
-El backend expone un proveedor de transcripción con estas operaciones:
+El agente es **voz-primero**: toda frase del usuario — voz y texto — pasa por
+`backend/conversation.py`, que decide si registra, pregunta, consulta o
+confirma. El menú del simulador solo informa; la entrada principal es hablar.
+Quien no pueda hablar usa `[T] Escribir`, que recorre exactamente el mismo
+flujo. El proveedor de transcripción expone:
 
 - `transcribe_audio(audio_bytes, mime_type, language) -> texto`.
 - `interpretar(texto, contexto_usuario) -> propuesta`.
@@ -877,7 +883,57 @@ El modelo de transcripción recibe los nombres de cuentas y categorías del usua
 | "compré 5.000 con daviplata" | "con David Plata" | "con Daviplata" |
 | "me pagaron 800.000 a la cuenta nu" | "a la cuenta no" | "a la cuenta Nu" |
 
-La lista se arma con `nlp.palabras_clave_usuario` a partir de las cuentas y categorías activas del usuario.
+La lista se arma con `nlp.palabras_clave_usuario` a partir de las cuentas, categorías y metas activas del usuario.
+
+### 9.1.3 Modo conversacional (voz-primero)
+
+Toda frase pasa por el agente conversacional, que conserva el estado del diálogo y garantiza tres cosas:
+
+1. **Confirmación humana natural.** “sí”, “ok”, “okay”, “correcto”, “está bien”, “confirmo” o “dale” confirman; “no”, “cancela”, “olvídalo”, “descarta” cancelan; “cambia el monto a X” o “cambia la categoría a Y” corrige la propuesta pendiente antes de guardar.
+2. **Nada se escribe sin confirmación.** El diálogo solo propone; la ejecución ocurre al llegar la frase afirmativa.
+3. **Las respuestas hablan.** El backend devuelve `mensaje_nancy`, `tipo_respuesta`, `estado_conversacion`, `datos` y `requiere_confirmacion`; el cliente (simulador o dispositivo) solo los pinta.
+
+El estado vive en memoria por `(usuario_id, dispositivo_uid)` y expira a los 30 minutos. No es la fuente de verdad: los movimientos pendientes viven en `mensajes_dispositivo`/`transacciones` y sobreviven al reinicio; solo se pierde el hilo conversacional.
+
+| Estado | Significado |
+|---|---|
+| `inactiva` | Sin acción pendiente. |
+| `confirmando_movimiento` | Movimiento propuesto; espera confirmación. |
+| `recopilando_meta` | Faltan datos de la meta (monto, plazo, frecuencia, prioridad). |
+| `confirmando_meta` | Meta simulada y lista para crear; espera confirmación. |
+| `confirmando_accion` | Otra escritura pendiente (cuenta, categoría, presupuesto, perfil, meta, movimiento). |
+
+Una frase larga nunca confirma por la decisión del LLM; solo cuentan los disparadores naturales anteriores. Cuando un mensaje pendiente se resuelve fuera del agente (por el endpoint de confirmación o descarte), el estado conversacional se invalida (`conversation.invalidar_accion_pendiente`).
+
+### 9.1.4 Consultas por voz (sin escribir)
+
+| Pregunta | Qué responde |
+|---|---|
+| “¿cómo me fue hoy?” | Ingresos, gastos, ahorro y balance del día; cupo restante. |
+| “balance de esta semana” | Totales de los últimos 7 días. |
+| “balance del mes” | Totales del mes calendario. |
+| “¿cómo van mis metas?” | Progreso y estado por meta. |
+| “¿cuánto debo ahorrar este mes?” | Capacidad y aportes recomendados (LP). |
+| “mis cuentas”, “mis categorías”, “mis movimientos”, “mi presupuesto”, “mi perfil” | Resúmenes desde el catálogo real. |
+
+Las consultas tienen `intent` legible (`consulta_estado`, `consultar_metas`, ...), no crean transacciones y no alteran el estado.
+
+### 9.1.5 Metas por diálogo
+
+“quiero una meta para comprar unos audífonos” abre un flujo de preguntas: **monto → plazo → frecuencia → prioridad**. Lo que el usuario diga en la misma frase se entiende de una vez; lo que falta se pregunta una por una. Fechas y aportes se calculan en Python, nunca en el LLM. La meta candidata se simula como virtual (`meta_id = -1`) con el modelo LP; Nancy narra la viabilidad y pregunta “¿la creo?”. Solo al confirmar se persiste con `services.create_goal`.
+
+### 9.1.6 Otras operaciones por voz (Fase 11)
+
+| Intención | Confirmación pendiente → acción |
+|---|---|
+| `editar_movimiento` | Aplicar monto/categoría/cuenta nueva a un movimiento pendiente o registrado. |
+| `eliminar_movimiento` | Borrado lógico del movimiento. |
+| `crear_cuenta` / `crear_categoria` | Crear el catálogo validado. |
+| `actualizar_presupuesto` | Cambiar el presupuesto diario (con historial). |
+| `actualizar_perfil` | Registrar el ingreso mensual declarado. |
+| `eliminar_meta` | Borrado lógico de la meta. |
+
+Todas usan el mismo contrato de confirmación: sin frase afirmativa, no se ejecuta nada.
 
 ### 9.2 Contexto permitido
 
@@ -893,10 +949,16 @@ No se envían correos, teléfonos, números completos de tarjeta ni tokens.
 
 ### 9.3 Salida esperada
 
+Respuesta del turno unificada (voz y texto comparten el contrato anterior, conservando `transacciones`):
+
 ```json
 {
-  "texto_entendido": "pagué 14.000 en el almuerzo y 3.000 de bus",
+  "texto_entendido": "pagué 14.000 en el almuerzo",
   "requiere_confirmacion": true,
+  "mensaje_nancy": "Entendí un GASTO de $14.000 en Alimentación desde Efectivo. ¿Está correcto?",
+  "tipo_respuesta": "confirmacion",
+  "estado_conversacion": "confirmando_movimiento",
+  "datos": { "transaccion": { "tipo": "gasto", "monto": 14000, "categoria": "Alimentación", "cuenta": "Efectivo" } },
   "transacciones": [
     {
       "tipo": "gasto",
@@ -906,27 +968,22 @@ No se envían correos, teléfonos, números completos de tarjeta ni tokens.
       "meta_id": null,
       "concepto": "almuerzo",
       "confianza": 0.94
-    },
-    {
-      "tipo": "gasto",
-      "monto": 3000,
-      "categoria_id": 2,
-      "cuenta_id": 1,
-      "meta_id": null,
-      "concepto": "bus",
-      "confianza": 0.91
     }
   ]
 }
 ```
+
+`tipo_respuesta` puede ser `confirmacion`, `resultado`, `consulta`, `aclaracion`, `ayuda` o `error`.
 
 ### 9.4 Reglas
 
 - La transcripción y la clasificación de categoría se ejecutan en el backend.
 - El dispositivo no envía texto transcrito; envía audio y recibe el resultado.
 - Siempre se requiere confirmación humana antes de guardar; la IA solo propone.
+- La confirmación es por mensaje; la afirmación natural ("sí", "ok", "correcto", "está bien", "confirmo") la ejecuta; la resuelven también los endpoints de confirmación/descarte.
+- Una frase larga nunca confirma ni cancela por decisión del LLM.
 - Al confirmar, se crea una notificación `movimiento_registrado` asociada al dispositivo de origen.
-- Si falta el monto, no se asigna uno por defecto.
+- Si falta el monto, no se asigna uno por defecto; la petición degrada a `requiere_aclaracion`.
 - Si falta la categoría, se propone la más probable y se marca para revisión.
 - Si falta la cuenta, se usa la cuenta por defecto.
 - Si el texto menciona una meta, se propone `meta_id`.
@@ -1138,6 +1195,12 @@ Códigos:
 | POST | `/transactions/{id}/restore` | Restaurar |
 | GET | `/trash` | Papelera |
 | POST | `/transactions/bulk-confirm` | Confirmar varias pendientes |
+
+Notas de contrato:
+
+- Las respuestas de movimientos y mensajes conservan los campos anteriores y agregan `mensaje_nancy`, `tipo_respuesta`, `estado_conversacion`, `datos` y `requiere_confirmacion`.
+- `/messages` y `/device/messages` con texto pasan por el mismo agente conversacional que la voz.
+- `POST /messages/{id}/confirm`, `POST /device/messages/{id}/confirm` y `POST /messages/{id}/discard` invalidan el estado conversacional pendiente del usuario (`conversation.invalidar_accion_pendiente`).
 
 ### 11.6 Días y métricas
 
@@ -1619,6 +1682,10 @@ no existe.
 32. La llamada al proveedor queda auditada en `interacciones_ia` con modelo, latencia y tokens.
 33. El audio no queda almacenado en la base ni en el disco.
 34. El texto transcrito en palabras (`catorce mil`) y en cifras (`14.000`) producen el mismo monto, incluidos los millones.
+35. El usuario puede confirmar “sí”, “ok”, “correcto”, “está bien”, “confirmo” o “dale”; una frase larga nunca confirma por la decisión del LLM; las confirmaciones verbales ajustan el mismo resultado que el endpoint.
+36. Las consultas “¿cómo me fue hoy?”, “balance de esta semana” y “¿cómo van mis metas?” se calculan sin escribir nada.
+37. La meta candidata no se persiste hasta confirmar (“¿la creo?”); la simulación LP de la meta virtual no toca la base.
+38. Los endpoints de confirmación/descarte invalidan el estado conversacional del usuario.
 
 ---
 
@@ -1635,6 +1702,8 @@ no existe.
 | Optimización de metas | Decidido | Programación lineal con `scipy.optimize.linprog(method="highs")` y fallback greedy; el plan es on-the-fly y solo propone. |
 | EOQ e inventarios | Futuro | Fuera de alcance de esta versión. |
 | Notificación al dispositivo | Decidido | Polling HTTP cada 3–5 segundos con `after_id` y acuse explícito. |
+| Voz-primero | Decidido | La voz es la entrada principal; el simulador y el dispositivo muestran el menú solo como informativo y el texto `[T]` es equivalente. |
+| Confirmación natural | Decidido | `sí`, `ok`, `okay`, `correcto`, `está bien`, `confirmo`, `dale` confirman; `no`, `cancela`, `olvídalo`, `descarta` cancelan; una frase larga nunca confirma por decisión del LLM. |
 | Persistencia de notificaciones | Decidido | Tabla `dispositivos_notificaciones` con estados `pendiente`, `entregada` y `leida`. |
 | Fórmula de bienestar | Propuesta | Seis componentes ponderados; validar con producto. |
 | Reglas de salud | Propuesta | Ajustar topes después de pruebas con usuarios. |
@@ -1706,10 +1775,13 @@ py -3 -m unittest discover -s tests -v
 py -3 -m compileall -q backend simulator tests
 ```
 
-Al cierre de esta versión la suite tiene **161 pruebas** e incluye
-`tests/test_finance_engine.py`, `tests/test_optimization.py` y
-`tests/test_api_optimization.py`, que cubren la capacidad de ahorro, el LP, los
-endpoints y la garantía de que el plan no escribe en la base.
+Al cierre de esta versión la suite tiene **206 pruebas** e incluye
+`tests/test_finance_engine.py`, `tests/test_optimization.py`,
+`tests/test_api_optimization.py`, `tests/test_conversacion.py`,
+`tests/test_conversacion_ia.py`, `tests/test_mensajes.py` y
+`tests/test_simulador.py`, que cubren la capacidad de ahorro, el LP, los
+endpoints, el agente conversacional, la confirmación natural y la garantía de
+que el plan y las preguntas no escriben.
 
 Entre las pruebas hay `tests/test_comandos.py`, que levanta el backend en un puerto libre y ejecuta `py -3 simulator/main.py` exactamente como lo documenta la guía. Sirve para que un comando anunciado nunca falle sin que nadie se entere.
 

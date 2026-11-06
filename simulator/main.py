@@ -53,9 +53,7 @@ DEFAULT_CONFIG = {
     "email": "simulador@finagotchi.local",
     "password": "simulador123",
     "nombre": "Simulador",
-    # La confirmacion es siempre humana: se responde con otra frase de voz o
-    # texto. No hay guardado automatico.
-    "auto_confirm": False,
+    # La confirmacion es siempre humana: no hay guardado automatico.
     "sample_rate": 16000,
     "language": "es-CO",
     "stt_provider": "gemini",
