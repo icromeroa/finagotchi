@@ -117,6 +117,46 @@ STATUS_WORDS = (
     "cuanto llevo",
 )
 
+CONFIRMAR_WORDS = (
+    "si",
+    "sí",
+    "ok",
+    "okay",
+    "correcto",
+    "esta bien",
+    "está bien",
+    "confirmo",
+    "confirmar",
+    "dale",
+    "claro",
+    "acepto",
+    "adelante",
+    "de acuerdo",
+    "perfecto",
+)
+
+CANCELAR_WORDS = (
+    "no",
+    "cancela",
+    "cancelar",
+    "cancelo",
+    "descarta",
+    "descartar",
+    "olvidalo",
+    "olvídalo",
+    "dejalo",
+    "déjalo",
+)
+
+AYUDA_WORDS = (
+    "ayuda",
+    "que puedo decir",
+    "qué puedo decir",
+    "que puedo hacer",
+    "cómo funciona",
+    "como funciona",
+)
+
 CLOSE_WORDS = (
     "cerrar dia",
     "cierra el dia",
@@ -382,8 +422,23 @@ def coincide_en_catalogo(valor, catalogo):
     return None
 
 
+def metas_usuario(conn, user_id):
+    """Metas activas del usuario, con el nombre que usa la voz."""
+    return [
+        {"id": row["id"], "nombre": row["nombre"]}
+        for row in conn.execute(
+            """
+            SELECT id, nombre FROM metas
+            WHERE usuario_id = ? AND is_deleted = 0 AND estado = 'activa'
+            ORDER BY prioridad, fecha_limite, id
+            """,
+            (user_id,),
+        )
+    ]
+
+
 def palabras_clave_usuario(conn, user_id):
-    """Nombres de cuentas y categorias del usuario, para las hotwords."""
+    """Nombres de cuentas, categorias y metas del usuario, para las hotwords."""
     cuentas = [
         row["nombre"]
         for row in conn.execute(
@@ -397,7 +452,384 @@ def palabras_clave_usuario(conn, user_id):
             (user_id,),
         )
     ]
-    return ", ".join(sorted(set(cuentas + categorias)))
+    metas = [meta["nombre"] for meta in metas_usuario(conn, user_id)]
+    return ", ".join(sorted(set(cuentas + categorias + metas)))
+
+
+EXPRESIONES_META = (
+    "para mi meta de",
+    "para la meta de",
+    "para mi meta",
+    "para la meta",
+    "meta de",
+    "meta para",
+    "ahorrar para",
+    "ahorro para",
+)
+
+
+def menciona_meta(text):
+    normalized = normalize(text)
+    return any(word_in_text(expresion, normalized) for expresion in EXPRESIONES_META)
+
+
+def detect_goal(conn, user_id, text):
+    """Asocia un texto con una meta activa del usuario.
+
+    Acepta el nombre exacto con o sin tildes y frases como "para mi meta de mi
+    nuevo celular". Si no hay coincidencia segura devuelve None: nunca adivina
+    una meta distinta.
+    """
+    metas = metas_usuario(conn, user_id)
+    if not metas:
+        return None
+    normalized = normalize(text)
+    for meta in metas:
+        nombre = normalize(meta["nombre"])
+        if nombre and word_in_text(nombre, normalized):
+            return meta
+    # Quita las palabras de enlace para comparar el resto de la frase.
+    recortado = normalized
+    for expresion in EXPRESIONES_META:
+        recortado = recortado.replace(normalize(expresion), " ")
+    recortado = re.sub(r"\b(mi|mis|la|las|el|los|de|del|para|por)\b", " ", recortado)
+    recortado = re.sub(r"\s+", " ", recortado).strip()
+    if recortado:
+        return coincide_en_catalogo(recortado, metas)
+    return None
+
+
+def _entero(valor):
+    try:
+        numero = int(valor)
+    except (TypeError, ValueError):
+        return None
+    return numero if numero > 0 else None
+
+
+def construir_movimiento(
+    conn,
+    user_id,
+    texto,
+    tipo=None,
+    monto=None,
+    categoria=None,
+    cuenta=None,
+    meta=None,
+    concepto=None,
+    origen="reglas",
+    proveedor=None,
+    latencia_ms=None,
+):
+    """Arma una propuesta de movimiento validada contra el catalogo.
+
+    Es la misma ruta para las reglas y para el agente conversacional. No
+    escribe en la base: solo devuelve la propuesta pendiente de confirmacion.
+    """
+    normalized = normalize(texto)
+    tipo_final = str(tipo or "").strip().lower()
+    if tipo_final not in ("gasto", "ingreso", "ahorro"):
+        tipo_final = detect_type(normalized)
+
+    monto_final = _entero(monto)
+    if monto_final is None:
+        monto_final = parse_amount(normalized)
+
+    metas = metas_usuario(conn, user_id)
+    categorias = [
+        {"id": row["id"], "nombre": row["nombre"], "tipo": row["tipo"]}
+        for row in conn.execute(
+            "SELECT id, nombre, tipo FROM categorias "
+            "WHERE usuario_id = ? AND activa = 1 ORDER BY id",
+            (user_id,),
+        )
+    ]
+    cuentas = [
+        {"id": row["id"], "nombre": row["nombre"]}
+        for row in conn.execute(
+            "SELECT id, nombre FROM cuentas WHERE usuario_id = ? ORDER BY id", (user_id,)
+        )
+    ]
+
+    meta_final = coincide_en_catalogo(meta, metas)
+    if meta_final is None and tipo_final == "ahorro":
+        meta_final = detect_goal(conn, user_id, texto)
+
+    if monto_final is None:
+        return {
+            "intent": "requiere_aclaracion",
+            "texto": texto,
+            "error": "No se identificó un monto",
+            "transacciones": [],
+        }
+    if not cuentas:
+        return {
+            "intent": "requiere_aclaracion",
+            "texto": texto,
+            "error": "No hay una cuenta disponible",
+            "transacciones": [],
+        }
+
+    if tipo_final == "ahorro":
+        categoria_final = None
+        if meta is not None and meta_final is None and menciona_meta(texto):
+            return {
+                "intent": "requiere_aclaracion",
+                "texto": texto,
+                "error": "No encontré esa meta",
+                "meta_sugerida": meta,
+                "transacciones": [],
+            }
+    else:
+        meta_final = None
+        categoria_final = coincide_en_catalogo(categoria, categorias)
+        if categoria_final is None:
+            categoria_final = detect_category(conn, user_id, normalized, tipo_final)
+        if categoria_final is None:
+            return {
+                "intent": "requiere_aclaracion",
+                "texto": texto,
+                "error": "No hay una categoría disponible",
+                "transacciones": [],
+            }
+        if categoria_final["tipo"] != tipo_final:
+            categoria_final = _categoria_fallback(conn, user_id, tipo_final)
+
+    cuenta_final = coincide_en_catalogo(cuenta, cuentas)
+    if cuenta_final is None:
+        cuenta_final = detect_account(conn, user_id, normalized)
+    if cuenta_final is None:
+        return {
+            "intent": "requiere_aclaracion",
+            "texto": texto,
+            "error": "No hay una cuenta disponible",
+            "transacciones": [],
+        }
+
+    resumen = (concepto or "").strip()[:255] or texto[:255]
+    return {
+        "intent": "registrar",
+        "texto": texto,
+        "error": None,
+        "origen": "ia" if proveedor else origen,
+        "proveedor": proveedor,
+        "latencia_ia_ms": latencia_ms,
+        "transacciones": [
+            {
+                "tipo": tipo_final,
+                "monto": monto_final,
+                "categoria_id": categoria_final["id"] if categoria_final else None,
+                "categoria": categoria_final["nombre"] if categoria_final else None,
+                "cuenta_id": cuenta_final["id"],
+                "cuenta": cuenta_final["nombre"],
+                "meta_id": meta_final["id"] if meta_final else None,
+                "meta": meta_final["nombre"] if meta_final else None,
+                "meta_mencionada": meta or (texto if menciona_meta(texto) else None),
+                "concepto": resumen,
+                "confianza": 0.85 if (categoria_final or meta_final) else 0.7,
+            }
+        ],
+    }
+
+
+def parse_frecuencia(text):
+    normalized = normalize(text)
+    for frecuencia, palabras in (
+        ("diaria", ("diario", "diaria", "cada dia", "todos los dias")),
+        ("semanal", ("semanal", "semana", "cada semana")),
+        ("quincenal", ("quincenal", "quincena", "cada quincena")),
+        ("mensual", ("mensual", "mes", "cada mes", "al mes")),
+    ):
+        if any(word_in_text(palabra, normalized) for palabra in palabras):
+            return frecuencia
+    return None
+
+
+def parse_plazo(text, base_date=None):
+    """Interpreta un plazo dicho en voz y calcula la fecha limite en Python.
+
+    Devuelve ``{"meses", "dias", "fecha_limite"}`` o None si no hay plazo.
+    """
+    normalized = normalize(text)
+    plural = re.search(
+        r"\b(\d{1,3}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce)"
+        r"\s*(dias?|semanas?|meses?|mes|anos?|año)\b",
+        normalized,
+    )
+    if not plural:
+        if word_in_text("un ano", normalized) or word_in_text("un año", normalized):
+            return _plazo_resultado(12, 0, base_date)
+        return None
+    texto_cantidad = plural.group(1)
+    if texto_cantidad.isdigit():
+        cantidad = int(texto_cantidad)
+    else:
+        cantidad = amount_from_words(texto_cantidad)
+        if cantidad is None:
+            cantidad = NUMBERS.get(texto_cantidad) or {"un": 1, "una": 1}.get(
+                texto_cantidad, 1
+            )
+    unidad = plural.group(2)
+    if unidad.startswith("dia"):
+        return _plazo_resultado(0, cantidad, base_date)
+    if unidad.startswith("semana"):
+        return _plazo_resultado(0, cantidad * 7, base_date)
+    if unidad.startswith("mes"):
+        return _plazo_resultado(cantidad, 0, base_date)
+    if unidad.startswith("ano") or unidad.startswith("año"):
+        return _plazo_resultado(cantidad * 12, 0, base_date)
+    return None
+
+
+def _plazo_resultado(meses, dias, base_date=None):
+    from datetime import date as date_cls
+    from datetime import timedelta
+
+    base = base_date or date_cls.today()
+    total_meses = max(0, int(meses))
+    year = base.year + (base.month - 1 + total_meses) // 12
+    month = (base.month - 1 + total_meses) % 12 + 1
+    day = min(base.day, _dias_del_mes(year, month))
+    limite = date_cls(year, month, day) + timedelta(days=max(0, int(dias)))
+    return {
+        "meses": total_meses,
+        "dias": max(0, int(dias)),
+        "fecha_limite": limite.isoformat(),
+    }
+
+
+def _dias_del_mes(year, month):
+    import calendar
+
+    return calendar.monthrange(year, month)[1]
+
+
+def detect_priority(text):
+    normalized = normalize(text)
+    if any(word_in_text(palabra, normalized) for palabra in ("alta", "urgente", "primero")):
+        return 1
+    if any(word_in_text(palabra, normalized) for palabra in ("media", "normal")):
+        return 3
+    if any(word_in_text(palabra, normalized) for palabra in ("baja", "despues")):
+        return 5
+    match = re.search(r"prioridad\s*(?:numero\s*)?(\d)", normalized)
+    if match:
+        numero = int(match.group(1))
+        if 1 <= numero <= 5:
+            return numero
+    return None
+
+
+def nombre_meta_probable(text):
+    """Extrae el nombre de una meta nueva de una frase natural."""
+    normalized = normalize(text)
+    patrones = (
+        r"(?:meta|objetivo)\s+(?:de|para)\s+(.+)",
+        r"(?:quiero|quisiera|necesito|me gustaria)\s+(?:comprar|comprarme|ahorrar para|ahorrar por)\s+(.+)",
+        r"(?:estoy ahorrando|ahorrar)\s+para\s+(.+)",
+    )
+    for patron in patrones:
+        match = re.search(patron, normalized)
+        if match:
+            nombre = re.sub(
+                r"\b(una|un|unos|unas|mi|mis|comprarme|comprar|para|de|del|la|el|los|las)\b",
+                " ",
+                match.group(1),
+            )
+            nombre = re.sub(r"\s+", " ", nombre).strip(" .,;")
+            if nombre:
+                return nombre[:30]
+    return None
+
+
+INTENCIONES_CONSULTA = {
+    "como me fue": "hoy",
+    "como va mi dia": "hoy",
+    "como voy": "hoy",
+    "balance de hoy": "hoy",
+    "balance del dia": "hoy",
+    "como me fue hoy": "hoy",
+    "balance de esta semana": "semana",
+    "balance semanal": "semana",
+    "esta semana": "semana",
+    "balance del mes": "mes",
+    "este mes": "mes",
+    "cuanto he gastado": "mes",
+    "cuanto llevo": "hoy",
+}
+
+
+def detectar_intencion_conversacional(text):
+    """Respaldo determinista cuando no hay LLM disponible.
+
+    Devuelve la misma forma que ``ai.interpretar_conversacion``.
+    """
+    normalized = normalize(text)
+    if not normalized:
+        return {"intent": "desconocido", "entidades": {}, "confianza": 0.0}
+
+    if any(word_in_text(palabra, normalized) for palabra in CONFIRMAR_WORDS):
+        if len(normalized.split()) <= 6:
+            return {"intent": "confirmar", "entidades": {}, "confianza": 0.9}
+    if any(word_in_text(palabra, normalized) for palabra in CANCELAR_WORDS):
+        if len(normalized.split()) <= 6:
+            return {"intent": "cancelar", "entidades": {}, "confianza": 0.9}
+    if any(word_in_text(palabra, normalized) for palabra in CLOSE_WORDS):
+        return {"intent": "cerrar_dia", "entidades": {}, "confianza": 0.9}
+    if any(word_in_text(palabra, normalized) for palabra in AYUDA_WORDS):
+        return {"intent": "ayuda", "entidades": {}, "confianza": 0.9}
+
+    if any(word_in_text(palabra, normalized) for palabra in ("mis metas", "las metas", "metas van", "progreso de")):
+        return {"intent": "consultar_metas", "entidades": {}, "confianza": 0.85}
+    if any(word_in_text(palabra, normalized) for palabra in ("plan de ahorro", "cuanto debo ahorrar", "plan recomienda", "plan de metas")):
+        return {"intent": "consultar_plan", "entidades": {}, "confianza": 0.85}
+    if any(word_in_text(palabra, normalized) for palabra in ("mis cuentas", "cuentas tengo", "saldo de mis cuentas")):
+        return {"intent": "consultar_cuentas", "entidades": {}, "confianza": 0.85}
+    if any(word_in_text(palabra, normalized) for palabra in ("mis categorias", "categorias tengo")):
+        return {"intent": "consultar_categorias", "entidades": {}, "confianza": 0.85}
+    if any(word_in_text(palabra, normalized) for palabra in ("mis movimientos", "ultimos movimientos", "movimientos de")):
+        return {"intent": "consultar_movimientos", "entidades": {}, "confianza": 0.85}
+    if any(word_in_text(palabra, normalized) for palabra in ("presupuesto", "cupo")):
+        return {"intent": "consultar_presupuesto", "entidades": {}, "confianza": 0.85}
+    if any(word_in_text(palabra, normalized) for palabra in ("mi perfil", "mi ingreso", "mis ingresos")):
+        return {"intent": "consultar_perfil", "entidades": {}, "confianza": 0.8}
+
+    for frase, periodo in INTENCIONES_CONSULTA.items():
+        if word_in_text(frase, normalized):
+            return {
+                "intent": "consultar_balance",
+                "entidades": {"periodo": periodo},
+                "confianza": 0.85,
+            }
+
+    if any(word_in_text(palabra, normalized) for palabra in STATUS_WORDS):
+        periodo = "semana" if "semana" in normalized else "mes" if "mes" in normalized else "hoy"
+        return {
+            "intent": "consultar_balance",
+            "entidades": {"periodo": periodo},
+            "confianza": 0.8,
+        }
+
+    creacion = (
+        any(word_in_text(palabra, normalized) for palabra in ("crear", "plantear", "nueva", "quiero", "necesito", "meta", "objetivo"))
+        and any(word_in_text(palabra, normalized) for palabra in ("meta", "objetivo", "ahorrar para", "comprar", "comprarme"))
+        and parse_amount(normalized) is None
+    )
+    if creacion:
+        return {
+            "intent": "crear_meta",
+            "entidades": {"nombre": nombre_meta_probable(text)},
+            "confianza": 0.75,
+        }
+
+    if parse_amount(normalized) is not None:
+        return {
+            "intent": "registrar_movimiento",
+            "entidades": {"tipo": detect_type(normalized), "monto": parse_amount(normalized)},
+            "confianza": 0.8,
+        }
+
+    return {"intent": "desconocido", "entidades": {}, "confianza": 0.3}
 
 
 def _cuenta_por_defecto(conn, user_id):
@@ -461,11 +893,12 @@ def interpretar_con_ia(conn, user_id, text):
             "SELECT id, nombre FROM cuentas WHERE usuario_id = ? ORDER BY id", (user_id,)
         )
     ]
+    metas = metas_usuario(conn, user_id)
     if not categorias or not cuentas:
         return None
 
     try:
-        crudo = ai.extraer_estructura(text, categorias, cuentas)
+        crudo = ai.extraer_estructura(text, categorias, cuentas, metas)
     except ai.ErrorSTT:
         return None
     if not crudo:
@@ -487,6 +920,9 @@ def interpretar_con_ia(conn, user_id, text):
 
     categoria = coincide_en_catalogo(crudo.get("categoria"), categorias)
     cuenta = coincide_en_catalogo(crudo.get("cuenta"), cuentas)
+    meta = coincide_en_catalogo(crudo.get("meta"), metas)
+    if meta is None and (tipo == "ahorro" or detect_type(normalize(text)) == "ahorro"):
+        meta = detect_goal(conn, user_id, text)
 
     if categoria is not None and tipo in ("gasto", "ingreso"):
         if categoria["tipo"] != tipo:
@@ -522,8 +958,11 @@ def interpretar_con_ia(conn, user_id, text):
                 "categoria": categoria["nombre"] if categoria else None,
                 "cuenta_id": cuenta["id"],
                 "cuenta": cuenta["nombre"],
+                "meta_id": meta["id"] if meta else None,
+                "meta": meta["nombre"] if meta else None,
+                "meta_mencionada": text if menciona_meta(text) else None,
                 "concepto": concepto,
-                "confianza": 0.85 if categoria else 0.7,
+                "confianza": 0.85 if (categoria or meta) else 0.7,
             }
         ],
     }
@@ -566,6 +1005,8 @@ def interpret(conn, user_id, text):
             "transacciones": [],
         }
 
+    goal = detect_goal(conn, user_id, normalized) if transaction_type == "ahorro" else None
+
     return {
         "intent": "registrar",
         "texto": text,
@@ -578,8 +1019,11 @@ def interpret(conn, user_id, text):
                 "categoria": category["nombre"] if category else None,
                 "cuenta_id": account["id"],
                 "cuenta": account["nombre"],
+                "meta_id": goal["id"] if goal else None,
+                "meta": goal["nombre"] if goal else None,
+                "meta_mencionada": text if menciona_meta(text) else None,
                 "concepto": text[:255],
-                "confianza": 0.9 if category else 0.7,
+                "confianza": 0.9 if (category or goal) else 0.7,
             }
         ],
     }

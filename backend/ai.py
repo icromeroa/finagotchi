@@ -442,28 +442,34 @@ Categorias disponibles:
 Cuentas disponibles:
 {cuentas}
 
+Metas activas:
+{metas}
+
 Frase del usuario: "{texto}"
 
 Responde SOLO con un JSON valido, sin texto antes ni despues:
-{{"tipo": "gasto|ingreso|ahorro", "monto": <numero entero o null>, "categoria": "<nombre exacto de la lista o null>", "cuenta": "<nombre exacto de la lista o null>", "concepto": "<resumen breve en menos de 8 palabras>"}}
+{{"tipo": "gasto|ingreso|ahorro", "monto": <numero entero o null>, "categoria": "<nombre exacto de la lista o null>", "cuenta": "<nombre exacto de la lista o null>", "meta": "<nombre exacto de la lista o null>", "concepto": "<resumen breve en menos de 8 palabras>"}}
 
 Reglas:
 - "tipo" es "gasto", "ingreso" o "ahorro".
 - "monto" es el valor total en pesos enteros, sin punto ni signo. Si la frase no menciona un monto, pon null.
 - "categoria" y "cuenta" deben ser EXACTAMENTE un nombre de las listas de arriba, en minúsculas. Si la frase no lo menciona, pon null. Si no sabes con certeza, pon null.
-- Si la frase menciona varias categorias o cuentas, escoge la mas probable.
-- No inventes categorias ni cuentas que no esten en las listas.
+- "meta" solo aplica cuando el usuario dice que el ahorro es para una meta. Debe ser EXACTAMENTE un nombre de la lista de metas. Si no hay coincidencia segura, pon null.
+- Si la frase menciona varias categorias, cuentas o metas, escoge la mas probable.
+- No inventes categorias, cuentas ni metas que no esten en las listas.
 """
 
 
-def _armar_prompt_extraccion(texto, categorias, cuentas):
+def _armar_prompt_extraccion(texto, categorias, cuentas, metas=None):
     lineas_categorias = "\n".join(
         f"- {categoria['nombre']} ({categoria['tipo']})" for categoria in categorias
     )
     lineas_cuentas = "\n".join(f"- {cuenta['nombre']}" for cuenta in cuentas)
+    lineas_metas = "\n".join(f"- {meta['nombre']}" for meta in (metas or []))
     return PROMPT_EXTRACCION.format(
         categorias=lineas_categorias or "(ninguna)",
         cuentas=lineas_cuentas or "(ninguna)",
+        metas=lineas_metas or "(ninguna)",
         texto=str(texto).replace('"', "'"),
     )
 
@@ -494,8 +500,8 @@ def _json_de_texto(texto):
     return None
 
 
-def extraer_estructura(texto, categorias, cuentas, modelo=None):
-    """Pide a un LLM que extraiga tipo, monto, categoria y cuenta.
+def extraer_estructura(texto, categorias, cuentas, metas=None, modelo=None):
+    """Pide a un LLM que extraiga tipo, monto, categoria, cuenta y meta.
 
     Devuelve un diccionario con los datos crudos del modelo, o None si no hay
     ningun LLM disponible o si la respuesta no es utilizable.
@@ -504,7 +510,7 @@ def extraer_estructura(texto, categorias, cuentas, modelo=None):
     if proveedor is None:
         return None
 
-    prompt = _armar_prompt_extraccion(texto, categorias, cuentas)
+    prompt = _armar_prompt_extraccion(texto, categorias, cuentas, metas)
     started = time.perf_counter()
 
     if proveedor == PROVEEDOR_LLM_OLLAMA:
@@ -518,6 +524,173 @@ def extraer_estructura(texto, categorias, cuentas, modelo=None):
     respuesta["proveedor"] = proveedor
     respuesta["latencia_ms"] = int((time.perf_counter() - started) * 1000)
     return respuesta
+
+
+INTENCIONES_CONVERSACION = (
+    "registrar_movimiento",
+    "crear_meta",
+    "actualizar_meta",
+    "consultar_balance",
+    "consultar_metas",
+    "consultar_plan",
+    "consultar_cuentas",
+    "consultar_categorias",
+    "consultar_movimientos",
+    "consultar_presupuesto",
+    "consultar_perfil",
+    "confirmar",
+    "cancelar",
+    "corregir",
+    "cerrar_dia",
+    "ayuda",
+    "desconocido",
+)
+
+PROMPT_CONVERSACION = """Eres el interprete de FinaGotchi, un asistente financiero por voz.
+No respondes al usuario: solo clasificas la frase y extraes datos.
+
+Fecha local actual: {fecha}
+Estado de la conversacion: {estado}
+Accion pendiente: {accion_pendiente}
+Borrador de meta: {borrador}
+
+Metas del usuario:
+{metas}
+
+Cuentas del usuario:
+{cuentas}
+
+Categorias del usuario:
+{categorias}
+
+Frase del usuario: "{texto}"
+
+Responde SOLO con un JSON valido, sin texto antes ni despues:
+{{"intent": "<intencion>", "entidades": {{...}}, "confianza": <numero entre 0 y 1>}}
+
+Intenciones permitidas:
+- registrar_movimiento: gasto, ingreso o ahorro con un monto.
+- crear_meta: el usuario quiere plantear una meta nueva.
+- actualizar_meta: el usuario responde con un dato de la meta que se esta creando.
+- consultar_balance: como me fue, balance, estado del dia. Usa entidades.periodo = "hoy", "semana" o "mes".
+- consultar_metas: como van mis metas.
+- consultar_plan: cuanto debo ahorrar o que plan recomienda.
+- consultar_cuentas, consultar_categorias, consultar_movimientos,
+  consultar_presupuesto, consultar_perfil: consultas del catalogo o del perfil.
+- confirmar: acepta la accion o propuesta pendiente.
+- cancelar: descarta la accion pendiente.
+- corregir: quiere cambiar un dato de la accion pendiente.
+- cerrar_dia: cerrar o terminar el dia.
+- ayuda: pide saber que puede decir.
+- desconocido: no se entiende.
+
+Entidades posibles (usa null cuando no aparezcan):
+tipo ("gasto", "ingreso" o "ahorro"), monto (entero en pesos), categoria,
+cuenta, meta, nombre (de la meta), plazo_meses (entero), plazo_dias (entero),
+frecuencia ("diaria", "semanal", "quincenal" o "mensual"), prioridad (1 a 5),
+periodo ("hoy", "semana" o "mes"), concepto.
+
+Reglas:
+- No inventes montos, fechas, nombres, cuentas ni metas.
+- No calcules fechas ni aportes: solo extrae lo que el usuario dijo.
+- Si la frase es una respuesta corta a una pregunta pendiente, usa el estado y el borrador para clasificarla.
+- "ahorre", "guarde" o "separe" con monto es registrar_movimiento con tipo "ahorro".
+- Si el usuario dice "para mi meta de ..." incluye meta y tipo "ahorro".
+- Los nombres de categoria, cuenta y meta deben copiarse exactamente de las listas.
+"""
+
+
+def _armar_prompt_conversacion(texto, contexto=None):
+    import json
+
+    contexto = contexto or {}
+    metas = contexto.get("metas") or []
+    cuentas = contexto.get("cuentas") or []
+    categorias = contexto.get("categorias") or []
+    return PROMPT_CONVERSACION.format(
+        fecha=contexto.get("fecha") or "",
+        estado=contexto.get("estado") or "inactiva",
+        accion_pendiente=json.dumps(
+            contexto.get("accion_pendiente"), ensure_ascii=False, default=str
+        ),
+        borrador=json.dumps(contexto.get("borrador"), ensure_ascii=False, default=str),
+        metas="\n".join(f"- {item['nombre']}" for item in metas) or "(ninguna)",
+        cuentas="\n".join(f"- {item['nombre']}" for item in cuentas) or "(ninguna)",
+        categorias="\n".join(
+            f"- {item['nombre']} ({item.get('tipo')})" for item in categorias
+        )
+        or "(ninguna)",
+        texto=str(texto).replace('"', "'"),
+    )
+
+
+def interpretar_conversacion(texto, contexto=None, modelo=None):
+    """Clasifica una frase conversacional y extrae sus entidades.
+
+    El LLM solo interpreta. La validacion, el calculo de fechas y la ejecucion
+    quedan a cargo de ``backend/conversation.py``.
+
+    Devuelve ``None`` si no hay proveedor disponible o si la respuesta no es
+    un objeto JSON utilizable.
+    """
+    proveedor = proveedor_llm()
+    if proveedor is None:
+        return None
+
+    prompt = _armar_prompt_conversacion(texto, contexto)
+    started = time.perf_counter()
+    try:
+        if proveedor == PROVEEDOR_LLM_OLLAMA:
+            respuesta = _extraer_con_ollama(prompt, modelo)
+        else:
+            respuesta = _conversar_con_gemini(prompt)
+    except ErrorSTT:
+        return None
+
+    if not isinstance(respuesta, dict):
+        return None
+    intent = str(respuesta.get("intent") or "").strip().lower()
+    if intent not in INTENCIONES_CONVERSACION:
+        return None
+    entidades = respuesta.get("entidades")
+    if not isinstance(entidades, dict):
+        entidades = {}
+    try:
+        confianza = float(respuesta.get("confianza"))
+    except (TypeError, ValueError):
+        confianza = None
+    return {
+        "intent": intent,
+        "entidades": entidades,
+        "confianza": max(0.0, min(1.0, confianza)) if confianza is not None else None,
+        "proveedor": proveedor,
+        "modelo": modelo or (modelo_ollama() if proveedor == PROVEEDOR_LLM_OLLAMA else None),
+        "latencia_ms": int((time.perf_counter() - started) * 1000),
+    }
+
+
+def _conversar_con_gemini(prompt):
+    if not api_key():
+        return None
+    try:
+        from google import genai
+        from google.genai import types
+
+        cliente = genai.Client(api_key=api_key())
+        respuesta = cliente.models.generate_content(
+            model=modelo(),
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0,
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise ErrorSTT(
+            "Gemini no pudo interpretar la conversacion",
+            detalles={"proveedor": PROVEEDOR_LLM_GEMINI, "motivo": str(exc)[:300]},
+        ) from exc
+    return _json_de_texto(getattr(respuesta, "text", None))
 
 
 def _extraer_con_ollama(prompt, modelo=None):
@@ -598,9 +771,10 @@ def _extraer_con_gemini(prompt):
                 "monto": {"type": "integer", "nullable": True},
                 "categoria": {"type": "string", "nullable": True},
                 "cuenta": {"type": "string", "nullable": True},
+                "meta": {"type": "string", "nullable": True},
                 "concepto": {"type": "string"},
             },
-            "required": ["tipo", "monto", "categoria", "cuenta", "concepto"],
+            "required": ["tipo", "monto", "categoria", "cuenta", "meta", "concepto"],
         }
         respuesta = cliente.models.generate_content(
             model=modelo or modelo(),
