@@ -1256,9 +1256,13 @@ def procesar_turno(
 
     accion = estado.get("accion_pendiente") or {}
     if accion:
-        if _es_confirmacion(texto) or intent == "confirmar":
+        # Una frase larga no puede confirmar ni cancelar solo porque el LLM
+        # asi lo dijo: el usuario podria estar dictando un movimiento nuevo
+        # con un estado pendiente abierto. Solo los naturales de confirmacion
+        # y cancelacion resuelven la accion.
+        if _es_confirmacion(texto) or (intent == "confirmar" and len(nlp.normalize(texto).split()) <= 2):
             return _confirmar(conn, usuario_id, texto, estado, dispositivo_uid)
-        if _es_cancelacion(texto) or intent == "cancelar":
+        if _es_cancelacion(texto) or (intent == "cancelar" and len(nlp.normalize(texto).split()) <= 2):
             return _cancelar(conn, usuario_id, texto, estado, dispositivo_uid)
         if accion.get("tipo") == "confirmar_mensaje" and (
             intent == "corregir" or _es_correccion(texto)
