@@ -11,3 +11,7 @@ scipy>=1.11
 # Proveedor de transcripcion local (faster-whisper).
 # No necesita clave de API ni cuota. El modelo se descarga la primera vez.
 faster-whisper>=1.2.0
+
+# Sintesis local de voz para Nancy (Piper). El modelo no se versiona:
+# lo descarga e instala tools/configurar_voz.py fuera del repositorio.
+piper-tts>=1.8.0

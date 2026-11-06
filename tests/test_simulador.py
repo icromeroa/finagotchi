@@ -131,6 +131,7 @@ class PantallasTests(unittest.TestCase):
         self.assertIn("Habla con Nancy", menu)
         self.assertIn("[T] Escribir", menu)
         self.assertIn("[A] Probar micrófono", menu)
+        self.assertIn("[V] Voz", menu)
         self.assertIn("Quiero crear una meta", menu)
 
     def test_la_pantalla_conversacional_muestra_a_nancy(self):

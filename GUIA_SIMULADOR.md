@@ -47,6 +47,24 @@ escrita se envía directamente al agente, como si la hubieras dicho.
 
 El simulador no transcribe en el PC. Graba un WAV de 16 kHz mono y lo sube por `multipart/form-data` a `POST /api/v1/device/messages`. La transcripción la hace `faster-whisper` o Gemini en el backend, y la interpretación de la frase (tipo, monto, categoría y cuenta) la hace un modelo de lenguaje con Ollama. Es exactamente el camino que seguirá el firmware de la ESP32.
 
+## Voz de Nancy
+
+Con `[V]` activas o silencian la voz. El flujo es:
+
+1. La respuesta dice `"voz": {"endpoint": "/api/v1/device/voice/synthesize"}` si el backend tiene Piper disponible.
+2. El simulador pide la WAV directamente al endpoint; la WAV se genera en memoria y no se guarda.
+3. Si el backend no tiene Piper, reproduce frases cortas pregrabadas cuando la respuesta es predecible.
+4. Las respuestas largas se muestran como texto; no se leen completas por el banco offline.
+
+Para instalar la voz local (fuera del repositorio; no se versiona el modelo):
+
+```powershell
+py -3 tools/configurar_voz.py
+```
+
+Por defecto instala `es_MX-claude-high.onnx` en `%USERPROFILE%/.finagotchi/piper`.
+El altavoz debe ser audible. Si no hay audio, el simulador sigue mostrando el texto sin bloquear.
+
 ## Requisitos
 
 - Python 3.10 o superior.
@@ -136,6 +154,8 @@ Edita `simulator/config.json`:
   "password": "simulador123",
   "nombre": "Simulador",
   "input_device": null,
+  "voice_output": true,
+  "voice_scope": "acciones",
   "sample_rate": 16000,
   "language": "es-CO",
   "stt_provider": "gemini",
@@ -144,6 +164,8 @@ Edita `simulator/config.json`:
 ```
 
 - `input_device`: escribe el índice del micrófono que quieres usar (`py -3 simulator/main.py` y opción `[A]`); en `null` usa el predeterminado.
+- `voice_output`: activa/desactiva que Nancy hable.
+- `voice_scope`: `acciones` habla confirmaciones, resultados y aclaraciones; `todo` también lee consultas.
 - `request_timeout_s` sube a 90 porque la transcripción y la IA pueden tardar varios segundos (Gemini 3–6 s, Ollama 2–25 s según el equipo).
 - Si el usuario no existe, el simulador lo registra automáticamente.
 - Si el dispositivo ya está vinculado a esa cuenta, lo desvincula y lo vuelve a vincular.
@@ -167,6 +189,8 @@ Elige `[H] Hablar` y mantén presionada la tecla ESPACIO mientras hablas. Al sol
 - "sí", "ok", "correcto", "está bien", "confirmo" → confirmar.
 - "no", "cancela", "olvídalo", "descarta" → descartar.
 - "cambia el monto a 25 mil" → corregir antes de confirmar.
+
+Si la voz está activada, Nancy la pronuncia en voz alta; usa `[V]` para alternar.
 
 Si no puedes hablar, usa `[T] Escribir` o escribe la misma frase en el menú. Con `[A] Probar micrófono` verificas que llegue señal antes de culpar al STT.
 

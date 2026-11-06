@@ -26,7 +26,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
-from simulator import pantallas  # noqa: E402
+from simulator import pantallas, voice  # noqa: E402
 
 # El teclado y el microfono son opcionales: si falta alguno, el simulador
 # avisa que instalar y sigue funcionando con la alternativa disponible.
@@ -58,6 +58,8 @@ DEFAULT_CONFIG = {
     "language": "es-CO",
     "stt_provider": "gemini",
     "input_device": None,
+    "voice_output": True,
+    "voice_scope": "acciones",
     "request_timeout_s": 90,
 }
 
@@ -80,6 +82,7 @@ def load_config():
 
 
 CONFIG = load_config()
+voice.iniciar(CONFIG.get("voice_output", True))
 BASE_URL = CONFIG["http_base_url"].rstrip("/")
 
 
@@ -207,6 +210,22 @@ class FinaGotchiClient:
                 "idioma": self.config.get("language", "es-CO"),
             },
         )
+
+    def synthesize_voice(self, texto):
+        """Obtiene la WAV de Nancy directamente, sin guardar archivos."""
+        response = requests.post(
+            BASE_URL + "/device/voice/synthesize",
+            headers=self.device_headers(),
+            json={"texto": texto},
+            timeout=(3, self.config.get("request_timeout_s", 90)),
+        )
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = {"raw": response.text}
+        if response.status_code != 200:
+            raise ApiError(response.status_code, payload)
+        return response.content
 
     def confirm_message(self, message_id):
         return self.request(
@@ -452,6 +471,10 @@ class Simulador:
         print(pantallas.d15_conversacion(respuesta))
         if respuesta.get("intent") == "cerrar_dia" and (respuesta.get("datos") or {}).get("cierre"):
             print(pantallas.d09_cierre(respuesta["datos"]["cierre"]))
+        try:
+            voice.hablar(self.client, respuesta, CONFIG)
+        except Exception as exc:  # noqa: BLE001 - el audio no bloquea la conversación
+            print(f"  No pude reproducir la voz: {exc}")
 
     def hablar(self):
         wav_bytes, duracion, stats = capture_voice()
@@ -608,6 +631,9 @@ def main():
             simulador.escribir()
         elif opcion in ("a", "audio", "microfono", "micrófono"):
             probar_microfono()
+        elif opcion in ("v", "voz"):
+            estado = voice.alternar()
+            print(f"  Voz de Nancy: {'activada' if estado else 'silenciada'}")
         elif opcion in ("e", "estado"):
             simulador.estado_del_dia()
         elif opcion in ("p", "plan"):

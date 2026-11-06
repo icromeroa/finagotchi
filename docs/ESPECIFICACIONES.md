@@ -31,7 +31,7 @@ simulador funcionan de extremo a extremo. Al cierre de este documento:
 
 | Elemento | Estado real |
 |---|---|
-| Backend | Flask en `backend/server.py`, 63 rutas HTTP tras añadir la IO. |
+| Backend | Flask en `backend/server.py`, 65 rutas HTTP tras añadir la IO y el TTS. |
 | Base de datos | SQLite, esquema 4, 40 tablas, 15 vistas y 11 triggers. |
 | Agente de voz | STT y LLM con proveedores intercambiables; Gemini es opcional. El agente conversacional (`backend/conversation.py`) conoce el diálogo en curso y confirma con frases naturales. |
 | Simulador | Cliente real del backend en `simulator/`; entrada voz-primero con `[T]` texto y `[A]` prueba de micrófono; pantallas D14 plan de ahorro, D15 respuesta de Nancy, D16 error explicado y D17 prueba de micrófono. |
@@ -935,6 +935,25 @@ Las consultas tienen `intent` legible (`consulta_estado`, `consultar_metas`, ...
 
 Todas usan el mismo contrato de confirmación: sin frase afirmativa, no se ejecuta nada.
 
+### 9.1.7 Voz de Nancy
+
+El backend puede sintetizar la respuesta a demanda con **Piper** y un modelo
+local en español (por defecto `es_MX-claude-high.onnx`). El audio se genera en
+memoria y se devuelve como `audio/wav`; no se persiste en disco ni en la base.
+
+Sin conexión, el simulador y el eventual firmware usan un banco pequeño de
+WAV pregrabadas para:
+
+- "Te escucho".
+- "Entendido".
+- "¿Está correcto?".
+- "Listo".
+- "No entendí".
+- "Revisa el micrófono".
+
+Las voces naturales completas solo existen con conexión al backend. El
+cliente muestra siempre el texto aunque falle el audio.
+
 ### 9.2 Contexto permitido
 
 - Texto transcrito.
@@ -1176,6 +1195,7 @@ Códigos:
 | POST | `/device/telemetry` | Recibir telemetría del dispositivo |
 | POST | `/device/messages` | Procesar audio o texto desde el dispositivo |
 | POST | `/device/messages/{id}/confirm` | Confirmar transacciones desde el dispositivo |
+| POST | `/device/voice/synthesize` | Sintetizar texto en WAV dentro del backend |
 | GET | `/device/notifications` | Consultar notificaciones pendientes por polling |
 | POST | `/device/notifications/{id}/ack` | Acusar recibo de una notificación |
 | POST | `/device/notifications/ack` | Acusar recibo de varias notificaciones |
@@ -1185,6 +1205,7 @@ Códigos:
 | Método | Ruta | Uso |
 |---|---|---|
 | POST | `/messages` | Registrar texto o audio |
+| POST | `/voice/synthesize` | Devolver WAV generada en memoria (app) |
 | GET | `/messages/{id}` | Consultar procesamiento |
 | POST | `/messages/{id}/confirm` | Confirmar transacciones |
 | GET | `/transactions` | Listar movimientos |
@@ -1732,6 +1753,20 @@ py -3 tools/configurar_api_key.py
 
 La API key se guarda **fuera del repositorio**, en `%USERPROFILE%\.finagotchi\gemini.env`, para que ningún `git clean -xdf` ni una reinstalación la borren. El asistente también la verifica contra la API real antes de terminar. Si no hay clave, el sistema cae a los proveedores locales sin fallar.
 
+La voz de Nancy es independiente de Gemini. Para instalarla:
+
+```powershell
+py -3 tools/configurar_voz.py
+```
+
+El modelo Piper se guarda **fuera del repositorio**, en `%USERPROFILE%\.finagotchi\piper`, por defecto `es_MX-claude-high.onnx`. El comando descarga el modelo, verifica `backend/tts.py` y genera una frase de prueba en memoria; no versiona el modelo ni crea archivos de audio.
+
+Para generar el banco pregrabado usado como respaldo en el dispositivo:
+
+```powershell
+py -3 tools/generar_voz.py
+```
+
 El backend busca la configuración en este orden:
 
 | Prioridad | Origen | Nota |
@@ -1775,13 +1810,13 @@ py -3 -m unittest discover -s tests -v
 py -3 -m compileall -q backend simulator tests
 ```
 
-Al cierre de esta versión la suite tiene **206 pruebas** e incluye
+Al cierre de esta versión la suite tiene **217 pruebas** e incluye
 `tests/test_finance_engine.py`, `tests/test_optimization.py`,
 `tests/test_api_optimization.py`, `tests/test_conversacion.py`,
-`tests/test_conversacion_ia.py`, `tests/test_mensajes.py` y
-`tests/test_simulador.py`, que cubren la capacidad de ahorro, el LP, los
-endpoints, el agente conversacional, la confirmación natural y la garantía de
-que el plan y las preguntas no escriben.
+`tests/test_conversacion_ia.py`, `tests/test_mensajes.py`,
+`tests/test_simulador.py` y `tests/test_voz.py`, que cubren la capacidad de
+ahorro, el LP, los endpoints, el agente conversacional, la confirmación natural,
+la síntesis local y el banco de frases pregrabadas.
 
 Entre las pruebas hay `tests/test_comandos.py`, que levanta el backend en un puerto libre y ejecuta `py -3 simulator/main.py` exactamente como lo documenta la guía. Sirve para que un comando anunciado nunca falle sin que nadie se entere.
 
@@ -1794,6 +1829,8 @@ Entre las pruebas hay `tests/test_comandos.py`, que levanta el backend en un pue
 | `py -3 database/init_db.py` | Crea o actualiza la base de datos. |
 | `py -3 -m unittest discover -s tests -v` | Corre todas las pruebas. |
 | `py -3 tools/verificar_entorno.py` | Revisa dependencias, base, clave, IA y micrófono. |
+| `py -3 tools/configurar_voz.py` | Instala la voz local de Nancy fuera del repositorio. |
+| `py -3 tools/generar_voz.py` | Regenera las WAV pregrabadas del banco. |
 | `py -3 tools/configurar_api_key.py` | Guarda la clave de Gemini fuera del repositorio. |
 | `py -3 tools/grabar_dataset.py` | Graba los clips del dataset con el micrófono. |
 | `py -3 tools/evaluar_dataset.py` | Evalúa el dataset (WER, montos, latencia). |

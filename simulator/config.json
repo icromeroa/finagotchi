@@ -8,5 +8,7 @@
   "language": "es-CO",
   "stt_provider": "gemini",
   "input_device": null,
+  "voice_output": true,
+  "voice_scope": "acciones",
   "request_timeout_s": 90
 }

@@ -88,6 +88,7 @@ Estos son los comandos del proyecto, verificados por `tests/test_comandos.py`, q
 |---|---|
 | `py -3 backend/server.py` | Levanta la API en el puerto 5000. |
 | `py -3 simulator/main.py` | Abre el dispositivo simulado con su menú de pantallas. |
+| `py -3 tools/configurar_voz.py` | Descarga e instala la voz local de Nancy en `%USERPROFILE%/.finagotchi/piper`. |
 | `py -3 database/init_db.py` | Crea o actualiza la base de datos. |
 | `py -3 -m unittest discover -s tests -v` | Corre todas las pruebas. |
 | `py -3 tools/verificar_entorno.py` | Revisa dependencias, base, clave, IA y micrófono. |

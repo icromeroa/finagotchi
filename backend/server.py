@@ -1,16 +1,17 @@
+import io
 import os
 import secrets
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from flask import Flask, g, request
+from flask import Flask, g, request, send_file
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend import ai, audio, conversation, nlp, services  # noqa: E402
+from backend import ai, audio, conversation, nlp, services, tts  # noqa: E402
 from backend import finance_engine  # noqa: E402
 from backend.api_utils import body, datos_entrantes, error, ok, require_fields  # noqa: E402
 from backend.auth import (  # noqa: E402
@@ -49,6 +50,40 @@ MIME_AUDIO_ACEPTADOS = {
     "audio/vnd.wave",
     "application/octet-stream",
 }
+
+
+def _voz_endpoint():
+    """Anuncia al cliente que puede sintetizar la respuesta con Piper."""
+    if not tts.disponible():
+        return None
+    return {
+        "modo": "online",
+        "endpoint": "/api/v1/device/voice/synthesize",
+        "idioma": "es_MX",
+        "max_caracteres": tts.MAX_CARACTERES,
+    }
+
+
+def _sintetizar_voz(data):
+    texto = data.get("texto")
+    if not texto or not str(texto).strip():
+        return error("CAMPOS_REQUERIDOS", "El campo texto es obligatorio", 422)
+    if len(str(texto)) > tts.MAX_CARACTERES:
+        return error(
+            "TTS_TEXTO_LARGO",
+            "El texto es demasiado largo para sintetizarlo",
+            422,
+            {"maximo_caracteres": tts.MAX_CARACTERES},
+        )
+    audio_bytes = tts.sintetizar_wav(texto)
+    if audio_bytes is None:
+        return error("TTS_NO_DISPONIBLE", "El sintetizador no esta configurado", 503)
+    return send_file(
+        io.BytesIO(audio_bytes),
+        mimetype="audio/wav",
+        as_attachment=False,
+        download_name="nancy.wav",
+    )
 
 
 class ErrorSolicitud(Exception):
@@ -313,6 +348,9 @@ def procesar_mensaje_voz(
         payload.setdefault("puntos_otorgados", 0)
         payload["proveedor_stt"] = resultado.get("proveedor")
         payload["modelo_stt"] = resultado.get("modelo")
+        voz = _voz_endpoint()
+        if voz:
+            payload["voz"] = voz
         if resultado.get("motivo_fallback"):
             payload["stt_caida"] = resultado["motivo_fallback"]
         return payload, 201
@@ -337,6 +375,9 @@ def procesar_mensaje_voz(
     )
     payload.setdefault("duplicado", False)
     payload.setdefault("puntos_otorgados", 0)
+    voz = _voz_endpoint()
+    if voz:
+        payload["voz"] = voz
     return payload, 200 if payload.get("duplicado") else 201
 
 
@@ -1700,6 +1741,18 @@ def create_app(database=None):
         except ErrorSolicitud as exc:
             return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
         return ok(payload, status)
+
+    @app.post("/api/v1/voice/synthesize")
+    @auth_required
+    def app_synthesize_voice():
+        return _sintetizar_voz(body())
+
+    @app.post("/api/v1/device/voice/synthesize")
+    @device_required
+    def device_synthesize_voice():
+        if not g.device["usuario_id"]:
+            return error("DISPOSITIVO_NO_VINCULADO", "El dispositivo no está vinculado", 403)
+        return _sintetizar_voz(body())
 
     @app.post("/api/v1/device/messages/<int:message_id>/confirm")
     @device_required

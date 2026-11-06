@@ -63,8 +63,10 @@ Consecuencias importantes de lo que hay hoy:
 - El cierre del día es una acción explícita; es idempotente y no recalcula
   cierres anteriores.
 - El audio nunca se guarda en disco ni en la base; solo se conserva texto,
-  duración y metadatos.
+  duración y metadatos. La voz de Nancy sí se genera como WAV en memoria y no se persiste.
 - Los modelos de IA corren en el PC/servidor. La ESP32 solo graba y transmite.
+- La voz de Nancy corre en el PC/servidor (Piper); sin conexión, el cliente reproduce
+  un banco pequeño de WAV pregrabadas y no improvisa oraciones largas.
 - El firmware de la ESP32 no existe en este repositorio.
 
 ---
@@ -75,7 +77,8 @@ Consecuencias importantes de lo que hay hoy:
 
 | Ruta | Papel en la lógica actual |
 |---|---|
-| `backend/server.py` | Aplicación Flask, 63 rutas, autenticación, CORS, recepción de audio, orquestación y endpoints del plan de metas. |
+| `backend/server.py` | Aplicación Flask, 65 rutas, autenticación, CORS, recepción de audio, orquestación, endpoints del plan de metas y TTS. |
+| `backend/tts.py` | TTS local Piper y salida WAV en memoria. No guarda el audio. |
 | `backend/services.py` | Dominio: mensajes, transacciones, puntos, presupuesto, metas, salud, cierre, notificaciones y orquestación del plan. |
 | `backend/finance_engine.py` | Ingreso, gasto planificado, colchón y capacidad de ahorro on-the-fly. |
 | `backend/optimization.py` | Modelo LP, solver HiGHS, redondeo, fallback greedy y diagnóstico del plan. |
@@ -1159,9 +1162,9 @@ El endpoint devuelve esos valores tal cual.
 
 ## 10. Inventario de endpoints reales
 
-Hay 63 rutas: las 61 originales más `GET /goals/plan` y
-`POST /goals/plan/simulate` de la Fase 3. Leyenda de autenticación: `—` público,
-`A` token de acceso, `D` token de dispositivo.
+Hay 65 rutas: las 61 originales más `GET /goals/plan`, `POST /goals/plan/simulate`,
+`POST /voice/synthesize` y `POST /device/voice/synthesize`. Leyenda de
+autenticación: `—` público, `A` token de acceso, `D` token de dispositivo.
 
 ### 10.1 Públicas
 
@@ -1215,6 +1218,7 @@ Hay 63 rutas: las 61 originales más `GET /goals/plan` y
 | GET | `/api/v1/messages/<id>` | A | Mensaje y transacciones. |
 | POST | `/api/v1/messages/<id>/confirm` | A | Confirma todas las pendientes. |
 | POST | `/api/v1/messages/<id>/discard` | A | Descarta pendientes. |
+| POST | `/api/v1/voice/synthesize` | A | Sintetiza la respuesta en WAV (memoria). |
 
 ### 10.5 Días, métricas, metas y presupuesto
 
@@ -1253,6 +1257,7 @@ Hay 63 rutas: las 61 originales más `GET /goals/plan` y
 | POST | `/api/v1/device/notifications/ack` | D | Acuse en lote. |
 | POST | `/api/v1/device/messages` | D | Mensaje por texto o audio. |
 | POST | `/api/v1/device/messages/<id>/confirm` | D | Confirma pendientes. |
+| POST | `/api/v1/device/voice/synthesize` | D | Sintetiza la respuesta en WAV (memoria). |
 | POST | `/api/v1/device/close-day` | D | Cierra el día de hoy. |
 | POST | `/api/v1/finagotchi/telemetry` | D | Alias legacy de telemetría. |
 
@@ -1610,6 +1615,7 @@ Si el usuario cancela en cualquier punto, la meta no existe en la base.
 | Simulación de plan | `POST /goals/plan/simulate` y `services.goal_plan` |
 | Contrato de audio | `backend/audio.py::validar_wav` |
 | Interpretación por reglas | `backend/nlp.py::interpret` |
+| TTS local Piper | `backend/tts.py::sintetizar_wav` y rutas `/voice/synthesize` |
 | Extracción con LLM | `backend/nlp.py::interpretar_con_ia` y `backend/ai.py::extraer_estructura` |
 | Agente conversacional | `backend/conversation.py::procesar_turno` |
 | Confirmación natural | `conversation._es_confirmacion` y `conversation._es_cancelacion` |
@@ -2196,7 +2202,32 @@ frase se tomaba como respuesta a un pendiente que ya no existía.
 - **Sin escritura fuera de confirmación**: ninguna ruta nueva escribe sin
   frase afirmativa; inclusive el cierre de día exige la palabra de confirmación.
 
+### 19.11 Voz de Nancy
+
+El backend usa `backend/tts.py` con **Piper** y un modelo local español
+(por defecto `es_MX-claude-high.onnx`). La WAV se genera en memoria y no se
+guarda en disco ni en SQLite. Sin Piper o sin el modelo, el backend responde
+sin el bloque `voz` y el cliente sigue mostrando el texto.
+
+La voz se solicita por petición separada para no inflar el mensaje ni guardar
+nada:
+
+- `POST /api/v1/voice/synthesize` (token de acceso).
+- `POST /api/v1/device/voice/synthesize` (token de dispositivo).
+
+Ambas aceptan hasta 400 caracteres y devuelven `audio/wav`. El backend no
+persiste el audio.
+
+Sin conexión, `simulator/assets/voz/*.wav` reproduce un banco corto
+pregrabado (¿Está correcto?, Listo, Entendido, No entendí ...). Ante una
+oración natural o un dato nuevo (nombre, monto, fecha), el cliente muestra el
+texto; no intenta sintetizar offline.
+
+Las respuestas incluyen `voz` cuando el backend está listo para hablar, lo que
+el simulador aprovecha con `[V]` para activar o silenciar.
+
 ---
+
 
 ## Apéndice A. Dataset de demostración
 

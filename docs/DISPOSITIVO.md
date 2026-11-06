@@ -770,6 +770,8 @@ Máximo 2 segundos por frase. Deben existir al menos:
 - “Conecta el cargador”.
 - “Dispositivo desvinculado”.
 
+En la versión sin conexión, el dispositivo usa un banco pequeño de WAV limitado a respuestas predecibles. No puede generar oraciones nuevas. En la versión conectada, el dispositivo reproduce la WAV que el backend sintetiza bajo demanda; ninguna frase de montos o nombres se pregraba.
+
 ### 9.3 Transcripción y notificación
 
 La transcripción y la categoría las procesa la IA del backend. La pantalla no muestra el texto completo, solo el estado:
@@ -781,6 +783,24 @@ La transcripción y la categoría las procesa la IA del backend. La pantalla no 
 - “¿Confirmas?”.
 
 El dispositivo no transcribe localmente. Envía el audio, espera la respuesta y muestra la notificación final. La confirmación humana es obligatoria. Las notificaciones de guardado se consultan por polling HTTP cada 3–5 segundos y se acusan con `POST /device/notifications/{id}/ack`.
+
+### 9.4 Voz de Nancy
+
+Hay dos modos de respuesta hablada:
+
+| Modo | Qué hace | Adecuado para |
+|---|---|---|
+| Sin conexión | Reproduce frases pregrabadas en LittleFS | respuestas estándar y fallback |
+| Conectado | El backend sintetiza la frase en memoria y el dispositivo reproduce la WAV por I2S | oraciones naturales con nombres, montos y fechas |
+
+La voz del backend corre en el PC o servidor, nunca en la ESP32. El dispositivo solo:
+
+1. Envía el audio o texto al backend.
+2. Recibe el estado y la respuesta.
+3. Pide `POST /device/voice/synthesize` con la respuesta hablada.
+4. Reproduce la WAV en el MAX98357A/altavoz.
+
+Sin conexión, el firmware usa frases pregrabadas como “Te escucho”, “Listo” y “No entendí”; no intenta improvisar números o nombres. La pantalla siempre muestra el texto aunque falle el audio.
 
 ---
 

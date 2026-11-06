@@ -845,11 +845,19 @@ def _proponer_meta(conn, usuario_id, borrador, estado, dispositivo_uid, texto):
         f"{borrador['frecuencia_ahorro']} y un aporte de "
         f"{_moneda(borrador['aporte_periodico'])} por periodo."
     )
+    diagnostico = simulacion.get("diagnostico") or {}
     if detalle:
-        mensaje += (
-            f" El plan recomienda asignarle {_moneda(asignacion)} al mes "
-            f"y su cumplimiento estimado es {round(float(detalle.get('cumplimiento') or 0) * 100)} %."
-        )
+        if asignacion > 0:
+            mensaje += (
+                f" El plan recomienda asignarle {_moneda(asignacion)} al mes "
+                f"y su cumplimiento estimado es {round(float(detalle.get('cumplimiento') or 0) * 100)} %."
+            )
+        else:
+            motivo = diagnostico.get("mensaje") or "no hay capacidad libre en el plan"
+            mensaje += (
+                f" El plan todavía no puede asignarle nada a esta meta: {motivo} "
+                "Puedo crearla, pero no puedo prometerte que se cumpla con tu capacidad actual."
+            )
     mensaje += " ¿La creo?"
     nuevo_estado = {
         **estado,

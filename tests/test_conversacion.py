@@ -136,6 +136,12 @@ class ConversationTests(unittest.TestCase):
 
     # --- Creacion de metas por dialogo ---------------------------------
     def test_meta_por_dialogo_solo_se_crea_al_confirmar(self):
+        perfil = self.client.patch(
+            "/api/v1/me/profile",
+            json={"ingreso_trabajo_mensual": 2000000},
+            headers=self.user["headers"],
+        )
+        self.assertEqual(perfil.status_code, 200, perfil.get_json())
         respuesta = self.decir("quiero crear una meta para comprar unos audífonos")
         self.assertEqual(respuesta["intent"], "crear_meta")
         self.assertEqual(respuesta["estado_conversacion"], "recopilando_meta")
@@ -151,6 +157,7 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(propuesta["estado_conversacion"], "confirmando_meta")
         self.assertEqual(propuesta["datos"]["borrador"]["monto_meta"], 500000)
         self.assertEqual(propuesta["datos"]["borrador"]["prioridad"], 1)
+        self.assertIn("plan recomienda", propuesta["mensaje_nancy"].lower())
         self.assertIn("¿La creo?", propuesta["mensaje_nancy"])
 
         # Todavia no se ha guardado.
@@ -249,6 +256,17 @@ class ConversationTests(unittest.TestCase):
         self.decir("sí")
         metas = self.client.get("/api/v1/goals", headers=self.user["headers"]).get_json()["data"]
         self.assertEqual(metas, [])
+
+    def test_meta_sin_capacidad_explica_por_que(self):
+        """Con ingreso sin declarar el LP no asigna: Nancy debe decirlo."""
+        self.decir("quiero crear una meta para comprar unos audífonos")
+        self.decir("500 mil")
+        self.decir("en cinco meses")
+        self.decir("mensual")
+        propuesta = self.decir("prioridad alta")
+        self.assertIn("plan todavía no puede", propuesta["mensaje_nancy"])
+        self.assertNotIn("$0", propuesta["mensaje_nancy"])
+        self.assertNotIn("0 %", propuesta["mensaje_nancy"])
 
     def test_mensaje_duplicado_no_procesa_dos_veces(self):
         primero = self.decir("gasté 12.000 en almuerzo", "repetido-1")
