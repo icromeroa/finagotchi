@@ -82,10 +82,11 @@ def message_payload(conn, user_id, message_id):
         return None
     transactions = conn.execute(
         """
-        SELECT t.*, c.nombre AS categoria, cu.nombre AS cuenta
+        SELECT t.*, c.nombre AS categoria, cu.nombre AS cuenta, m.nombre AS meta
         FROM transacciones t
         LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
         LEFT JOIN cuentas cu ON cu.usuario_id = t.usuario_id AND cu.id = t.cuenta_id
+        LEFT JOIN metas m ON m.usuario_id = t.usuario_id AND m.id = t.meta_id
         WHERE t.usuario_id = ? AND t.mensaje_id = ?
         ORDER BY t.secuencia, t.id
         """,
@@ -110,6 +111,7 @@ def create_message(
     origen="app_voz",
     audio_duration_s=None,
     local_date_value=None,
+    interpretacion=None,
 ):
     if message_id:
         existing = conn.execute(
@@ -134,12 +136,16 @@ def create_message(
     message_id = message_id or str(uuid.uuid4())
     received_at = now_utc()
     text = (text or "").strip()
-    result = nlp.interpret(conn, user_id, text) if text else {
-        "intent": "requiere_aclaracion",
-        "texto": "",
-        "error": "No se recibió texto",
-        "transacciones": [],
-    }
+    result = interpretacion or (
+        nlp.interpret(conn, user_id, text)
+        if text
+        else {
+            "intent": "requiere_aclaracion",
+            "texto": "",
+            "error": "No se recibió texto",
+            "transacciones": [],
+        }
+    )
     if audio_duration_s is not None:
         try:
             audio_duration_s = float(audio_duration_s)
@@ -412,6 +418,30 @@ def ack_device_notifications(conn, user_id, device_id, notification_ids, estado=
         if row is not None:
             updated += 1
     return updated
+
+
+def discard_message(conn, user_id, message_id):
+    """Descarta un mensaje y sus movimientos pendientes sin borrar historia."""
+    message = conn.execute(
+        "SELECT * FROM mensajes_dispositivo WHERE usuario_id = ? AND id = ?",
+        (user_id, message_id),
+    ).fetchone()
+    if message is None:
+        return None
+    conn.execute(
+        """
+        UPDATE transacciones
+        SET is_deleted = 1, deleted_at = ?, eliminado_via = 'voz', actualizado_en = ?
+        WHERE usuario_id = ? AND mensaje_id = ? AND estado = 'pendiente' AND is_deleted = 0
+        """,
+        (iso_utc(), iso_utc(), user_id, message_id),
+    )
+    conn.execute(
+        "UPDATE mensajes_dispositivo SET estado = 'descartado' WHERE usuario_id = ? AND id = ?",
+        (user_id, message_id),
+    )
+    conn.commit()
+    return message_payload(conn, user_id, message_id)
 
 
 def confirm_message(conn, user_id, message_id):

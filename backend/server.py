@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend import ai, audio, nlp, services  # noqa: E402
+from backend import ai, audio, conversation, nlp, services  # noqa: E402
 from backend import finance_engine  # noqa: E402
 from backend.api_utils import body, datos_entrantes, error, ok, require_fields  # noqa: E402
 from backend.auth import (  # noqa: E402
@@ -282,13 +282,13 @@ def procesar_mensaje_voz(
             )
             raise ErrorSolicitud(exc.codigo, exc.mensaje, exc.estado_http, exc.detalles) from exc
 
-        payload = services.create_message(
+        payload = conversation.procesar_turno(
             conn,
             user_id,
             resultado["texto"],
             message_id=message_id,
             device_id=device_id,
-            device_uid=device_uid,
+            dispositivo_uid=device_uid,
             origen=origen,
             audio_duration_s=info.duracion_s,
         )
@@ -326,13 +326,13 @@ def procesar_mensaje_voz(
             {"campos": ["audio", "texto"]},
         )
 
-    payload = services.create_message(
+    payload = conversation.procesar_turno(
         conn,
         user_id,
         texto,
         message_id=message_id,
         device_id=device_id,
-        device_uid=device_uid,
+        dispositivo_uid=device_uid,
         origen=origen,
     )
     payload.setdefault("duplicado", False)

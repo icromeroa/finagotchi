@@ -572,12 +572,12 @@ def construir_movimiento(
 
     if tipo_final == "ahorro":
         categoria_final = None
-        if meta is not None and meta_final is None and menciona_meta(texto):
+        if meta_final is None and menciona_meta(texto):
             return {
                 "intent": "requiere_aclaracion",
                 "texto": texto,
                 "error": "No encontré esa meta",
-                "meta_sugerida": meta,
+                "meta_sugerida": meta or nombre_meta_probable(texto),
                 "transacciones": [],
             }
     else:
