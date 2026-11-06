@@ -11,3 +11,13 @@ scipy>=1.11
 # Proveedor de transcripcion local (faster-whisper).
 # No necesita clave de API ni cuota. El modelo se descarga la primera vez.
 faster-whisper>=1.2.0
+
+#Ciencia de datos y ML
+#Archivos de datos y procesamiento
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.5
+streamlit>=1.35
+pyarrow>=17
+streamlit
+joblib
