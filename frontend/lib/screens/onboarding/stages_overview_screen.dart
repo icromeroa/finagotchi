@@ -60,10 +60,10 @@ class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
         return _buildStageDetail(
           key: const ValueKey('stage_1'),
           badgeText: 'Etapa 1 de 3',
-          badgeColor: AppColors.mutedPink.withOpacity(0.3),
+          badgeColor: AppColors.mutedPink.withValues(alpha: 0.3),
           title: 'Primero, te conocemos',
           subtitle: 'Dos cosas para empezar con el pie derecho.',
-          cardColor: AppColors.mutedPink.withOpacity(0.35),
+          cardColor: AppColors.mutedPink.withValues(alpha: 0.35),
           cardBorderColor: AppColors.wine,
           items: const [
             _DetailItem(
@@ -87,10 +87,10 @@ class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
         return _buildStageDetail(
           key: const ValueKey('stage_2'),
           badgeText: 'Etapa 2 de 3',
-          badgeColor: AppColors.lime.withOpacity(0.4),
+          badgeColor: AppColors.lime.withValues(alpha: 0.4),
           title: 'Después, armamos tu plan',
           subtitle: 'Con lo que registraste, Nancy te ayuda a decidir.',
-          cardColor: AppColors.lime.withOpacity(0.35),
+          cardColor: AppColors.lime.withValues(alpha: 0.35),
           cardBorderColor: AppColors.darkGreen,
           items: const [
             _DetailItem(
@@ -114,10 +114,10 @@ class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
         return _buildStageDetail(
           key: const ValueKey('stage_3'),
           badgeText: 'Etapa 3 de 3',
-          badgeColor: AppColors.mutedPink.withOpacity(0.3),
+          badgeColor: AppColors.mutedPink.withValues(alpha: 0.3),
           title: 'Y luego, cuidas tu presupuesto',
           subtitle: 'Esta etapa se desbloquea cuando termines las anteriores.',
-          cardColor: AppColors.mutedPink.withOpacity(0.35),
+          cardColor: AppColors.mutedPink.withValues(alpha: 0.35),
           cardBorderColor: AppColors.darkGreen,
           items: const [
             _DetailItem(
@@ -266,7 +266,7 @@ class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
             shape: BoxShape.circle,
             color: isCurrent ? AppColors.wine : AppColors.cardCream,
             border: Border.all(
-              color: isCurrent ? AppColors.wine : AppColors.wine.withOpacity(0.4),
+              color: isCurrent ? AppColors.wine : AppColors.wine.withValues(alpha: 0.4),
               width: 1.5,
             ),
           ),
@@ -325,7 +325,7 @@ class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
       margin: const EdgeInsets.only(left: 17),
       height: 18,
       width: 2,
-      color: AppColors.wine.withOpacity(0.4),
+      color: AppColors.wine.withValues(alpha: 0.4),
     );
   }
 
@@ -479,7 +479,7 @@ class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
           width: isActive ? 16 : 6,
           height: 6,
           decoration: BoxDecoration(
-            color: isActive ? AppColors.lime : AppColors.mutedPink.withOpacity(0.5),
+            color: isActive ? AppColors.lime : AppColors.mutedPink.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(10),
             border: isActive
                 ? Border.all(color: AppColors.darkGreen, width: 1)

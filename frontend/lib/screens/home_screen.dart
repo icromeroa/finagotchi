@@ -294,7 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.cardCream,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.darkGreen.withOpacity(0.2)),
+                        border: Border.all(color: AppColors.darkGreen.withValues(alpha: 0.2)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,7 +406,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.cardCream,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.darkGreen.withOpacity(0.2)),
+                        border: Border.all(color: AppColors.darkGreen.withValues(alpha: 0.2)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,7 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: AppColors.mutedPink.withOpacity(0.4),
+                                  color: AppColors.mutedPink.withValues(alpha: 0.4),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Text(
@@ -439,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: AppColors.lime.withOpacity(0.6),
+                                  color: AppColors.lime.withValues(alpha: 0.6),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Text(
@@ -489,14 +489,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.cardCream,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.wine.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.wine.withValues(alpha: 0.3)),
                       ),
                       child: Column(
                         children: [
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppColors.mutedPink.withOpacity(0.4),
+                              color: AppColors.mutedPink.withValues(alpha: 0.4),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.mic, color: AppColors.wine, size: 22),

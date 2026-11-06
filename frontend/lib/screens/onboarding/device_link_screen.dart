@@ -85,7 +85,7 @@ class _LinkingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final softPinkBg = AppColors.mutedPink.withOpacity(0.25);
+    final softPinkBg = AppColors.mutedPink.withValues(alpha: 0.25);
 
     return SingleChildScrollView(
       key: const ValueKey('linking'),
@@ -98,7 +98,7 @@ class _LinkingView extends StatelessWidget {
             height: 160,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.mutedPink.withOpacity(0.5), width: 1.5),
+              border: Border.all(color: AppColors.mutedPink.withValues(alpha: 0.5), width: 1.5),
             ),
           ),
           const SizedBox(height: 24),
@@ -130,7 +130,7 @@ class _LinkingView extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.cardCream,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.darkGreen.withOpacity(0.15), width: 1.5),
+              border: Border.all(color: AppColors.darkGreen.withValues(alpha: 0.15), width: 1.5),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -153,7 +153,7 @@ class _LinkingView extends StatelessWidget {
                           width: 4,
                           height: 1.5,
                           margin: const EdgeInsets.symmetric(horizontal: 2),
-                          color: AppColors.wine.withOpacity(index == 5 ? 1.0 : 0.4),
+                          color: AppColors.wine.withValues(alpha: index == 5 ? 1.0 : 0.4),
                         ),
                       ),
                     ),
@@ -189,22 +189,22 @@ class _LinkingView extends StatelessWidget {
                   titleColor: AppColors.wine,
                   subtitleColor: AppColors.darkGreen,
                 ),
-                Divider(height: 24, thickness: 1, color: AppColors.wine.withOpacity(0.15)),
+                Divider(height: 24, thickness: 1, color: AppColors.wine.withValues(alpha: 0.15)),
                 _buildStepRow(
                   icon: Icons.sync,
                   iconColor: AppColors.wine,
                   title: 'Verificando código',
                   subtitle: 'Emparejando clave de seguridad...',
                   titleColor: AppColors.wine,
-                  subtitleColor: AppColors.wine.withOpacity(0.7),
+                  subtitleColor: AppColors.wine.withValues(alpha: 0.7),
                 ),
-                Divider(height: 24, thickness: 1, color: AppColors.wine.withOpacity(0.15)),
+                Divider(height: 24, thickness: 1, color: AppColors.wine.withValues(alpha: 0.15)),
                 _buildStepRow(
                   icon: Icons.access_time,
-                  iconColor: AppColors.wine.withOpacity(0.5),
+                  iconColor: AppColors.wine.withValues(alpha: 0.5),
                   title: 'Sincronizando datos',
                   subtitle: 'Cargando perfil de Nancy',
-                  titleColor: AppColors.wine.withOpacity(0.7),
+                  titleColor: AppColors.wine.withValues(alpha: 0.7),
                   subtitleColor: AppColors.darkGreen,
                 ),
               ],
@@ -238,7 +238,7 @@ class _LinkingView extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.lightBlue,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF005691).withOpacity(0.3), width: 1),
+              border: Border.all(color: const Color(0xFF005691).withValues(alpha: 0.3), width: 1),
             ),
             child: Row(
               children: const [
@@ -336,7 +336,7 @@ class _SuccessView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.mutedPink.withOpacity(0.4),
+                        color: AppColors.mutedPink.withValues(alpha: 0.4),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.smart_toy_outlined, color: AppColors.wine, size: 20),
