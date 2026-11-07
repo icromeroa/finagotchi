@@ -37,10 +37,9 @@ Tu cableado anterior (CS a GND, Pin 2/13/5/6 genéricos) se corrige así:
 | SDA (MOSI) | **Pin 13 → GP13** | Datos SPI |
 | RES/RST | **Pin 5 → GP5** | Reset |
 | DC/RS | **Pin 6 → GP6** | Data/Command |
-| CS | **Pin 7 → GP7** | U8g2 maneja CS por HW; dejarlo en GND cortocircuitaría contra el pin |
+| CS | **GND (físico)** | LovyanGFX lo deja en `-1` (sin pin) |
 
-> Estos pines (GP1-GP7) son seguros para la N16R8. No usar GP33-GP38/GP45-GP48 (PSRAM/flash y RGB GP48).
-> **Mover el cable CS desde GND a GP7** (único cambio de cableado vs F1 anterior).
+> **No hay que re-soldar nada.** LovyanGFX soporta `pin_cs = -1` (pantalla siempre seleccionada, correcto porque es el único dispositivo SPI).
 > Orden de pines del módulo (trasera): `VCC, GND, SCL, SDA, RES, DC, CS`.
 
 ## 4. Tabla propuesta para audio/botones (F2, no cablear aún en F1)
@@ -67,11 +66,11 @@ Es el controlador. La ILI9225 necesita su propia secuencia de init (configuraci�
 - `TFT_eSPI` versión moderna no compiló en S3 con Arduino 3.x (`TFT_eSPI.cpp:3623`, macro `tft_Write_8` / `_spi_w`): el driver ILI9225 de esa librería es frágil.
 - La versión 2.7.x tampoco trae tag clonable en Git (ni `v2.7.10` ni `2.7.10`); en el registry da `UnknownPackageError` o compila roto.
 
-### Migrado a U8g2 (decisión vigente)
+### Migrado a LovyanGFX (decisión vigente)
 
-- `U8G2_ILI9225_240X320_F_HW_SPI` tiene driver nativo para la ILI9225 y compila sin problema en ESP32-S3 Arduino 3.x + PlatformIO 6.9.
-- No usa `User_Setup.h`: los pines se dan en el constructor.
-- Solo blanco/negro (sin color RGB565 como TFT_eSPI). Para F1 alcanza: valida SPI, DC/RST/CS y texto.
+- `LovyanGFX` soporta `pin_cs = -1` y `Panel_ILI9225` (240×320). Compila sin problema en ESP32-S3 Arduino 3.x + PlatformIO 6.9.
+- No usa `User_Setup.h`: todo va en el constructor `LGFX_Fina`.
+- Mínimo: fondo rojo + texto en blanco. Para F1 alcanza: valida SPI, DC/RST y texto. Sigue en color RGB565.
 
 ## 6. Código en VS Code: carpeta nueva `firmware/`
 

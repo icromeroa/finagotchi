@@ -32,15 +32,15 @@ firmware/
 | SDA (MOSI) | **Pin 13 → GP13** |
 | RES | **Pin 5 → GP5** |
 | DC | **Pin 6 → GP6** |
-| CS | **Pin 7 → GP7** (mover desde GND) |
+| CS | **GND (físico)** → LovyanGFX `pin_cs=-1` |
 
-> Cables cortos en SCL/SDA. VCC nunca a 5V. Con U8g2, CS debe ser GPIO: dejarlo en GND causaría cortocircuito cuando el driver lo pone en alto.
+> Cables cortos en SCL/SDA. VCC nunca a 5V. Con LovyanGFX, CS puede quedar a GND (sin pin): la pantalla es el único dispositivo SPI.
 
-## F1: qué esperar (U8g2)
+## F1: qué esperar (LovyanGFX)
 
-- Al arrancar, la pantalla rellena en blanco con texto negro “FinaGotchi / ILI9225 OK”.
-- Serial (115200) muestra `FinaGotchi F1 (U8g2): pintura completada`.
-- Si sigue blanca: revísa `CS` (GP7, no GND), `RST/DC` y prueba SPI a 5 MHz (`setBusClock(5000000)`).
+- Al arrancar, la pantalla pasa de blanca a roja con “FinaGotchi / ILI9225 OK”.
+- Serial (115200) muestra `FinaGotchi F1 (LovyanGFX): pintura completada`.
+- Si sigue blanca: revisa `DC/RST`, cables cortos y prueba SPI a 5 MHz (`freq_write=5000000`).
 
 ## F2 (no implementada)
 
@@ -48,6 +48,6 @@ Micrófono INMP441, amplificador MAX98357A y 3 botones según la tabla en `docs/
 
 ## Licencias y referencia
 
-- Controlador ILI9225 y librería `U8g2` (BSD). Documentado solo para uso con el módulo GMT024-10 v2.1.
-- **Motivo:** `TFT_eSPI` no compiló en S3 Arduino 3.x (error interno `tft_Write_8`); U8g2 sí trae driver ILI9225 estable.
+- Controlador ILI9225 y librería `LovyanGFX` (LGPL 3.0). Documentado solo para uso con el módulo GMT024-10 v2.1.
+- **Motivo:** `TFT_eSPI` no compiló en S3 Arduino 3.x. U8g2 tampoco permite `CS=-1`; LovyanGFX sí, con tu cableado intacto.
 - Troko (MIT) se cita solo como referencia de flujo; no se copió su firmware ni su tabla de pines.
