@@ -145,8 +145,39 @@ class PantallasTests(unittest.TestCase):
         )
         self.assertIn("NANCY", texto)
         self.assertIn("20.000", texto)
-        self.assertIn("confirmando_movimiento", texto)
         self.assertIn("Di sí", texto)
+        self.assertNotIn("Estado:", texto)
+        self.assertNotIn("confirmando_movimiento", texto)
+
+    def test_la_pantalla_de_consulta_muestra_rango_y_movimientos(self):
+        texto = pantallas.d15_conversacion(
+            {
+                "mensaje_nancy": "Ayer registraste 2 movimientos.",
+                "tipo_respuesta": "consulta",
+                "estado_conversacion": "inactiva",
+                "datos": {
+                    "rango": {"etiqueta": "ayer"},
+                    "resumen": {
+                        "total_ingresos": 0,
+                        "total_gastos": 20000,
+                        "total_ahorrado": 5000,
+                        "balance_neto": -20000,
+                    },
+                    "movimientos": [
+                        {
+                            "tipo": "gasto",
+                            "monto": 20000,
+                            "fecha_local": "2026-11-05",
+                            "categoria": "Alimentación",
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertIn("20.000", texto)
+        self.assertIn("05/11", texto)
+        self.assertIn("Alimentación", texto)
+        self.assertNotIn("Estado:", texto)
 
     def test_pantalla_de_error_explica_el_motivo(self):
         texto = pantallas.d16_error(

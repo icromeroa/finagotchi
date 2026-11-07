@@ -5,7 +5,6 @@ de frases pregrabadas en ``simulator/assets/voz``. Si no hay dispositivo de
 audio o el backend no tiene Piper, el simulador sigue mostrando el texto.
 """
 
-import io
 from pathlib import Path
 
 try:
@@ -52,14 +51,18 @@ def _debe_hablar(respuesta, alcance):
         return True
     if alcance == "acciones":
         return tipo in ("confirmacion", "resultado", "error", "aclaracion")
-    return False
+    # «resumen» es el modo por defecto: habla la versión corta de todo lo que
+    # aporta información, incluidas las consultas, sin leer listas completas.
+    return tipo in ("confirmacion", "resultado", "consulta", "error", "aclaracion")
 
 
 def _jugar_bytes(audio):
     if not audio or winsound is None:
         return False
     try:
-        winsound.PlaySound(io.BytesIO(audio), winsound.SND_MEMORY)
+        # SND_MEMORY exige bytes, no BytesIO. Pasar el buffer lanzaba
+        # «TypeError: a bytes-like object is required, not '_io.BytesIO'».
+        winsound.PlaySound(audio, winsound.SND_MEMORY)
         return True
     except Exception:  # noqa: BLE001 - plataforma sin audio o WAV invalido
         return False
@@ -79,11 +82,16 @@ def hablar(client, respuesta, config):
     """Reproduce «respuesta» si la voz está activada."""
     global _ACTIVADO
     _ACTIVADO = bool(config.get("voice_output", True))
-    alcance = str(config.get("voice_scope") or "acciones").lower()
+    alcance = str(config.get("voice_scope") or "resumen").lower()
     if not _ACTIVADO or not _debe_hablar(respuesta, alcance):
         return False
 
-    mensaje = (respuesta or {}).get("mensaje_nancy")
+    if alcance == "resumen":
+        mensaje = (respuesta or {}).get("texto_voz") or (respuesta or {}).get(
+            "mensaje_nancy"
+        )
+    else:
+        mensaje = (respuesta or {}).get("mensaje_nancy")
     voz = (respuesta or {}).get("voz") or {}
     if voz.get("endpoint") and mensaje:
         try:

@@ -363,10 +363,17 @@ def _envolver(texto, ancho=ANCHO - 4):
     return lineas or [""]
 
 
+def _fecha_corta(valor):
+    """Devuelve 05/11 para una fecha ISO; deja intacto lo que no lo sea."""
+    texto = str(valor or "")
+    if len(texto) >= 10 and texto[4] == "-" and texto[7] == "-":
+        return f"{texto[8:10]}/{texto[5:7]}"
+    return texto[:10]
+
+
 def d15_conversacion(respuesta):
     """Respuesta conversacional de Nancy, valida para voz y texto."""
     mensaje = respuesta.get("mensaje_nancy") or "No obtuve una respuesta."
-    estado = respuesta.get("estado_conversacion") or "inactiva"
     lineas = ["", "   NANCY dice:", ""]
     for linea in _envolver(mensaje)[:7]:
         lineas.append(f"   {linea}")
@@ -386,7 +393,29 @@ def d15_conversacion(respuesta):
         ]
     if meta:
         lineas += ["", f"   {str(meta.get('nombre') or '')[:24]}"]
-    lineas += ["", f"   Estado: {estado}"]
+    resumen = datos.get("resumen")
+    if resumen:
+        lineas += [
+            "",
+            f"   Ingresos  {_dinero(resumen.get('total_ingresos', 0)):>12}",
+            f"   Gastos    {_dinero(resumen.get('total_gastos', 0)):>12}",
+            f"   Ahorro    {_dinero(resumen.get('total_ahorrado', 0)):>12}",
+            f"   Balance   {_dinero(resumen.get('balance_neto', 0)):>12}",
+        ]
+    movimientos = datos.get("movimientos") or []
+    if movimientos:
+        lineas += ["", "   Movimientos"]
+        for movimiento in movimientos[:5]:
+            categoria = ""
+            if movimiento.get("categoria"):
+                categoria = f" {str(movimiento['categoria'])[:12]}"
+            lineas.append(
+                f"   {_fecha_corta(movimiento.get('fecha_local'))} "
+                f"{str(movimiento.get('tipo', ''))[:7].upper():<7} "
+                f"{_dinero(movimiento.get('monto', 0))}{categoria}"
+            )
+        if len(movimientos) > 5:
+            lineas.append(f"   ... y {len(movimientos) - 5} más")
     if respuesta.get("requiere_confirmacion"):
         lineas.append("   Di sí, está bien, ok o no")
     lineas.append("")

@@ -9,6 +9,6 @@
   "stt_provider": "gemini",
   "input_device": null,
   "voice_output": true,
-  "voice_scope": "acciones",
+  "voice_scope": "resumen",
   "request_timeout_s": 90
 }

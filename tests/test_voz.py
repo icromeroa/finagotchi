@@ -119,6 +119,57 @@ class SimuladorVozTests(unittest.TestCase):
         self.assertFalse(self.voice._debe_hablar({"tipo_respuesta": "consulta"}, "acciones"))
         self.assertTrue(self.voice._debe_hablar({"tipo_respuesta": "consulta"}, "todo"))
 
+    def test_el_modo_resumen_habla_consultas(self):
+        self.assertTrue(self.voice._debe_hablar({"tipo_respuesta": "consulta"}, "resumen"))
+        self.assertTrue(self.voice._debe_hablar({"tipo_respuesta": "confirmacion"}, "resumen"))
+        self.assertFalse(self.voice._debe_hablar({"tipo_respuesta": "ayuda"}, "resumen"))
+
+    def test_jugar_bytes_pasa_los_bytes_a_winsound(self):
+        with mock.patch.object(self.voice, "winsound") as winsound:
+            winsound.SND_MEMORY = 4
+            resultado = self.voice._jugar_bytes(b"RIFF....WAVE")
+        self.assertTrue(resultado)
+        winsound.PlaySound.assert_called_once_with(b"RIFF....WAVE", 4)
+
+    def test_hablar_usa_texto_voz_en_modo_resumen(self):
+        cliente = mock.Mock()
+        cliente.synthesize_voice.return_value = b"RIFF....WAVE"
+        respuesta = {
+            "tipo_respuesta": "consulta",
+            "mensaje_nancy": "Hoy llevas $20.000 en gastos.",
+            "texto_voz": "Hoy llevas 20 mil pesos en gastos.",
+            "voz": {"endpoint": "/api/v1/device/voice/synthesize"},
+        }
+        with mock.patch.object(self.voice, "_jugar_bytes", return_value=True):
+            resultado = self.voice.hablar(
+                cliente,
+                respuesta,
+                {"voice_output": True, "voice_scope": "resumen"},
+            )
+        self.assertTrue(resultado)
+        cliente.synthesize_voice.assert_called_once_with(
+            "Hoy llevas 20 mil pesos en gastos."
+        )
+
+    def test_hablar_usa_el_mensaje_completo_en_modo_todo(self):
+        cliente = mock.Mock()
+        cliente.synthesize_voice.return_value = b"RIFF....WAVE"
+        respuesta = {
+            "tipo_respuesta": "consulta",
+            "mensaje_nancy": "Hoy llevas $20.000 en gastos.",
+            "texto_voz": "Hoy llevas 20 mil pesos en gastos.",
+            "voz": {"endpoint": "/api/v1/device/voice/synthesize"},
+        }
+        with mock.patch.object(self.voice, "_jugar_bytes", return_value=True):
+            self.voice.hablar(
+                cliente,
+                respuesta,
+                {"voice_output": True, "voice_scope": "todo"},
+            )
+        cliente.synthesize_voice.assert_called_once_with(
+            "Hoy llevas $20.000 en gastos."
+        )
+
     def test_iniciar_silencia_y_alterna(self):
         self.voice.iniciar(False)
         self.assertFalse(self.voice.activo())

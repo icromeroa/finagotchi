@@ -14,6 +14,34 @@ from backend import conversation
 from backend.server import create_app
 
 
+class MontosHabladosTests(unittest.TestCase):
+    def test_montos_naturales_sin_simbolos_ni_puntos(self):
+        self.assertEqual(conversation._monto_hablado(0), "cero pesos")
+        self.assertEqual(conversation._monto_hablado(500), "500 pesos")
+        self.assertEqual(conversation._monto_hablado(1500), "mil 500 pesos")
+        self.assertEqual(conversation._monto_hablado(20000), "20 mil pesos")
+        self.assertEqual(conversation._monto_hablado(21500), "21 mil 500 pesos")
+        self.assertEqual(conversation._monto_hablado(1000000), "un millón de pesos")
+        self.assertEqual(conversation._monto_hablado(1500000), "un millón 500 mil pesos")
+        self.assertEqual(conversation._monto_hablado(-15000), "menos 15 mil pesos")
+        for monto in (0, 500, 1500, 20000, 21500, 1000000, 1500000, -15000):
+            texto = conversation._monto_hablado(monto)
+            self.assertNotIn("$", texto)
+            self.assertNotIn(".", texto)
+
+    def test_texto_para_voz_limpia_el_mensaje_de_pantalla(self):
+        limpio = conversation._texto_para_voz(
+            "Entendí un GASTO de $20.000 en Alimentación."
+        )
+        self.assertEqual(limpio, "Entendí un gasto de 20000 en Alimentación.")
+
+    def test_fecha_hablada(self):
+        self.assertEqual(
+            conversation._fecha_hablada("2027-12-31"),
+            "31 de diciembre de 2027",
+        )
+
+
 class ConversationTests(unittest.TestCase):
     def setUp(self):
         conversation.limpiar_sesiones()
@@ -76,7 +104,10 @@ class ConversationTests(unittest.TestCase):
         self.assertTrue(respuesta["requiere_confirmacion"])
         self.assertEqual(respuesta["estado_conversacion"], "confirmando_movimiento")
         self.assertEqual(respuesta["transacciones"][0]["estado"], "pendiente")
-        self.assertIn("¿Está correcto?", respuesta["mensaje_nancy"])
+        self.assertIn("¿Registro", respuesta["mensaje_nancy"])
+        self.assertIn("¿Registro un gasto de 12 mil pesos en alimentación?", respuesta["texto_voz"])
+        self.assertNotIn("$", respuesta["texto_voz"])
+        self.assertNotIn(".000", respuesta["texto_voz"])
 
         confirmado = self.decir("sí, está correcto")
         self.assertFalse(confirmado["requiere_confirmacion"])
@@ -185,6 +216,8 @@ class ConversationTests(unittest.TestCase):
         respuesta = self.decir("¿cómo me fue hoy?")
         self.assertEqual(respuesta["tipo_respuesta"], "consulta")
         self.assertIn("$20.000", respuesta["mensaje_nancy"])
+        self.assertIn("20 mil pesos", respuesta["texto_voz"])
+        self.assertNotIn("$", respuesta["texto_voz"])
         self.assertEqual(respuesta["datos"]["periodo"], "hoy")
 
     def test_consulta_de_balance_semanal_y_mensual(self):

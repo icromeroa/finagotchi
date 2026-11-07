@@ -136,6 +136,77 @@ def _moneda(valor):
     return f"{signo}${abs(numero):,}".replace(",", ".")
 
 
+MESES_HABLADOS = (
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+)
+
+
+def _monto_hablado(valor):
+    """Devuelve un monto natural para TTS, sin símbolos ni separadores.
+
+    ``20000`` se convierte en ``20 mil pesos`` y ``1500000`` en
+    ``un millón 500 mil pesos``. Así Piper no lee «veinte punto cero cero
+    cero» ni deja escapar el símbolo de pesos.
+    """
+    try:
+        numero = int(valor)
+    except (TypeError, ValueError):
+        numero = 0
+    if numero == 0:
+        return "cero pesos"
+    signo = "menos " if numero < 0 else ""
+    numero = abs(numero)
+    if numero >= 1_000_000:
+        millones, resto = divmod(numero, 1_000_000)
+        parte = "un millón" if millones == 1 else f"{millones} millones"
+        if resto == 0:
+            return f"{signo}{parte} de pesos"
+        miles, resto = divmod(resto, 1000)
+        if miles:
+            parte += f" {miles} mil"
+        if resto:
+            parte += f" {resto}"
+        return f"{signo}{parte} pesos"
+    if numero >= 1000:
+        miles, resto = divmod(numero, 1000)
+        parte = "mil" if miles == 1 else f"{miles} mil"
+        if resto:
+            parte += f" {resto}"
+        return f"{signo}{parte} pesos"
+    return f"{signo}{numero} pesos"
+
+
+def _texto_para_voz(mensaje):
+    """Limpia un mensaje de pantalla para que sea pronunciable."""
+    texto = str(mensaje or "")
+    texto = texto.replace("$", "")
+    # Quita los puntos de miles: 20.000 -> 20000.
+    texto = re.sub(r"(?<=\d)\.(?=\d{3}\b)", "", texto)
+    for palabra in ("GASTO", "INGRESO", "AHORRO"):
+        texto = texto.replace(palabra, palabra.lower())
+    return re.sub(r"\s+", " ", texto).strip()
+
+
+def _fecha_hablada(valor):
+    """Convierte una fecha ISO en una frase natural para TTS."""
+    try:
+        fecha = date_cls.fromisoformat(str(valor))
+    except (TypeError, ValueError):
+        return str(valor or "")
+    return f"{fecha.day} de {MESES_HABLADOS[fecha.month - 1]} de {fecha.year}"
+
+
 def _respuesta(
     mensaje,
     tipo_respuesta,
@@ -147,11 +218,13 @@ def _respuesta(
     dispositivo_uid=None,
     usuario_id=None,
     texto=None,
+    texto_voz=None,
 ):
     base = dict(payload or {})
     base.update(
         {
             "mensaje_nancy": mensaje,
+            "texto_voz": texto_voz or _texto_para_voz(mensaje),
             "tipo_respuesta": tipo_respuesta,
             "estado_conversacion": estado.get("estado", ESTADO_INACTIVA),
             "datos": datos or {},
@@ -170,14 +243,25 @@ def _respuesta(
 
 
 def _describir_movimiento(transaccion):
-    tipo = str(transaccion.get("tipo") or "movimiento").upper()
-    partes = [f"{tipo} de {_moneda(transaccion.get('monto'))}"]
+    tipo = str(transaccion.get("tipo") or "movimiento").lower()
+    partes = [f"un {tipo} de {_moneda(transaccion.get('monto'))}"]
     if transaccion.get("categoria"):
         partes.append(f"en {transaccion['categoria']}")
     if transaccion.get("meta"):
         partes.append(f"para la meta {transaccion['meta']}")
     if transaccion.get("cuenta"):
         partes.append(f"desde {transaccion['cuenta']}")
+    return " ".join(partes)
+
+
+def _describir_movimiento_hablado(transaccion):
+    """Resumen corto y natural del movimiento para la voz."""
+    tipo = str(transaccion.get("tipo") or "movimiento").lower()
+    partes = [f"un {tipo} de {_monto_hablado(transaccion.get('monto'))}"]
+    if transaccion.get("categoria"):
+        partes.append(f"en {str(transaccion['categoria']).lower()}")
+    if transaccion.get("meta"):
+        partes.append(f"para la meta {transaccion['meta']}")
     return " ".join(partes)
 
 
@@ -327,14 +411,15 @@ def _registrar_movimiento(
             "message_id": payload.get("id"),
             "texto": texto,
             "resumen": _describir_movimiento(transaccion),
+            "resumen_hablado": _describir_movimiento_hablado(transaccion),
         },
         "borrador": None,
     }
     _recordar(nuevo_estado, texto, "confirmacion")
     guardar_estado(usuario_id, dispositivo_uid, nuevo_estado)
     mensaje = (
-        f"Entendí un {_describir_movimiento(transaccion)}. "
-        "¿Está correcto? Puedes decir sí, está bien, ok, o corregirlo."
+        f"¿Registro {_describir_movimiento(transaccion)}? "
+        "Puedes decir sí, está bien, ok, o corregirlo."
     )
     return _respuesta(
         mensaje,
@@ -347,6 +432,7 @@ def _registrar_movimiento(
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=f"¿Registro {_describir_movimiento_hablado(transaccion)}?",
     )
 
 
@@ -387,6 +473,10 @@ def _confirmar(conn, usuario_id, texto, estado, dispositivo_uid):
             dispositivo_uid=dispositivo_uid,
             usuario_id=usuario_id,
             texto=texto,
+            texto_voz=(
+                f"Listo. Guardé "
+                f"{accion.get('resumen_hablado') or 'el movimiento'}."
+            ),
         )
     return _respuesta(
         "No hay nada pendiente por confirmar.",
@@ -465,6 +555,7 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
             "message_id": message_id,
             "texto": texto,
             "resumen": _describir_movimiento(transaccion),
+            "resumen_hablado": _describir_movimiento_hablado(transaccion),
         },
     }
     guardar_estado(usuario_id, dispositivo_uid, nuevo_estado)
@@ -479,6 +570,10 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=(
+            "Corregido. "
+            f"¿Registro {_describir_movimiento_hablado(transaccion)}?"
+        ),
     )
 
 
@@ -506,8 +601,17 @@ def _consulta_balance(conn, usuario_id, periodo, estado, dispositivo_uid, texto)
             f"{_moneda(resumen['total_ahorrado'])} en ahorro. "
             f"Tu balance neto es {_moneda(resumen['balance_neto'])}."
         )
+        texto_voz = (
+            f"Hoy llevas {_monto_hablado(resumen['total_gastos'])} en gastos y "
+            f"{_monto_hablado(resumen['total_ahorrado'])} en ahorro. "
+            f"Tu balance neto es {_monto_hablado(resumen['balance_neto'])}."
+        )
         if resumen.get("cupo_restante") is not None:
             mensaje += f" Te queda un cupo diario de {_moneda(resumen['cupo_restante'])}."
+            texto_voz += (
+                f" Te queda un cupo diario de "
+                f"{_monto_hablado(resumen['cupo_restante'])}."
+            )
     else:
         if periodo == "semana":
             desde = (date_cls.fromisoformat(hoy) - timedelta(days=6)).isoformat()
@@ -531,6 +635,13 @@ def _consulta_balance(conn, usuario_id, periodo, estado, dispositivo_uid, texto)
             f"{_moneda(resumen['total_ahorrado'])} en ahorro. "
             f"El balance es {_moneda(resumen['balance_neto'])}."
         )
+        texto_voz = (
+            f"En {etiqueta} registraste "
+            f"{_monto_hablado(resumen['total_gastos'])} en gastos, "
+            f"{_monto_hablado(resumen['total_ingresos'])} en ingresos y "
+            f"{_monto_hablado(resumen['total_ahorrado'])} en ahorro. "
+            f"El balance es {_monto_hablado(resumen['balance_neto'])}."
+        )
     estado = {**estado, "estado": ESTADO_INACTIVA, "accion_pendiente": None}
     return _respuesta(
         mensaje,
@@ -541,6 +652,7 @@ def _consulta_balance(conn, usuario_id, periodo, estado, dispositivo_uid, texto)
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
@@ -552,14 +664,21 @@ def _consulta_metas(conn, usuario_id, estado, dispositivo_uid, texto):
     metas = [dict(row) for row in filas]
     if not metas:
         mensaje = "Todavía no tienes metas. Puedes decir: quiero crear una meta para comprar audífonos."
+        texto_voz = mensaje
     else:
         partes = []
+        partes_voz = []
         for meta in metas[:5]:
             partes.append(
                 f"{meta['nombre']}: llevas {_moneda(meta.get('ahorrado'))} de "
                 f"{_moneda(meta.get('monto_meta'))}"
             )
+            partes_voz.append(
+                f"{meta['nombre']}: llevas {_monto_hablado(meta.get('ahorrado'))} de "
+                f"{_monto_hablado(meta.get('monto_meta'))}"
+            )
         mensaje = "Tus metas van así. " + "; ".join(partes) + "."
+        texto_voz = "Tus metas van así. " + "; ".join(partes_voz) + "."
     return _respuesta(
         mensaje,
         "consulta",
@@ -569,6 +688,7 @@ def _consulta_metas(conn, usuario_id, estado, dispositivo_uid, texto):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
@@ -585,8 +705,18 @@ def _consulta_plan(conn, usuario_id, estado, dispositivo_uid, texto):
             f"Este mes puedes ahorrar hasta {_moneda(capacidad)}. "
             f"El plan recomienda: {detalle}."
         )
+        texto_voz = (
+            f"Este mes puedes ahorrar hasta {_monto_hablado(capacidad)}. "
+            f"El plan ya tiene asignación para {len(metas)} meta"
+            + ("" if len(metas) == 1 else "s")
+            + "."
+        )
     else:
         mensaje = f"Este mes puedes ahorrar hasta {_moneda(capacidad)} y no tienes metas activas."
+        texto_voz = (
+            f"Este mes puedes ahorrar hasta {_monto_hablado(capacidad)} "
+            "y no tienes metas activas."
+        )
     return _respuesta(
         mensaje,
         "consulta",
@@ -596,6 +726,7 @@ def _consulta_plan(conn, usuario_id, estado, dispositivo_uid, texto):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
@@ -606,9 +737,15 @@ def _consulta_cuentas(conn, usuario_id, estado, dispositivo_uid, texto):
             f"{cuenta['nombre']}: {_moneda(cuenta.get('saldo_actual'))}"
             for cuenta in cuentas[:6]
         )
+        detalle_voz = "; ".join(
+            f"{cuenta['nombre']}: {_monto_hablado(cuenta.get('saldo_actual'))}"
+            for cuenta in cuentas[:6]
+        )
         mensaje = f"Tus cuentas son: {detalle}."
+        texto_voz = f"Tus cuentas son: {detalle_voz}."
     else:
         mensaje = "No tienes cuentas registradas."
+        texto_voz = mensaje
     return _respuesta(
         mensaje,
         "consulta",
@@ -618,6 +755,7 @@ def _consulta_cuentas(conn, usuario_id, estado, dispositivo_uid, texto):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
@@ -634,6 +772,7 @@ def _consulta_categorias(conn, usuario_id, estado, dispositivo_uid, texto):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=mensaje,
     )
 
 
@@ -645,9 +784,16 @@ def _consulta_movimientos(conn, usuario_id, estado, dispositivo_uid, texto):
             + (f" en {movimiento['categoria']}" if movimiento.get("categoria") else "")
             for movimiento in movimientos[:6]
         )
+        detalle_voz = "; ".join(
+            f"{movimiento['tipo']} de {_monto_hablado(movimiento['monto'])}"
+            + (f" en {movimiento['categoria']}" if movimiento.get("categoria") else "")
+            for movimiento in movimientos[:4]
+        )
         mensaje = f"Tus últimos movimientos: {detalle}."
+        texto_voz = f"Tus últimos movimientos: {detalle_voz}."
     else:
         mensaje = "Todavía no tienes movimientos registrados."
+        texto_voz = mensaje
     return _respuesta(
         mensaje,
         "consulta",
@@ -657,6 +803,7 @@ def _consulta_movimientos(conn, usuario_id, estado, dispositivo_uid, texto):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
@@ -667,6 +814,11 @@ def _consulta_presupuesto(conn, usuario_id, estado, dispositivo_uid, texto):
     mensaje = (
         f"Tu presupuesto diario es {_moneda(presupuesto)}. "
         f"Hoy has gastado {_moneda(gastos)} y te quedan {_moneda(presupuesto - gastos)}."
+    )
+    texto_voz = (
+        f"Tu presupuesto diario es {_monto_hablado(presupuesto)}. "
+        f"Hoy has gastado {_monto_hablado(gastos)} y te quedan "
+        f"{_monto_hablado(presupuesto - gastos)}."
     )
     return _respuesta(
         mensaje,
@@ -681,6 +833,7 @@ def _consulta_presupuesto(conn, usuario_id, estado, dispositivo_uid, texto):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
@@ -692,6 +845,11 @@ def _consulta_perfil(conn, usuario_id, estado, dispositivo_uid, texto):
         f"Tu perfil es {usuario.get('nombre', 'sin nombre')}. "
         f"Tu ingreso mensual declarado es {_moneda(datos.get('ingreso_total_mensual'))}."
     )
+    texto_voz = (
+        f"Tu perfil es {usuario.get('nombre', 'sin nombre')}. "
+        f"Tu ingreso mensual declarado es "
+        f"{_monto_hablado(datos.get('ingreso_total_mensual'))}."
+    )
     return _respuesta(
         mensaje,
         "consulta",
@@ -701,6 +859,7 @@ def _consulta_perfil(conn, usuario_id, estado, dispositivo_uid, texto):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
@@ -859,6 +1018,19 @@ def _proponer_meta(conn, usuario_id, borrador, estado, dispositivo_uid, texto):
                 "Puedo crearla, pero no puedo prometerte que se cumpla con tu capacidad actual."
             )
     mensaje += " ¿La creo?"
+    texto_voz = (
+        f"Voy a crear la meta {borrador['nombre']} por "
+        f"{_monto_hablado(borrador['monto_meta'])}, con fecha límite "
+        f"{_fecha_hablada(borrador['fecha_limite'])} y un aporte de "
+        f"{_monto_hablado(borrador['aporte_periodico'])} por periodo."
+    )
+    if detalle and asignacion > 0:
+        texto_voz += (
+            f" El plan recomienda asignarle {_monto_hablado(asignacion)} al mes."
+        )
+    elif detalle:
+        texto_voz += " El plan todavía no puede asignarle capacidad."
+    texto_voz += " ¿La creo?"
     nuevo_estado = {
         **estado,
         "estado": ESTADO_CONFIRMANDO_META,
@@ -878,6 +1050,7 @@ def _proponer_meta(conn, usuario_id, borrador, estado, dispositivo_uid, texto):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
@@ -945,6 +1118,10 @@ def _confirmar_meta(conn, usuario_id, texto, estado, dispositivo_uid):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=(
+            f"Listo. Creé la meta {meta.get('nombre')} por "
+            f"{_monto_hablado(meta.get('monto_meta'))}."
+        ),
     )
 
 
@@ -1015,6 +1192,7 @@ def _proponer_accion(
     entidades = entidades or {}
     datos = intent
     detalle = ""
+    texto_voz = None
 
     if intent in ("editar_movimiento", "eliminar_movimiento"):
         movimiento = _movimiento_objetivo(conn, usuario_id, texto, entidades)
@@ -1032,10 +1210,15 @@ def _proponer_accion(
             f"{movimiento['tipo']} de {_moneda(movimiento['monto'])}"
             + (f" en {movimiento['categoria']}" if movimiento.get("categoria") else "")
         )
+        resumen_voz = (
+            f"un {movimiento['tipo']} de {_monto_hablado(movimiento['monto'])}"
+            + (f" en {movimiento['categoria']}" if movimiento.get("categoria") else "")
+        )
         accion = {
             "tipo": intent,
             "transaccion_id": movimiento["id"],
             "resumen": resumen,
+            "resumen_hablado": resumen_voz,
         }
         if intent == "editar_movimiento":
             monto = nlp._entero(entidades.get("monto")) or nlp.parse_amount(texto)
@@ -1051,7 +1234,14 @@ def _proponer_accion(
                 )
             accion["cambios"] = {"monto": monto}
             detalle = f" y le pongo {_moneda(monto)}"
+            detalle_voz = f" y le pongo {_monto_hablado(monto)}"
+        else:
+            detalle_voz = ""
         mensaje = f"Voy a {'anular' if intent == 'eliminar_movimiento' else 'editar'} {resumen}{detalle}. ¿Está bien?"
+        texto_voz = (
+            f"Voy a {'anular' if intent == 'eliminar_movimiento' else 'editar'} "
+            f"{resumen_voz}{detalle_voz}. ¿Está bien?"
+        )
     elif intent == "crear_cuenta":
         nombre = entidades.get("nombre") or _nombre_dicho(texto, "cuenta")
         if not nombre:
@@ -1099,6 +1289,10 @@ def _proponer_accion(
             )
         accion = {"tipo": intent, "datos": {"monto": monto}}
         mensaje = f"Voy a cambiar tu presupuesto diario a {_moneda(monto)}. ¿Está bien?"
+        texto_voz = (
+            f"Voy a cambiar tu presupuesto diario a {_monto_hablado(monto)}. "
+            "¿Está bien?"
+        )
     elif intent == "actualizar_perfil":
         monto = nlp._entero(entidades.get("monto")) or nlp.parse_amount(texto)
         if not monto:
@@ -1113,6 +1307,10 @@ def _proponer_accion(
             )
         accion = {"tipo": intent, "datos": {"monto": monto}}
         mensaje = f"Voy a registrar un ingreso mensual de {_moneda(monto)}. ¿Está bien?"
+        texto_voz = (
+            f"Voy a registrar un ingreso mensual de {_monto_hablado(monto)}. "
+            "¿Está bien?"
+        )
     elif intent == "eliminar_meta":
         meta = nlp.detect_goal(conn, usuario_id, texto)
         if meta is None:
@@ -1148,23 +1346,27 @@ def _proponer_accion(
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
 def _confirmar_accion(conn, usuario_id, texto, estado, dispositivo_uid):
     accion = estado.get("accion_pendiente") or {}
     tipo = accion.get("tipo")
+    texto_voz = None
     try:
         if tipo == "eliminar_movimiento":
             resultado = services.delete_transaction(
                 conn, usuario_id, accion["transaccion_id"], "voz"
             )
             mensaje = f"Listo, anulé {accion.get('resumen', 'el movimiento')}."
+            texto_voz = f"Listo, anulé {accion.get('resumen_hablado', 'el movimiento')}."
         elif tipo == "editar_movimiento":
             resultado = services.update_transaction(
                 conn, usuario_id, accion["transaccion_id"], accion.get("cambios") or {}
             )
             mensaje = f"Listo, actualicé {accion.get('resumen', 'el movimiento')}."
+            texto_voz = f"Listo, actualicé {accion.get('resumen_hablado', 'el movimiento')}."
         elif tipo == "crear_cuenta":
             resultado = services.create_account(conn, usuario_id, accion.get("datos"))
             mensaje = f"Listo, creé la cuenta {resultado['nombre']}."
@@ -1176,11 +1378,19 @@ def _confirmar_accion(conn, usuario_id, texto, estado, dispositivo_uid):
                 conn, usuario_id, accion["datos"]["monto"]
             )
             mensaje = f"Listo, tu presupuesto diario quedó en {_moneda(resultado['presupuesto_diario'])}."
+            texto_voz = (
+                "Listo, tu presupuesto diario quedó en "
+                f"{_monto_hablado(resultado['presupuesto_diario'])}."
+            )
         elif tipo == "actualizar_perfil":
             resultado = services.set_profile_income(
                 conn, usuario_id, accion["datos"]["monto"]
             )
             mensaje = f"Listo, registré un ingreso mensual de {_moneda(resultado['ingreso_trabajo_mensual'])}."
+            texto_voz = (
+                "Listo, registré un ingreso mensual de "
+                f"{_monto_hablado(resultado['ingreso_trabajo_mensual'])}."
+            )
         elif tipo == "eliminar_meta":
             services.delete_goal(conn, usuario_id, accion["meta_id"])
             resultado = accion
@@ -1207,6 +1417,7 @@ def _confirmar_accion(conn, usuario_id, texto, estado, dispositivo_uid):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
+        texto_voz=texto_voz,
     )
 
 
@@ -1240,6 +1451,10 @@ def procesar_turno(
             existente["duplicado"] = True
             existente.setdefault("puntos_otorgados", 0)
             existente.setdefault("mensaje_nancy", "Ese mensaje ya lo había procesado.")
+            if not existente.get("texto_voz"):
+                existente["texto_voz"] = _texto_para_voz(
+                    existente.get("mensaje_nancy")
+                )
             existente.setdefault("tipo_respuesta", "resultado")
             existente.setdefault("estado_conversacion", estado.get("estado"))
             existente.setdefault("datos", {})
