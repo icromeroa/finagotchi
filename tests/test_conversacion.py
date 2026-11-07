@@ -140,6 +140,40 @@ class ConversationTests(unittest.TestCase):
         self.decir("correcto")
         self.assertEqual(self.home()["hoy"]["gastos"], 15000)
 
+    def test_correccion_de_cuenta_y_fecha_antes_de_confirmar(self):
+        hoy = services.local_date()
+        primero = self.decir("me pagaron 90 mil en efectivo ayer")
+        self.assertEqual(primero["transacciones"][0]["cuenta"], "Efectivo")
+
+        correccion = self.decir(
+            "no está bien, no es de ayer, es de hoy, la cuenta es Nequi"
+        )
+        self.assertTrue(correccion["requiere_confirmacion"])
+        self.assertEqual(correccion["transacciones"][0]["cuenta"], "Nequi")
+        self.assertEqual(correccion["transacciones"][0]["fecha_local"], hoy)
+        self.assertEqual(correccion["transacciones"][0]["tipo"], "ingreso")
+        self.assertEqual(correccion["transacciones"][0]["monto"], 90000)
+        self.assertIn("Nequi", correccion["mensaje_nancy"])
+
+        self.decir("sí")
+        self.assertEqual(self.home()["hoy"]["ingresos"], 90000)
+
+    def test_movimiento_completo_reemplaza_el_pendiente(self):
+        hoy = services.local_date()
+        viejo = self.decir("me pagaron 90 mil en efectivo ayer")
+        nuevo = self.decir("me pagaron 90 mil por Nequi hoy")
+        self.assertTrue(nuevo["requiere_confirmacion"])
+        self.assertEqual(nuevo["transacciones"][0]["cuenta"], "Nequi")
+        self.assertEqual(nuevo["transacciones"][0]["fecha_local"], hoy)
+        self.assertNotEqual(viejo["id"], nuevo["id"])
+        mensaje_viejo = self.client.get(
+            f"/api/v1/messages/{viejo['id']}", headers=self.user["headers"]
+        ).get_json()["data"]
+        self.assertEqual(mensaje_viejo["estado"], "descartado")
+
+        self.decir("sí")
+        self.assertEqual(self.home()["hoy"]["ingresos"], 90000)
+
     def test_confirmar_sin_pendiente_no_escribe(self):
         respuesta = self.decir("sí")
         self.assertEqual(respuesta["tipo_respuesta"], "aclaracion")

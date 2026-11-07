@@ -716,6 +716,11 @@ def update_transaction(conn, user_id, transaction_id, data):
         return None
 
     allowed = {}
+    if "tipo" in data:
+        nuevo_tipo = str(data.get("tipo") or "").strip().lower()
+        if nuevo_tipo not in ALLOWED_TRANSACTION_TYPES:
+            raise ValueError("Tipo de movimiento inválido")
+        allowed["tipo"] = nuevo_tipo
     if "monto" in data:
         try:
             amount = int(data["monto"])
@@ -726,6 +731,11 @@ def update_transaction(conn, user_id, transaction_id, data):
         allowed["monto"] = amount
     if "concepto" in data:
         allowed["concepto"] = (data.get("concepto") or "")[:255] or None
+    if "fecha_local" in data:
+        fecha = parse_date(data.get("fecha_local"))
+        if fecha is None:
+            raise ValueError("La fecha no es válida")
+        allowed["fecha_local"] = fecha.isoformat()
     if "categoria_id" in data:
         allowed["categoria_id"] = data.get("categoria_id")
     if "cuenta_id" in data:
@@ -749,6 +759,7 @@ def update_transaction(conn, user_id, transaction_id, data):
     if not allowed:
         return dict(current)
 
+    tipo_final = allowed.get("tipo", current["tipo"])
     if "categoria_id" in allowed and allowed["categoria_id"] is not None:
         category = conn.execute(
             """
@@ -759,9 +770,45 @@ def update_transaction(conn, user_id, transaction_id, data):
         ).fetchone()
         if category is None:
             raise ValueError("La categoría no existe o no está activa")
-        if category["tipo"] != current["tipo"]:
+        # Un ahorro no lleva categoría; un gasto/ingreso la exige.
+        if category["tipo"] != tipo_final:
             raise ValueError("La categoría no corresponde al tipo de movimiento")
         allowed["categoria_id"] = category["id"]
+    # Si cambia el tipo, la fila debe seguir cumpliendo el CHECK del esquema:
+    # ahorro sin categoría y gasto/ingreso con categoría y sin meta.
+    if "tipo" in allowed:
+        if tipo_final == "ahorro":
+            allowed.setdefault("categoria_id", None)
+        elif "categoria_id" not in allowed:
+            actual = None
+            if current["categoria_id"] is not None:
+                actual = conn.execute(
+                    "SELECT tipo FROM categorias WHERE usuario_id = ? AND id = ?",
+                    (user_id, current["categoria_id"]),
+                ).fetchone()
+            if actual is None or actual["tipo"] != tipo_final:
+                nombre = "Otros ingresos" if tipo_final == "ingreso" else "Otros"
+                fallback = conn.execute(
+                    """
+                    SELECT id FROM categorias
+                    WHERE usuario_id = ? AND tipo = ? AND nombre = ? AND activa = 1
+                    """,
+                    (user_id, tipo_final, nombre),
+                ).fetchone()
+                if fallback is None:
+                    fallback = conn.execute(
+                        """
+                        SELECT id FROM categorias
+                        WHERE usuario_id = ? AND tipo = ? AND activa = 1
+                        ORDER BY id LIMIT 1
+                        """,
+                        (user_id, tipo_final),
+                    ).fetchone()
+                if fallback is None:
+                    raise ValueError("No hay una categoría disponible para el tipo")
+                allowed["categoria_id"] = fallback["id"]
+        if tipo_final != "ahorro":
+            allowed.setdefault("meta_id", None)
 
     assignments = ", ".join(f"{column} = ?" for column in allowed)
     conn.execute(

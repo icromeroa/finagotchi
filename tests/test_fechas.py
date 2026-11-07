@@ -99,6 +99,14 @@ class ResolverRangoTests(unittest.TestCase):
         rango = nlp.resolver_rango("ayer", hoy="2026-11-06")
         self.assertEqual((rango["desde"], rango["hasta"]), ("2026-11-05", "2026-11-05"))
 
+    def test_la_fecha_negada_no_gana_a_la_afirmada(self):
+        rango = self.resolver("no es de ayer, es de hoy")
+        self.assertEqual((rango["desde"], rango["hasta"]), ("2026-11-06", "2026-11-06"))
+        self.assertEqual(rango["etiqueta"], "hoy")
+
+        negada = self.resolver("no fue ayer")
+        self.assertEqual(negada["expresion"], "")
+
 
 if __name__ == "__main__":
     unittest.main()

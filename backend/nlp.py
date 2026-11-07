@@ -315,6 +315,25 @@ def detect_type(text):
     return "gasto"
 
 
+def detect_type_explicit(text):
+    """Tipo solo si la frase lo dice; None si no hay marca explícita.
+
+    Sirve para corregir un pendiente sin que la falta de palabra de tipo
+    convierta todo en «gasto» por defecto.
+    """
+    normalized = normalize(text)
+    if any(word_in_text(word, normalized) for word in SAVING_WORDS):
+        return "ahorro"
+    if any(word_in_text(word, normalized) for word in INCOME_WORDS):
+        return "ingreso"
+    if any(
+        word_in_text(word, normalized)
+        for word in ("gaste", "gasto", "gasto", "compré", "compre", "pague", "pago")
+    ):
+        return "gasto"
+    return None
+
+
 def keyword_match(conn, table, user_id):
     query = {
         "categoria": """
@@ -379,6 +398,50 @@ def detect_account(conn, user_id, text):
         (user_id,),
     ).fetchone()
     return dict(row) if row else None
+
+
+def detect_account_explicit(conn, user_id, text):
+    """Cuenta solo si se menciona de forma explícita; None si no se menciona.
+
+    A diferencia de ``detect_account`` no cae a la cuenta por defecto: para
+    corregir un pendiente, una frase como «es de hoy» no debe mover el
+    movimiento a Efectivo.
+    """
+    normalized = normalize(text)
+    if not normalized:
+        return None
+    for row in keyword_match(conn, "cuenta", user_id):
+        if word_in_text(row["palabra"], normalized):
+            return dict(row)
+    for row in conn.execute(
+        "SELECT id, nombre FROM cuentas WHERE usuario_id = ? ORDER BY id",
+        (user_id,),
+    ):
+        if word_in_text(row["nombre"], normalized):
+            return dict(row)
+    return None
+
+
+def detect_category_explicit(conn, user_id, text, transaction_type):
+    """Categoría solo si la frase la menciona; None si no hay mención."""
+    normalized = normalize(text)
+    if transaction_type == "ahorro" or not normalized:
+        return None
+    for row in keyword_match(conn, "categoria", user_id):
+        if row["tipo"] != transaction_type:
+            continue
+        if word_in_text(row["palabra"], normalized):
+            return dict(row)
+    for row in conn.execute(
+        """
+        SELECT id, nombre, tipo FROM categorias
+        WHERE usuario_id = ? AND tipo = ? AND activa = 1 ORDER BY id
+        """,
+        (user_id, transaction_type),
+    ):
+        if word_in_text(row["nombre"], normalized):
+            return dict(row)
+    return None
 
 
 def _distancia(a, b):
@@ -878,6 +941,13 @@ def resolver_rango(texto, hoy=None):
     if isinstance(base, str):
         base = date_cls.fromisoformat(base)
     normalized = normalize(texto)
+    # «No es de ayer, es de hoy»: la fecha negada no puede ganar por aparecer
+    # primero. Se retira la mención negada antes de buscar cualquier día.
+    normalized = re.sub(
+        r"\bno\s+(?:es|fue|era|son)\s*(?:de\s*)?(?:ayer|hoy|anteayer|antier)\b",
+        " ",
+        normalized,
+    )
 
     match = re.search(
         r"\b(?:del|desde el|desde|entre el|entre|de)\s+"

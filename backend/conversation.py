@@ -42,6 +42,20 @@ FRASES_CORRECCION = (
     "en realidad",
     "actualiza",
     "modifica",
+    "no esta bien",
+    "no está bien",
+    "esta mal",
+    "está mal",
+    "me equivoque",
+    "me equivoqué",
+    "no es de",
+    "es de hoy",
+    "es de ayer",
+    "es de anteayer",
+    "la cuenta es",
+    "era en",
+    "fue hoy",
+    "fue ayer",
 )
 
 PALABRAS_CONFIRMACION = tuple(dict.fromkeys(nlp.CONFIRMAR_WORDS + ("listo",)))
@@ -341,7 +355,20 @@ def _es_cancelacion(texto):
 
 def _es_correccion(texto):
     normalized = nlp.normalize(texto)
-    return any(nlp.word_in_text(palabra, normalized) for palabra in FRASES_CORRECCION)
+    if not normalized:
+        return False
+    if any(nlp.word_in_text(palabra, normalized) for palabra in FRASES_CORRECCION):
+        return True
+    # Patrones que no caben en una sola palabra suelta: «no es de ayer, es de
+    # hoy», «la cuenta es Nequi», «era hoy».
+    return bool(
+        re.search(
+            r"\b(?:no\s+)?(?:es|fue|era)\s+de\s+(?:hoy|ayer|anteayer)\b",
+            normalized,
+        )
+        or re.search(r"\bno\s+(?:es|fue|era)\s+(?:hoy|ayer|anteayer)\b", normalized)
+        or re.search(r"\bla cuenta es\b", normalized)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -530,28 +557,76 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
         return None
     actual = payload["transacciones"][0]
     entidades = interpretacion.get("entidades") or {}
+    tipos_validos = ("gasto", "ingreso", "ahorro")
     cambios = {}
+
     monto = nlp.parse_amount(nlp.normalize(texto))
+    if monto is None:
+        monto = nlp._entero(entidades.get("monto"))
     if monto is not None:
         cambios["monto"] = monto
-    if entidades.get("categoria"):
-        categoria = nlp.coincide_en_catalogo(
-            entidades["categoria"],
+
+    # Solo se cambia el tipo si se dijo explícitamente; si no, se conserva.
+    nuevo_tipo = str(entidades.get("tipo") or "").strip().lower()
+    if nuevo_tipo not in tipos_validos:
+        nuevo_tipo = nlp.detect_type_explicit(texto)
+    if nuevo_tipo in tipos_validos and nuevo_tipo != actual.get("tipo"):
+        cambios["tipo"] = nuevo_tipo
+    tipo_final = cambios.get("tipo") or actual.get("tipo")
+
+    if tipo_final == "ahorro":
+        cambios.setdefault("categoria_id", None)
+        if entidades.get("meta") or nlp.menciona_meta(texto):
+            meta = nlp.coincide_en_catalogo(
+                entidades.get("meta"), nlp.metas_usuario(conn, usuario_id)
+            ) or nlp.detect_goal(conn, usuario_id, texto)
+            if meta is not None:
+                cambios["meta_id"] = meta["id"]
+    else:
+        categoria = None
+        if entidades.get("categoria"):
+            categoria = nlp.coincide_en_catalogo(
+                entidades["categoria"],
+                [
+                    {"id": row["id"], "nombre": row["nombre"], "tipo": row["tipo"]}
+                    for row in conn.execute(
+                        "SELECT id, nombre, tipo FROM categorias "
+                        "WHERE usuario_id = ? AND activa = 1",
+                        (usuario_id,),
+                    )
+                ],
+            )
+        if categoria is None:
+            categoria = nlp.detect_category_explicit(
+                conn, usuario_id, texto, tipo_final
+            )
+        if categoria is not None:
+            cambios["categoria_id"] = categoria["id"]
+
+    # Cuenta y meta solo cuando se mencionan: «es de hoy» no mueve el dinero.
+    cuenta = None
+    if entidades.get("cuenta"):
+        cuenta = nlp.coincide_en_catalogo(
+            entidades["cuenta"],
             [
                 {"id": row["id"], "nombre": row["nombre"]}
                 for row in conn.execute(
-                    "SELECT id, nombre FROM categorias WHERE usuario_id = ? AND activa = 1",
+                    "SELECT id, nombre FROM cuentas WHERE usuario_id = ? ORDER BY id",
                     (usuario_id,),
                 )
             ],
         )
-        if categoria:
-            cambios["categoria_id"] = categoria["id"]
-    if entidades.get("meta") or entidades.get("cuenta"):
-        pass
-    if not cambios:
+    if cuenta is None:
+        cuenta = nlp.detect_account_explicit(conn, usuario_id, texto)
+    if cuenta is not None:
+        cambios["cuenta_id"] = cuenta["id"]
+
+    fecha_iso, etiqueta_nueva, error_fecha = _fecha_de_texto(
+        entidades.get("fecha_texto") or texto
+    )
+    if error_fecha:
         return _respuesta(
-            "¿Qué dato quieres corregir: el monto, la categoría, la cuenta o la meta?",
+            error_fecha,
             "aclaracion",
             estado,
             intent="corregir",
@@ -559,10 +634,45 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
             usuario_id=usuario_id,
             texto=texto,
         )
-    services.update_transaction(conn, usuario_id, actual["id"], cambios)
+    if fecha_iso is not None:
+        cambios["fecha_local"] = fecha_iso
+
+    # Si se repitió el movimiento completo, el concepto pasa a ser esa frase;
+    # una corrección parcial («la cuenta es Nequi») conserva el original.
+    if monto is not None:
+        cambios["concepto"] = texto[:255]
+
+    if not cambios:
+        return _respuesta(
+            "¿Qué dato quieres corregir: el monto, la categoría, la cuenta, "
+            "la meta o la fecha?",
+            "aclaracion",
+            estado,
+            intent="corregir",
+            dispositivo_uid=dispositivo_uid,
+            usuario_id=usuario_id,
+            texto=texto,
+        )
+    try:
+        services.update_transaction(conn, usuario_id, actual["id"], cambios)
+    except ValueError as exc:
+        return _respuesta(
+            f"No pude corregir el movimiento: {exc}",
+            "aclaracion",
+            estado,
+            intent="corregir",
+            dispositivo_uid=dispositivo_uid,
+            usuario_id=usuario_id,
+            texto=texto,
+        )
     payload = services.message_payload(conn, usuario_id, message_id)
     transaccion = payload["transacciones"][0]
-    etiqueta_fecha = accion.get("etiqueta_fecha")
+    if "fecha_local" in cambios:
+        etiqueta_fecha = etiqueta_nueva
+        fecha_guardada = cambios["fecha_local"]
+    else:
+        etiqueta_fecha = accion.get("etiqueta_fecha")
+        fecha_guardada = accion.get("local_date_value")
     nuevo_estado = {
         **estado,
         "estado": ESTADO_CONFIRMANDO_MOVIMIENTO,
@@ -570,7 +680,7 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
             "tipo": "confirmar_mensaje",
             "message_id": message_id,
             "texto": texto,
-            "local_date_value": accion.get("local_date_value"),
+            "local_date_value": fecha_guardada,
             "etiqueta_fecha": etiqueta_fecha,
             "resumen": _describir_movimiento(transaccion, etiqueta_fecha),
             "resumen_hablado": _describir_movimiento_hablado(
@@ -644,15 +754,9 @@ def _frase_rango(rango, hoy):
     return f"En {etiqueta}"
 
 
-def _fecha_movimiento(interpretacion):
-    """Valida la fecha dictada para registrar un movimiento.
-
-    Devuelve ``(fecha_iso, etiqueta, error)``. Solo se aceptan fechas entre
-    hoy y 365 días atrás; el futuro se rechaza antes de crear el pendiente.
-    """
-    entidades = (interpretacion or {}).get("entidades") or {}
-    fecha_texto = str(entidades.get("fecha_texto") or "").strip()
-    if not fecha_texto:
+def _fecha_de_texto(fecha_texto):
+    """Valida una expresión temporal de día. Devuelve ``(iso, etiqueta, error)``."""
+    if not str(fecha_texto or "").strip():
         return None, None, None
     rango = nlp.resolver_rango(fecha_texto)
     if not rango.get("expresion") or rango.get("alcance") != "dia":
@@ -676,6 +780,16 @@ def _fecha_movimiento(interpretacion):
         )
     etiqueta = None if fecha == hoy else rango["etiqueta"]
     return fecha.isoformat(), etiqueta, None
+
+
+def _fecha_movimiento(interpretacion):
+    """Valida la fecha dictada para registrar un movimiento.
+
+    Devuelve ``(fecha_iso, etiqueta, error)``. Solo se aceptan fechas entre
+    hoy y 365 días atrás; el futuro se rechaza antes de crear el pendiente.
+    """
+    entidades = (interpretacion or {}).get("entidades") or {}
+    return _fecha_de_texto(entidades.get("fecha_texto"))
 
 
 def _consulta_balance(conn, usuario_id, rango, estado, dispositivo_uid, texto):
@@ -1670,9 +1784,10 @@ def procesar_turno(
         # asi lo dijo: el usuario podria estar dictando un movimiento nuevo
         # con un estado pendiente abierto. Solo los naturales de confirmacion
         # y cancelacion resuelven la accion.
-        if _es_confirmacion(texto) or (intent == "confirmar" and len(nlp.normalize(texto).split()) <= 2):
+        es_correccion = _es_correccion(texto)
+        if (_es_confirmacion(texto) or (intent == "confirmar" and len(nlp.normalize(texto).split()) <= 2)) and not es_correccion:
             return _confirmar(conn, usuario_id, texto, estado, dispositivo_uid)
-        if _es_cancelacion(texto) or (intent == "cancelar" and len(nlp.normalize(texto).split()) <= 2):
+        if (_es_cancelacion(texto) or (intent == "cancelar" and len(nlp.normalize(texto).split()) <= 2)) and not (es_correccion and accion.get("tipo") == "confirmar_mensaje"):
             return _cancelar(conn, usuario_id, texto, estado, dispositivo_uid)
         if accion.get("tipo") == "confirmar_mensaje" and (
             intent == "corregir" or _es_correccion(texto)
@@ -1682,6 +1797,21 @@ def procesar_turno(
             )
             if corregido is not None:
                 return corregido
+        if accion.get("tipo") == "confirmar_mensaje" and intent in (
+            "registrar_movimiento",
+            "registrar",
+        ):
+            # Una frase de registro completa con un pendiente abierto no es
+            # una confirmación: reemplaza el pendiente en vez de dejar dos
+            # borradores huérfanos. El nuevo movimiento queda pendiente de
+            # confirmación como cualquier otro.
+            propuesta = _propuesta_movimiento(conn, usuario_id, texto, interpretacion)
+            if propuesta.get("intent") == "registrar" and propuesta.get("transacciones"):
+                services.discard_message(
+                    conn, usuario_id, accion.get("message_id")
+                )
+                estado = {**estado, "accion_pendiente": None}
+                # Seguir al bloque de registro: crea el nuevo pendiente.
         if accion.get("tipo") == "crear_meta" and (
             intent == "corregir"
             or intent == "actualizar_meta"
