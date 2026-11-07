@@ -310,7 +310,7 @@ Pantallas: V07.1, V07.2, y en el simulador D04-D06, D15 (respuesta de Nancy).
 2. El dispositivo o la app captura audio y lo envía al backend.
 3. La IA del backend transcribe el audio.
 4. El agente conversacional decide el intent y la categoría y propone una o varias transacciones.
-5. La app o el dispositivo muestra “Entendí un GASTO de … ¿Está correcto?”.
+5. La app o el dispositivo muestra “¿Registro un gasto de …?” y la voz lo pronuncia como pregunta.
 6. El usuario confirma hablando ("sí", "ok", "correcto", "está bien", "confirmo") o descarta, o corrige (“cambia el monto a 25 mil”).
 7. Al guardar, se crea el movimiento, se actualiza el cupo y se encola una notificación para el dispositivo.
 8. El dispositivo recibe “Registro guardado” cuando el backend confirma la persistencia.
@@ -891,7 +891,9 @@ Toda frase pasa por el agente conversacional, que conserva el estado del diálog
 
 1. **Confirmación humana natural.** “sí”, “ok”, “okay”, “correcto”, “está bien”, “confirmo” o “dale” confirman; “no”, “cancela”, “olvídalo”, “descarta” cancelan; “cambia el monto a X” o “cambia la categoría a Y” corrige la propuesta pendiente antes de guardar.
 2. **Nada se escribe sin confirmación.** El diálogo solo propone; la ejecución ocurre al llegar la frase afirmativa.
-3. **Las respuestas hablan.** El backend devuelve `mensaje_nancy`, `tipo_respuesta`, `estado_conversacion`, `datos` y `requiere_confirmacion`; el cliente (simulador o dispositivo) solo los pinta.
+3. **Las respuestas hablan.** El backend devuelve `mensaje_nancy`, `texto_voz`, `tipo_respuesta`, `estado_conversacion`, `datos` y `requiere_confirmacion`; el cliente (simulador o dispositivo) solo los pinta.
+
+`mensaje_nancy` es el texto completo para la pantalla y conserva cifras con formato (`$20.000`). `texto_voz` es el resumen corto y natural que se pronuncia: evita el símbolo `$`, los puntos de miles y las mayúsculas, para que Piper lo lea bien. Por defecto `texto_voz` resume la respuesta; si el cliente necesita el texto completo hablado puede pedirlo, pero el detalle extenso —listas de movimientos, rangos— se queda en pantalla y no se lee entero.
 
 El estado vive en memoria por `(usuario_id, dispositivo_uid)` y expira a los 30 minutos. No es la fuente de verdad: los movimientos pendientes viven en `mensajes_dispositivo`/`transacciones` y sobreviven al reinicio; solo se pierde el hilo conversacional.
 
@@ -910,13 +912,20 @@ Una frase larga nunca confirma por la decisión del LLM; solo cuentan los dispar
 | Pregunta | Qué responde |
 |---|---|
 | “¿cómo me fue hoy?” | Ingresos, gastos, ahorro y balance del día; cupo restante. |
-| “balance de esta semana” | Totales de los últimos 7 días. |
-| “balance del mes” | Totales del mes calendario. |
+| “balance de esta semana” | Totales de **lunes a hoy** (la semana en curso, no los últimos 7 días corridos). |
+| “la semana pasada” | Totales de la semana anterior completa, de lunes a domingo. |
+| “balance del mes” / “el mes pasado” | Totales del mes calendario actual o del anterior. |
+| “¿cuánto gasté ayer?” / “movimientos de ayer” | Totales y lista de movimientos de ese día. |
+| “gastos del 3 al 5 de mayo” | Totales y lista del rango indicado, incluso si cruza de mes. |
 | “¿cómo van mis metas?” | Progreso y estado por meta. |
 | “¿cuánto debo ahorrar este mes?” | Capacidad y aportes recomendados (LP). |
 | “mis cuentas”, “mis categorías”, “mis movimientos”, “mi presupuesto”, “mi perfil” | Resúmenes desde el catálogo real. |
 
-Las consultas tienen `intent` legible (`consulta_estado`, `consultar_metas`, ...), no crean transacciones y no alteran el estado.
+Las fechas se resuelven en Python, no en el LLM: `nlp.resolver_rango()` entiende `hoy`, `ayer`, `anteayer`, `esta semana` (lunes a hoy), `la semana pasada`, `este mes`, `el mes pasado`, un día suelto (`3 de mayo`, `05/11`, `2026-11-04`) y un rango (`del 3 al 5 de mayo`). El modelo solo copia la expresión temporal en `entidades.fecha_texto`; si no hay expresión, la consulta cae en “hoy” sin marcarla como fecha explícita.
+
+**Regla de “gasté ayer”.** Si la frase menciona un movimiento en pasado pero no incluye monto, es una consulta: Nancy resume el total por voz y deja la lista completa en `datos.movimientos` para la pantalla. Si incluye un monto, es un registro con fecha de ayer y pasa por la confirmación normal ("¿Registro un gasto de 20 mil pesos en almuerzo con fecha de ayer?"). Solo se fechan movimientos con un día concreto entre hoy y 365 días atrás; una fecha futura se rechaza antes de crear el pendiente. Un rango como “del 3 al 5” nunca se interpreta como monto.
+
+Las consultas tienen `intent` legible (`consulta_estado`, `consultar_metas`, ...), no crean transacciones y no alteran el estado. La voz pronuncia el resumen (`texto_voz`); el detalle completo —rango, totales y movimientos— viaja en `datos` para que la pantalla lo muestre sin leerlo entero.
 
 ### 9.1.5 Metas por diálogo
 
@@ -954,6 +963,14 @@ WAV pregrabadas para:
 Las voces naturales completas solo existen con conexión al backend. El
 cliente muestra siempre el texto aunque falle el audio.
 
+El cliente decide **qué** se pronuncia con `voice_scope`. El valor recomendado
+para el dispositivo voz-primero es `resumen`: habla confirmaciones, resultados,
+consultas, aclaraciones y errores con `texto_voz`, y deja el detalle extenso en
+pantalla. `acciones` limita la voz a confirmaciones y resultados; `todo` lee
+también las consultas completas. Sea cual sea el alcance, el audio se sintetiza
+en memoria, se reproduce y se descarta: **nunca se persiste** en disco, en la
+base ni en el historial.
+
 ### 9.2 Contexto permitido
 
 - Texto transcrito.
@@ -974,7 +991,8 @@ Respuesta del turno unificada (voz y texto comparten el contrato anterior, conse
 {
   "texto_entendido": "pagué 14.000 en el almuerzo",
   "requiere_confirmacion": true,
-  "mensaje_nancy": "Entendí un GASTO de $14.000 en Alimentación desde Efectivo. ¿Está correcto?",
+  "mensaje_nancy": "¿Registro un gasto de $14.000 en Alimentación desde Efectivo? Puedes decir sí, está bien, ok, o corregirlo.",
+  "texto_voz": "¿Registro un gasto de 14 mil pesos en alimentación?",
   "tipo_respuesta": "confirmacion",
   "estado_conversacion": "confirmando_movimiento",
   "datos": { "transaccion": { "tipo": "gasto", "monto": 14000, "categoria": "Alimentación", "cuenta": "Efectivo" } },
@@ -991,6 +1009,8 @@ Respuesta del turno unificada (voz y texto comparten el contrato anterior, conse
   ]
 }
 ```
+
+`mensaje_nancy` es el texto completo para pantalla; `texto_voz` es la versión corta que se pronuncia. Cuando la confirmación incluye una fecha, ambos lo dicen ("con fecha de ayer").
 
 `tipo_respuesta` puede ser `confirmacion`, `resultado`, `consulta`, `aclaracion`, `ayuda` o `error`.
 
@@ -1013,6 +1033,7 @@ Respuesta del turno unificada (voz y texto comparten el contrato anterior, conse
 - Si el guardado fue exitoso, se encola una notificación para el dispositivo y para la app.
 - Las interacciones se auditan en `interacciones_ia`, guardando solo metadatos: el audio nunca se persiste.
 - El texto transcrito puede traer el monto en cifras (`14.000`) o en palabras (`catorce mil`); el intérprete de reglas entiende ambas formas y también los millones (`1.5 millones`).
+- La fecha de un movimiento se resuelve con `nlp.resolver_rango()` a partir de `entidades.fecha_texto`; solo se aceptan días entre hoy y 365 días atrás y el futuro se rechaza antes de crear el pendiente. `create_message` guarda la fecha elegida en `local_date_value` y la confirmación y la corrección conservan su etiqueta.
 
 ---
 
@@ -1810,13 +1831,14 @@ py -3 -m unittest discover -s tests -v
 py -3 -m compileall -q backend simulator tests
 ```
 
-Al cierre de esta versión la suite tiene **217 pruebas** e incluye
+Al cierre de esta versión la suite tiene **240 pruebas** e incluye
 `tests/test_finance_engine.py`, `tests/test_optimization.py`,
 `tests/test_api_optimization.py`, `tests/test_conversacion.py`,
-`tests/test_conversacion_ia.py`, `tests/test_mensajes.py`,
-`tests/test_simulador.py` y `tests/test_voz.py`, que cubren la capacidad de
-ahorro, el LP, los endpoints, el agente conversacional, la confirmación natural,
-la síntesis local y el banco de frases pregrabadas.
+`tests/test_conversacion_ia.py`, `tests/test_fechas.py`,
+`tests/test_mensajes.py`, `tests/test_simulador.py` y `tests/test_voz.py`, que
+cubren la capacidad de ahorro, el LP, los endpoints, el agente conversacional,
+la confirmación natural, las consultas por día y rango, la síntesis local y el
+banco de frases pregrabadas.
 
 Entre las pruebas hay `tests/test_comandos.py`, que levanta el backend en un puerto libre y ejecuta `py -3 simulator/main.py` exactamente como lo documenta la guía. Sirve para que un comando anunciado nunca falle sin que nadie se entere.
 

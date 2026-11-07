@@ -660,9 +660,12 @@ Deben desaparecer solas o con `OK`.
 
 **Contenido:**
 - Tira superior: “NANCY dice:”.
+- El `texto_voz` corto se reproduce por el altavoz; el `mensaje_nancy` completo se muestra en la pantalla.
 - El mensaje de Nancy en máximo 7 líneas, con salto automático de línea.
 - Si la respuesta describe un movimiento pendiente o una meta candidata, muestra el monto y el estado conversacional (`confirmando_movimiento`, `recopilando_meta`, `confirmando_meta`, `confirmando_accion`, `inactiva`).
+- Si la confirmación incluye una fecha, se muestra y se dice ("con fecha de ayer").
 - Si la respuesta pide confirmación, muestra “Di sí, está bien, ok o no”.
+- Si la respuesta es una consulta por día o rango, muestra la etiqueta del rango (por ejemplo, “Rango: ayer” o “del 3 al 5 de mayo”), el resumen de totales y la lista de movimientos; la voz solo resume y no lee la lista entera.
 - Si la respuesta ejecuta una acción, muestra “Estado: inactiva”.
 
 **Botones:**
@@ -797,8 +800,10 @@ La voz del backend corre en el PC o servidor, nunca en la ESP32. El dispositivo 
 
 1. Envía el audio o texto al backend.
 2. Recibe el estado y la respuesta.
-3. Pide `POST /device/voice/synthesize` con la respuesta hablada.
+3. Pide `POST /device/voice/synthesize` con el `texto_voz` de la respuesta (resumen hablado).
 4. Reproduce la WAV en el MAX98357A/altavoz.
+
+El dispositivo usa `voice_scope: "resumen"`: pronuncia confirmaciones, resultados, consultas, aclaraciones y errores con la frase corta, mientras el detalle de movimientos y rangos permanece en la pantalla. El audio sintetizado se reproduce y se descarta; nunca se guarda en LittleFS ni en la base.
 
 Sin conexión, el firmware usa frases pregrabadas como “Te escucho”, “Listo” y “No entendí”; no intenta improvisar números o nombres. La pantalla siempre muestra el texto aunque falle el audio.
 
@@ -903,8 +908,8 @@ Sin conexión, el firmware usa frases pregrabadas como “Te escucho”, “List
 - “Listo”.
 - “No entendí”.
 - “Intenta decir el monto y el tipo de movimiento”.
-- “Entendí un GASTO de $20.000 en Alimentación. ¿Está correcto? Puedes decir sí, ok o corregirlo.”
-- “¿Cómo me fue hoy?” / “Balance de esta semana” / “¿Cómo van mis metas?”
+- “¿Registro un gasto de $20.000 en Alimentación? Puedes decir sí, ok o corregirlo.”
+- “¿Cómo me fue hoy?” / “Balance de esta semana” / “¿Cuánto gasté ayer?” / “¿Cómo van mis metas?”
 - “Quiero crear una meta para comprar unos audífonos.”
 - “Lista para crear la meta. Di sí, está bien u ok.”
 - “Di no, cancela o olvídalo para descartar.”

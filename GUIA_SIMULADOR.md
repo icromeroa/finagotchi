@@ -155,7 +155,7 @@ Edita `simulator/config.json`:
   "nombre": "Simulador",
   "input_device": null,
   "voice_output": true,
-  "voice_scope": "acciones",
+  "voice_scope": "resumen",
   "sample_rate": 16000,
   "language": "es-CO",
   "stt_provider": "gemini",
@@ -165,7 +165,7 @@ Edita `simulator/config.json`:
 
 - `input_device`: escribe el índice del micrófono que quieres usar (`py -3 simulator/main.py` y opción `[A]`); en `null` usa el predeterminado.
 - `voice_output`: activa/desactiva que Nancy hable.
-- `voice_scope`: `acciones` habla confirmaciones, resultados y aclaraciones; `todo` también lee consultas.
+- `voice_scope`: qué respuestas habla Nancy. `resumen` (recomendado) habla confirmaciones, resultados, consultas, aclaraciones y errores con el `texto_voz` corto, y deja el detalle en pantalla; `acciones` limita la voz a confirmaciones y resultados; `todo` también lee las consultas completas. El audio se genera en memoria y nunca se guarda.
 - `request_timeout_s` sube a 90 porque la transcripción y la IA pueden tardar varios segundos (Gemini 3–6 s, Ollama 2–25 s según el equipo).
 - Si el usuario no existe, el simulador lo registra automáticamente.
 - Si el dispositivo ya está vinculado a esa cuenta, lo desvincula y lo vuelve a vincular.
@@ -226,10 +226,20 @@ Ahorro:
 Consultas y cierre:
 
 - "¿Cómo me fue hoy?"
-- "Balance de esta semana"
+- "Balance de esta semana" (lunes a hoy)
 - "Balance del mes"
+- "¿Cuánto gasté ayer?"
+- "Gasté ayer" (sin monto: consulta con total hablado y lista en pantalla)
+- "Movimientos de ayer"
+- "Gastos del 3 al 5 de mayo"
 - "¿Cómo van mis metas?"
 - "Cierra el día"
+
+Fechas al registrar:
+
+- "Gasté 20 mil en almuerzo ayer" → propone el gasto con fecha de ayer y pide confirmación.
+- "Gasté 15 mil en comida el 3 de mayo" → registra ese día si está dentro de los últimos 365 días.
+- Una fecha futura se rechaza con una aclaración y no crea el pendiente.
 
 Metas por voz:
 
