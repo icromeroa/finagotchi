@@ -298,3 +298,4 @@ audio nunca se persiste.
 | `docs/CONFIG_XIAOZHI.md` | Configuración ASR/LLM/TTS/MCP para FinaGotchi |
 | `docs/END_TO_END.md` | Flujo completo y guión de prueba MCP |
 | `docs/PRODUCTION_PORTABLE.md` | Brecha prototipo ↔ producción y riesgos |
+| `docs/ISLAMIENTO.md` | Aislamiento: qué tocaría para eliminar el prototipo sin afectar FinaGotchi |
