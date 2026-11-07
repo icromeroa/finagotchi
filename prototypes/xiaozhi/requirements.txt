@@ -1,0 +1,3 @@
+# Dependencias del módulo MCP (opcional).
+# El puente, el provisionamiento y el cliente de prueba usan solo la stdlib.
+mcp[cli]>=1.2

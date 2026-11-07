@@ -1,0 +1,15 @@
+{
+  "finagotchi_base_url": "http://127.0.0.1:5000/api/v1",
+  "device_token": "PEGA_AQUI_EL_DEVICE_TOKEN",
+  "device_uid": "FINAGOTCHI-XIAOZHI-01",
+  "bridge_host": "127.0.0.1",
+  "bridge_port": 8787,
+  "timeout_s": 90,
+  "wake_word": "Nancy",
+  "xiaozhi": {
+    "mcp_tool": "finagotchi_turno",
+    "tts_custom_endpoint": "http://127.0.0.1:8787/sintetizar",
+    "stt_idioma": "es",
+    "tts_idioma": "es-MX"
+  }
+}

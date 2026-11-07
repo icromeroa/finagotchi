@@ -1,0 +1,18 @@
+# Configuración local con secretos: nunca se versiona.
+config.local.json
+
+# Audio y modelos descargados fuera del repositorio.
+*.wav
+*.mp3
+*.onnx
+models/
+
+# Entornos y artefactos de Python.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.log
+
+# Tokens sueltos.
+token.txt
