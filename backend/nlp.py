@@ -570,6 +570,32 @@ def _entero(valor):
     return numero if numero > 0 else None
 
 
+_PALABRAS_NO_CUENTA = {
+    "la", "el", "los", "las", "mi", "mis", "un", "una", "unos", "unas",
+    "hoy", "ayer", "anteayer", "antier", "mes", "semana", "ano",
+    "manana", "noche", "tarde", "trabajo", "almuerzo", "comida",
+}
+
+
+def pista_cuenta_no_reconocida(conn, user_id, texto, tipo_final):
+    """Palabra tras «por/con» que parece una cuenta pero no se reconoce.
+
+    Devuelve la palabra desconocida o None. Las palabras de categoría
+    («por trabajo») y los artículos no cuentan como pista de cuenta.
+    """
+    normalized = normalize(texto)
+    for match in re.finditer(r"\b(?:por|con)\s+([a-z]+)\b", normalized):
+        palabra = match.group(1)
+        if palabra in _PALABRAS_NO_CUENTA:
+            continue
+        if detect_category_explicit(conn, user_id, palabra, tipo_final) is not None:
+            continue
+        if detect_account_explicit(conn, user_id, palabra) is not None:
+            continue
+        return palabra
+    return None
+
+
 def construir_movimiento(
     conn,
     user_id,
@@ -658,8 +684,26 @@ def construir_movimiento(
         if categoria_final["tipo"] != tipo_final:
             categoria_final = _categoria_fallback(conn, user_id, tipo_final)
 
-    cuenta_final = coincide_en_catalogo(cuenta, cuentas)
+    # La cuenta del LLM solo vale si se dijo en el texto; «Nuwank» no es «Nu».
+    cuenta_entidad = None
+    if cuenta and word_in_text(normalize(cuenta), normalized):
+        cuenta_entidad = coincide_en_catalogo(cuenta, cuentas)
+    cuenta_final = cuenta_entidad or detect_account_explicit(
+        conn, user_id, normalized
+    )
     if cuenta_final is None:
+        pista = pista_cuenta_no_reconocida(conn, user_id, normalized, tipo_final)
+        if pista:
+            return {
+                "intent": "requiere_aclaracion",
+                "texto": texto,
+                "error": (
+                    f"No reconocí la cuenta \"{pista}\". "
+                    "Dime el nombre exacto de la cuenta o dime que use Efectivo."
+                ),
+                "cuenta_sugerida": pista,
+                "transacciones": [],
+            }
         cuenta_final = detect_account(conn, user_id, normalized)
     if cuenta_final is None:
         return {
@@ -1309,8 +1353,15 @@ def interpretar_con_ia(conn, user_id, text):
     if monto is None:
         monto = parse_amount(normalize(text))
 
+    monto_texto = parse_amount(normalize(text))
+    if monto_texto is not None:
+        monto = monto_texto
+
     categoria = coincide_en_catalogo(crudo.get("categoria"), categorias)
-    cuenta = coincide_en_catalogo(crudo.get("cuenta"), cuentas)
+    cuenta_cruda = crudo.get("cuenta")
+    cuenta = None
+    if cuenta_cruda and word_in_text(normalize(cuenta_cruda), normalize(text)):
+        cuenta = coincide_en_catalogo(cuenta_cruda, cuentas)
     meta = coincide_en_catalogo(crudo.get("meta"), metas)
     if meta is None and (tipo == "ahorro" or detect_type(normalize(text)) == "ahorro"):
         meta = detect_goal(conn, user_id, text)

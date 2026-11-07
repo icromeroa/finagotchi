@@ -174,6 +174,38 @@ class ConversationTests(unittest.TestCase):
         self.decir("sí")
         self.assertEqual(self.home()["hoy"]["ingresos"], 90000)
 
+    def test_cuenta_desconocida_pide_aclaracion_sin_escribir(self):
+        respuesta = self.decir("me pagaron 90 mil por Nuwank")
+        self.assertEqual(respuesta["tipo_respuesta"], "aclaracion")
+        self.assertIn("No reconocí la cuenta", respuesta["mensaje_nancy"])
+        self.assertFalse(respuesta["requiere_confirmacion"])
+        self.assertEqual(self.home()["hoy"]["ingresos"], 0)
+
+    def test_cuenta_corta_exige_palabra_completa(self):
+        respuesta = self.decir("me pagaron 90 mil por Nu hoy")
+        self.assertEqual(respuesta["transacciones"][0]["cuenta"], "Nu")
+
+    def test_llm_no_puede_inventar_cuenta_ni_fecha(self):
+        with mock.patch.dict(os.environ, {"NLP_USAR_IA": "auto"}):
+            with mock.patch.object(
+                conversation.ai,
+                "interpretar_conversacion",
+                return_value={
+                    "intent": "registrar_movimiento",
+                    "entidades": {
+                        "tipo": "gasto",
+                        "monto": 50000,
+                        "cuenta": "Nequi",
+                        "fecha_texto": "ayer",
+                    },
+                    "confianza": 0.9,
+                },
+            ):
+                respuesta = self.decir("gasté 20 mil en almuerzo")
+        self.assertEqual(respuesta["transacciones"][0]["cuenta"], "Efectivo")
+        self.assertEqual(respuesta["transacciones"][0]["fecha_local"], services.local_date())
+        self.assertEqual(respuesta["transacciones"][0]["monto"], 20000)
+
     def test_confirmar_sin_pendiente_no_escribe(self):
         respuesta = self.decir("sí")
         self.assertEqual(respuesta["tipo_respuesta"], "aclaracion")

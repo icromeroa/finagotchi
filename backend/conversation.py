@@ -335,6 +335,18 @@ def _interpretar(conn, usuario_id, texto, estado):
     for clave, valor in respaldo_entidades.items():
         if entidades.get(clave) in (None, "", []):
             entidades[clave] = valor
+    # Validación determinista: el LLM propone, el texto manda. Una cuenta o
+    # una fecha que no aparecen en lo que dijo el usuario se descartan.
+    normalizado = nlp.normalize(texto)
+    monto_texto = nlp.parse_amount(normalizado)
+    if monto_texto is not None:
+        entidades["monto"] = monto_texto
+    cuenta_llm = entidades.get("cuenta")
+    if cuenta_llm and not nlp.word_in_text(nlp.normalize(cuenta_llm), normalizado):
+        entidades["cuenta"] = None
+    fecha_llm = entidades.get("fecha_texto")
+    if fecha_llm and not nlp.resolver_rango(texto).get("expresion"):
+        entidades["fecha_texto"] = None
     interpretacion["entidades"] = entidades
     return interpretacion
 
@@ -408,16 +420,29 @@ def _registrar_movimiento(
     resultado = _propuesta_movimiento(conn, usuario_id, texto, interpretacion)
     if resultado.get("intent") != "registrar" or not resultado.get("transacciones"):
         mensaje = resultado.get("error") or "No pude entender el movimiento."
+        datos = {}
         if resultado.get("meta_sugerida"):
             mensaje = (
                 f"No encontré la meta \"{resultado['meta_sugerida']}\". "
                 "Dime el nombre exacto de una de tus metas o crea una nueva."
             )
+            datos = {"metas": nlp.metas_usuario(conn, usuario_id)}
+        elif resultado.get("cuenta_sugerida"):
+            datos = {
+                "cuentas": [
+                    {"id": row["id"], "nombre": row["nombre"]}
+                    for row in conn.execute(
+                        "SELECT id, nombre FROM cuentas "
+                        "WHERE usuario_id = ? ORDER BY id",
+                        (usuario_id,),
+                    )
+                ]
+            }
         return _respuesta(
             mensaje,
             "aclaracion",
             {**estado, "estado": ESTADO_INACTIVA},
-            datos={"metas": nlp.metas_usuario(conn, usuario_id)},
+            datos=datos,
             intent="requiere_aclaracion",
             dispositivo_uid=dispositivo_uid,
             usuario_id=usuario_id,
