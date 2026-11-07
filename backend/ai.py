@@ -586,6 +586,7 @@ Intenciones permitidas:
   consultar_presupuesto, consultar_perfil: consultas del catalogo o del perfil.
   En consultar_movimientos copia en entidades.fecha_texto la expresion temporal
   si el usuario la menciona ("ayer", "esta semana", "del 3 al 5 de mayo").
+- consultar_pendientes: que tengo pendiente o por confirmar.
 - editar_movimiento: cambiar monto, categoria, cuenta o meta de un movimiento.
 - eliminar_movimiento: borrar o anular un movimiento.
 - crear_cuenta: crear una cuenta nueva.

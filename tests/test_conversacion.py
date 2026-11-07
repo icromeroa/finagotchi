@@ -363,6 +363,26 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(self.decir("mi presupuesto").get("intent"), "consultar_presupuesto")
         self.assertEqual(self.decir("mi perfil").get("intent"), "consultar_perfil")
 
+    def test_consulta_de_pendientes_vacia_y_con_pendiente(self):
+        vacia = self.decir("muéstrame lo que hay pendiente")
+        self.assertEqual(vacia["intent"], "consultar_pendientes")
+        self.assertIn("No tienes movimientos pendientes", vacia["mensaje_nancy"])
+        self.assertEqual(vacia["datos"]["pendientes"], [])
+
+        self.decir("me pagaron 90 mil por Nequi hoy")
+        con_uno = self.decir("¿qué tengo pendiente?")
+        self.assertEqual(con_uno["intent"], "consultar_pendientes")
+        self.assertEqual(len(con_uno["datos"]["pendientes"]), 1)
+        self.assertIn("1 movimiento pendiente", con_uno["mensaje_nancy"])
+        self.assertIn("Nequi", con_uno["mensaje_nancy"])
+        self.assertIn("1 movimiento pendiente", con_uno["texto_voz"])
+        self.assertIn("90 mil pesos", con_uno["texto_voz"])
+        self.assertNotIn("$", con_uno["texto_voz"])
+
+        self.decir("sí")
+        tras_confirmar = self.decir("qué me falta por confirmar")
+        self.assertEqual(tras_confirmar["datos"]["pendientes"], [])
+
     def test_mis_cuentas_marcan_base_y_ocultan_ocultas(self):
         respuesta = self.decir("¿cuáles son mis cuentas?")
         self.assertIn("cuentas base", respuesta["mensaje_nancy"])

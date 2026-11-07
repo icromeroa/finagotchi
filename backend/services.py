@@ -1487,6 +1487,25 @@ def recent_transactions(conn, user_id, limit=10):
     return dict_rows(rows)
 
 
+def pending_transactions(conn, user_id, limit=20):
+    """Movimientos pendientes de confirmación humana, más recientes primero."""
+    rows = conn.execute(
+        """
+        SELECT t.id, t.tipo, t.monto, t.fecha_local, t.concepto, t.estado,
+               c.nombre AS categoria, cu.nombre AS cuenta, m.nombre AS meta
+        FROM transacciones t
+        LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
+        LEFT JOIN cuentas cu ON cu.usuario_id = t.usuario_id AND cu.id = t.cuenta_id
+        LEFT JOIN metas m ON m.usuario_id = t.usuario_id AND m.id = t.meta_id
+        WHERE t.usuario_id = ? AND t.estado = 'pendiente' AND t.is_deleted = 0
+        ORDER BY t.fecha_hora DESC, t.id DESC
+        LIMIT ?
+        """,
+        (user_id, int(limit)),
+    ).fetchall()
+    return dict_rows(rows)
+
+
 def transactions_between(conn, user_id, start_date, end_date, limit=None):
     """Movimientos confirmados dentro de un rango de fechas locales."""
     sql = """

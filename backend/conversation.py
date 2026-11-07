@@ -974,6 +974,41 @@ def _consulta_plan(conn, usuario_id, estado, dispositivo_uid, texto):
     )
 
 
+def _consulta_pendientes(conn, usuario_id, estado, dispositivo_uid, texto):
+    pendientes = services.pending_transactions(conn, usuario_id)
+    if not pendientes:
+        mensaje = "No tienes movimientos pendientes por confirmar."
+        texto_voz = mensaje
+    else:
+        detalle = "; ".join(
+            _describir_movimiento(movimiento) for movimiento in pendientes[:5]
+        )
+        mensaje = (
+            f"Tienes {len(pendientes)} movimiento"
+            f"{'' if len(pendientes) == 1 else 's'} pendiente"
+            f"{'' if len(pendientes) == 1 else 's'} por confirmar: {detalle}."
+        )
+        # La voz lee solo el conteo y el más reciente; el detalle queda
+        # en pantalla, como en las consultas por rango.
+        texto_voz = (
+            f"Tienes {len(pendientes)} movimiento"
+            f"{'' if len(pendientes) == 1 else 's'} pendiente"
+            f"{'' if len(pendientes) == 1 else 's'} por confirmar: "
+            f"{_describir_movimiento_hablado(pendientes[0])}."
+        )
+    return _respuesta(
+        mensaje,
+        "consulta",
+        estado,
+        datos={"pendientes": pendientes},
+        intent="consultar_pendientes",
+        dispositivo_uid=dispositivo_uid,
+        usuario_id=usuario_id,
+        texto=texto,
+        texto_voz=texto_voz,
+    )
+
+
 def _consulta_cuentas(conn, usuario_id, estado, dispositivo_uid, texto):
     cuentas = services.accounts_summary(conn, usuario_id)
     if cuentas:
@@ -1473,7 +1508,8 @@ def _ayuda(estado, dispositivo_uid, texto, usuario_id):
     mensaje = (
         "Puedes decirme: gasté 20 mil en almuerzo; ahorré 50 mil para mi meta; "
         "quiero crear una meta para comprar audífonos; ¿cómo me fue hoy?; "
-        "balance de esta semana; ¿cómo van mis metas?; o cierra el día."
+        "balance de esta semana; ¿cómo van mis metas?; ¿qué tengo pendiente?; "
+        "o cierra el día."
     )
     return _respuesta(
         mensaje,
@@ -1828,6 +1864,11 @@ def procesar_turno(
         # con un estado pendiente abierto. Solo los naturales de confirmacion
         # y cancelacion resuelven la accion.
         es_correccion = _es_correccion(texto)
+        if intent == "consultar_pendientes":
+            # Consultar no resuelve la acción pendiente: se conserva.
+            return _consulta_pendientes(
+                conn, usuario_id, estado, dispositivo_uid, texto
+            )
         if (_es_confirmacion(texto) or (intent == "confirmar" and len(nlp.normalize(texto).split()) <= 2)) and not es_correccion:
             return _confirmar(conn, usuario_id, texto, estado, dispositivo_uid)
         if (_es_cancelacion(texto) or (intent == "cancelar" and len(nlp.normalize(texto).split()) <= 2)) and not (es_correccion and accion.get("tipo") == "confirmar_mensaje"):
@@ -1963,6 +2004,8 @@ def procesar_turno(
         return _consulta_plan(conn, usuario_id, estado, dispositivo_uid, texto)
     if intent == "consultar_cuentas":
         return _consulta_cuentas(conn, usuario_id, estado, dispositivo_uid, texto)
+    if intent == "consultar_pendientes":
+        return _consulta_pendientes(conn, usuario_id, estado, dispositivo_uid, texto)
     if intent == "consultar_categorias":
         return _consulta_categorias(conn, usuario_id, estado, dispositivo_uid, texto)
     if intent == "consultar_movimientos":

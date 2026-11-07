@@ -1109,6 +1109,22 @@ def detectar_intencion_conversacional(text):
     if not normalized:
         return {"intent": "desconocido", "entidades": {}, "confianza": 0.0}
 
+    # Va antes de confirmar/cancelar: «qué me falta por confirmar» es una
+    # consulta, no una aceptación.
+    if any(
+        word_in_text(palabra, normalized)
+        for palabra in (
+            "pendiente",
+            "pendientes",
+            "por confirmar",
+            "sin confirmar",
+            "me falta",
+            "que tengo pendiente",
+            "que hay pendiente",
+            "tengo pendiente",
+        )
+    ):
+        return {"intent": "consultar_pendientes", "entidades": {}, "confianza": 0.85}
     if any(word_in_text(palabra, normalized) for palabra in CONFIRMAR_WORDS):
         if len(normalized.split()) <= 6:
             return {"intent": "confirmar", "entidades": {}, "confianza": 0.9}
