@@ -37,10 +37,11 @@ Tu cableado anterior (CS a GND, Pin 2/13/5/6 genéricos) se corrige así:
 | SDA (MOSI) | **Pin 13 → GP13** | Datos SPI |
 | RES/RST | **Pin 5 → GP5** | Reset |
 | DC/RS | **Pin 6 → GP6** | Data/Command |
-| CS | **GND (físico)** | Sin pin; en el código se usa `TFT_CS=-1` |
+| CS | **Pin 7 → GP7** | U8g2 maneja CS por HW; dejarlo en GND cortocircuitaría contra el pin |
 
-> Estos pines (GP1–GP13) son seguros para la N16R8. No usar GP33–GP38/GP45–GP48 (PSRAM/flash y RGB GP48).
-> Cables lo más cortos posible en SCL/SDA. Orden de pines del módulo (trasera): `VCC, GND, SCL, SDA, RES, DC, CS`.
+> Estos pines (GP1-GP7) son seguros para la N16R8. No usar GP33-GP38/GP45-GP48 (PSRAM/flash y RGB GP48).
+> **Mover el cable CS desde GND a GP7** (único cambio de cableado vs F1 anterior).
+> Orden de pines del módulo (trasera): `VCC, GND, SCL, SDA, RES, DC, CS`.
 
 ## 4. Tabla propuesta para audio/botones (F2, no cablear aún en F1)
 
@@ -61,17 +62,22 @@ Tu cableado anterior (CS a GND, Pin 2/13/5/6 genéricos) se corrige así:
 
 Es el controlador. La ILI9225 necesita su propia secuencia de init (configuración de 240×320, 18 bits/píxel). Si inicializas ILI9341 o ST7789, la pantalla se enciende (backlight sin BLK siempre a 3.3V) pero **nunca forma la imagen**.
 
-### Qué es `User_Setup.h`
+### Por qué abandonamos TFT_eSPI
 
-Es un archivo **dentro** de la librería `TFT_eSPI` que le dice 3 cosas: qué pantalla (`ILI9225_DRIVER`), qué GPIO son `TFT_MOSI/SCLK/CS/DC/RST`, y qué tamaño (240×320). Sin editarlo, la librería carga otro controlador y tu panel no reacciona.
+- `TFT_eSPI` versión moderna no compiló en S3 con Arduino 3.x (`TFT_eSPI.cpp:3623`, macro `tft_Write_8` / `_spi_w`): el driver ILI9225 de esa librería es frágil.
+- La versión 2.7.x tampoco trae tag clonable en Git (ni `v2.7.10` ni `2.7.10`); en el registry da `UnknownPackageError` o compila roto.
 
-En este proyecto no editamos el `User_Setup.h` global de la librería; usamos `User_Setup.h` y `User_Setup_Select.h` **dentro de `firmware/`** para no romper otras instalaciones.
+### Migrado a U8g2 (decisión vigente)
+
+- `U8G2_ILI9225_240X320_F_HW_SPI` tiene driver nativo para la ILI9225 y compila sin problema en ESP32-S3 Arduino 3.x + PlatformIO 6.9.
+- No usa `User_Setup.h`: los pines se dan en el constructor.
+- Solo blanco/negro (sin color RGB565 como TFT_eSPI). Para F1 alcanza: valida SPI, DC/RST/CS y texto.
 
 ## 6. Código en VS Code: carpeta nueva `firmware/`
 
 - `firmware/` es un proyecto **PlatformIO** independiente en el repo normal; no está dentro de `prototypes/xiaozhi/` ni de `backend/` o `simulator/`.
 - Requiere la extensión **PlatformIO IDE** en VS Code y el board `esp32-s3`; compilar con Python 3.14 está permitido solo en el host (no en el firmware).
-- F1 solo hace `display.init()` + pintar rojo/texto. Si no pinta, el problema es init o pines, no la lógica de negocio.
+- F1 solo hace `u8g2.begin()` + pintar + texto. Si no pinta, el problema es init o pines, no la lógica de negocio.
 
 ## 7. Plan por fases
 

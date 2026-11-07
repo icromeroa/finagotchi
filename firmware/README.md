@@ -32,15 +32,15 @@ firmware/
 | SDA (MOSI) | **Pin 13 → GP13** |
 | RES | **Pin 5 → GP5** |
 | DC | **Pin 6 → GP6** |
-| CS | **GND (físico)** → código `TFT_CS=-1` |
+| CS | **Pin 7 → GP7** (mover desde GND) |
 
-> Cables cortos en SCL/SDA. VCC nunca a 5V. Compilar con el controlador **ILI9225**: otro controlador deja la pantalla blanca aunque esté bien conectada.
+> Cables cortos en SCL/SDA. VCC nunca a 5V. Con U8g2, CS debe ser GPIO: dejarlo en GND causaría cortocircuito cuando el driver lo pone en alto.
 
-## F1: qué esperar
+## F1: qué esperar (U8g2)
 
-- Al arrancar, la pantalla pasa de blanca a roja con “FinaGotchi / ILI9225 OK”.
-- Serial (115200) muestra `FinaGotchi F1: pintura completada`.
-- Si sigue blanca: orden `CS a GND` (desconectar GP13), revisar `RST/DC` y probar SPI a 10 MHz.
+- Al arrancar, la pantalla rellena en blanco con texto negro “FinaGotchi / ILI9225 OK”.
+- Serial (115200) muestra `FinaGotchi F1 (U8g2): pintura completada`.
+- Si sigue blanca: revísa `CS` (GP7, no GND), `RST/DC` y prueba SPI a 5 MHz (`setBusClock(5000000)`).
 
 ## F2 (no implementada)
 
@@ -48,5 +48,6 @@ Micrófono INMP441, amplificador MAX98357A y 3 botones según la tabla en `docs/
 
 ## Licencias y referencia
 
-- Controlador ILI9225 y librería `TFT_eSPI` (GPL). Documentado solo para uso con el módulo GMT024-10 v2.1.
+- Controlador ILI9225 y librería `U8g2` (BSD). Documentado solo para uso con el módulo GMT024-10 v2.1.
+- **Motivo:** `TFT_eSPI` no compiló en S3 Arduino 3.x (error interno `tft_Write_8`); U8g2 sí trae driver ILI9225 estable.
 - Troko (MIT) se cita solo como referencia de flujo; no se copió su firmware ni su tabla de pines.
