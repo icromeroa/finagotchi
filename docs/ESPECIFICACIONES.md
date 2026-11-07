@@ -477,6 +477,7 @@ Reglas:
 - `ultimos_4` guarda máximo cuatro dígitos; nunca el número completo.
 - El saldo actual = saldo inicial + ingresos - gastos - ahorros.
 - Las cuentas ocultas siguen sumando a los totales.
+- En voz, “mis cuentas” distingue las 5 cuentas base del sistema de las propias y no lista las ocultas. Un saldo negativo indica sobregiro (gastos confirmados superiores a los ingresos, con saldo inicial 0).
 
 ### 5.16 Categorías
 
@@ -514,6 +515,7 @@ Reglas:
 - Cada categoría puede tener palabras asociadas.
 - Una palabra no puede apuntar a dos categorías del mismo usuario.
 - El límite mensual se define en el presupuesto aprobado.
+- Por voz se pueden crear con “agrega esta categoría X en gasto”, “agrega la subcategoría X de ingreso” o “crea una categoría llamada X de gasto”. Las subcategorías son categorías planas; el ahorro no usa categorías (usa metas). Al crearla se registra su nombre como palabra clave, para que el próximo “en X” ya caiga ahí.
 
 ### 5.17 Presupuesto
 
@@ -889,7 +891,7 @@ La lista se arma con `nlp.palabras_clave_usuario` a partir de las cuentas, categ
 
 Toda frase pasa por el agente conversacional, que conserva el estado del diálogo y garantiza tres cosas:
 
-1. **Confirmación humana natural.** “sí”, “ok”, “okay”, “correcto”, “está bien”, “confirmo” o “dale” confirman; “no”, “cancela”, “olvídalo”, “descarta” cancelan; “cambia el monto a X” o “cambia la categoría a Y” corrige la propuesta pendiente antes de guardar.
+1. **Confirmación humana natural.** “sí”, “ok”, “okay”, “correcto”, “está bien”, “confirmo” o “dale” confirman; “no”, “cancela”, “olvídalo”, “descarta” cancelan; “cambia el monto a X”, “la cuenta es Nequi”, “no es de ayer, es de hoy” o “con la categoría de Belleza” corrigen la propuesta pendiente antes de guardar.
 2. **Nada se escribe sin confirmación.** El diálogo solo propone; la ejecución ocurre al llegar la frase afirmativa.
 3. **Las respuestas hablan.** El backend devuelve `mensaje_nancy`, `texto_voz`, `tipo_respuesta`, `estado_conversacion`, `datos` y `requiere_confirmacion`; el cliente (simulador o dispositivo) solo los pinta.
 
@@ -907,6 +909,8 @@ El estado vive en memoria por `(usuario_id, dispositivo_uid)` y expira a los 30 
 
 Una frase larga nunca confirma por la decisión del LLM; solo cuentan los disparadores naturales anteriores. Cuando un mensaje pendiente se resuelve fuera del agente (por el endpoint de confirmación o descarte), el estado conversacional se invalida (`conversation.invalidar_accion_pendiente`).
 
+**Pendiente huérfano.** Si el backend se reinició y no hay estado en memoria, un “sí”/“cancela”/corrección recupera el único pendiente real de la base y ejecuta el flujo normal; con varios pendientes, pide aclaración sin confirmar ninguno. Nunca se confirma sin la frase afirmativa del usuario.
+
 ### 9.1.4 Consultas por voz (sin escribir)
 
 | Pregunta | Qué responde |
@@ -919,7 +923,10 @@ Una frase larga nunca confirma por la decisión del LLM; solo cuentan los dispar
 | “gastos del 3 al 5 de mayo” | Totales y lista del rango indicado, incluso si cruza de mes. |
 | “¿cómo van mis metas?” | Progreso y estado por meta. |
 | “¿cuánto debo ahorrar este mes?” | Capacidad y aportes recomendados (LP). |
-| “mis cuentas”, “mis categorías”, “mis movimientos”, “mi presupuesto”, “mi perfil” | Resúmenes desde el catálogo real. |
+| “mis cuentas” | Cuentas base vs. propias, sin ocultas, con saldo (puede ser negativo = sobregiro). |
+| “mis categorías” (+ “de gasto”/“de ingreso”) | Categorías con nº de registros y total confirmado; por voz, las principales. “De ahorro” explica que el ahorro usa metas. |
+| “muéstrame lo que hay pendiente” / “qué tengo pendiente” | Movimientos pendientes de confirmar, sin resolverlos. |
+| “mis movimientos”, “mi presupuesto”, “mi perfil” | Resúmenes desde el catálogo real. |
 
 Las fechas se resuelven en Python, no en el LLM: `nlp.resolver_rango()` entiende `hoy`, `ayer`, `anteayer`, `esta semana` (lunes a hoy), `la semana pasada`, `este mes`, `el mes pasado`, un día suelto (`3 de mayo`, `05/11`, `2026-11-04`) y un rango (`del 3 al 5 de mayo`). El modelo solo copia la expresión temporal en `entidades.fecha_texto`; si no hay expresión, la consulta cae en “hoy” sin marcarla como fecha explícita.
 

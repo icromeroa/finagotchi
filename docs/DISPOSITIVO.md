@@ -391,6 +391,7 @@ Todas las pantallas deben respetar esta estructura, salvo splash y pairing:
 **Contenido:**
 - Nancy según el ánimo actual.
 - Nombre: “Nancy”.
+- Fecha y hora del día (p. ej. `sáb 7 nov · 22:55`).
 - Ánimo oficial: `FELIZ`, `PREOCUPADO`, `TRISTE` o `CRITICO`.
 - Barra o indicador de salud de 0 a 100.
 - Cupo del día: “Te quedan $X de $Y”.

@@ -532,21 +532,27 @@ Reglas locales:
 - Monto: primero intenta cifras (`5.000`, `1.5 millones`) y luego palabras
   (“catorce mil”, “dos millones quinientos mil”). Si no encuentra monto,
   devuelve `requiere_aclaracion`.
-- Categoría: busca palabras clave del usuario; si no hay coincidencia usa
-  “Otros” para gasto o “Otros ingresos” para ingreso; si no existen, la primera
-  categoría activa del tipo.
-- Cuenta: busca palabras clave; si no, la cuenta por defecto.
+- Categoría: busca palabras clave del usuario. Si la frase trae una pista
+  del tipo “en accesorios” y esa palabra no es categoría ni cuenta conocida,
+  devuelve `requiere_aclaracion` preguntando si se crea la categoría
+  (Fase 23). Sin pista, usa “Otros” para gasto o “Otros ingresos” para
+  ingreso; si no existen, la primera categoría activa del tipo.
+- Cuenta: busca palabras clave; si la frase trae “por/con <palabra
+  desconocida>” (p. ej. “por Nuwank”), pide aclaración en vez de
+  inventar una cuenta (Fase 18). Sin pista, usa la cuenta por defecto.
 - Si no hay cuenta o categoría disponible, devuelve `requiere_aclaracion`.
 
 La extracción con LLM (`nlp.interpretar_con_ia`) valida la respuesta:
 
 - `tipo` debe ser `gasto`, `ingreso` o `ahorro`.
-- `monto` debe ser entero positivo; si no, se intenta el monto de las reglas.
-  Si las reglas tampoco lo encuentran, queda en `None` (ver el riesgo de la
-  ruta con IA más abajo).
-- `categoria` y `cuenta` deben coincidir con el catálogo real del usuario. Se
-  acepta coincidencia exacta sin tildes y mayúsculas, o una diferencia de
-  Levenshtein de un carácter para nombres de 5 o más letras.
+- `monto` debe ser entero positivo; si el texto trae un monto, **manda el
+  del texto** sobre el del LLM (Fase 18).
+- `categoria` y `cuenta` deben coincidir con el catálogo real del usuario y
+  **aparecer en el texto** como palabra completa: “Nuwank” no puede
+  convertirse en “Nu”. Se acepta coincidencia exacta sin tildes y
+  mayúsculas, o una diferencia de Levenshtein de un carácter para nombres
+  de 5 o más letras.
+- Una `fecha_texto` del LLM sin expresión temporal en el texto se descarta.
 - Si la categoría es de otro tipo, se descarta.
 - Si es ahorro, no lleva categoría.
 - Si falta categoría en gasto o ingreso, se usa la de último recurso.
@@ -626,9 +632,13 @@ dejar que bloquee el cierre del día.
 
 `PATCH /transactions/<id>` permite cambiar:
 
-- `monto`, `concepto`, `categoria_id`, `cuenta_id`, `meta_id`.
+- `monto`, `concepto`, `categoria_id`, `cuenta_id`, `meta_id`, `tipo` y
+  `fecha_local` (Fase 17).
 
-No permite cambiar `tipo`, `estado`, `fecha_hora` ni `fecha_local`.
+No permite cambiar `estado` ni `fecha_hora`. Al cambiar `tipo`, la fila
+debe seguir cumpliendo el CHECK del esquema: ahorro sin categoría y
+gasto/ingreso con categoría y sin meta; si falta la categoría adecuada,
+se usa “Otros”/“Otros ingresos” del nuevo tipo.
 
 - El monto debe ser positivo.
 - La cuenta debe ser del usuario.
@@ -765,6 +775,16 @@ Solo con transacciones `confirmado` y no borradas. Para cuentas de tipo
 `tarjeta`, `saldo_actual` es `NULL`: la tarjeta no se trata como una cuenta con
 saldo disponible.
 
+El saldo puede ser **negativo**: con `saldo_inicial = 0`, basta con que los
+gastos superen a los ingresos confirmados (frecuente en las cuentas base de
+la cuenta demo, sembradas con movimientos antiguos). El negativo significa
+sobregiro, no un error de cálculo.
+
+La consulta por voz distingue las 5 cuentas base sembradas por el trigger
+(`es_sistema = 1`) de las creadas por el usuario y no muestra cuentas con
+`oculta = 1` (Fase 19). `services.accounts_summary` obtiene `es_sistema`
+con JOIN porque la vista no lo trae.
+
 Restricciones de cuentas:
 
 - Nombre único por usuario, sin distinguir mayúsculas.
@@ -790,6 +810,15 @@ Restricciones de cuentas:
   usa la colación binaria por defecto de SQLite, así que **distingue mayúsculas
   y tildes**: `Ocio` y `ocio` pueden coexistir. Las cuentas, en cambio, usan un
   índice sobre `lower(nombre)` y no distinguen mayúsculas.
+- Al crear una categoría se inserta su nombre en minúsculas como palabra
+  clave (`categoria_palabras`), así que “gasté en belleza” ya cae en la
+  categoría creada sin intervención del LLM (Fase 23).
+- Las “subcategorías” son categorías planas de gasto o ingreso; el esquema no
+  tiene padre. Ahorro no usa categorías: usa metas.
+- La consulta por voz (“¿cuáles son mis categorías?”, con filtro opcional
+  “de gasto”/“de ingreso”) muestra por categoría el número de registros
+  confirmados y el total; la voz lee las principales y el detalle completo
+  queda en `datos.categorias` (Fase 23).
 
 ---
 
@@ -2072,7 +2101,8 @@ timestamped. **No es fuente de verdad financiera**: los movimientos
 pendientes siguen en `mensajes_dispositivo` y `transacciones`; si el backend
 se reinicia solo se pierde el borrador en curso y el mensaje pendiente queda
 huyendo en la base. La confirmación siempre es legible desde la API aunque el
-estado en memoria haya expirado.
+estado en memoria haya expirado, y desde la Fase 22 la voz también recupera
+el pendiente huérfano (ver 19.12).
 
 ### 19.2 Los estados
 
@@ -2099,8 +2129,9 @@ no pueden usar el diálogo del otro.
      negativo).
    - **Cancelación natural**: "no", "cancela", "cancelar", "olvídalo",
      "descarta".
-   - **Corrección**: "cambia el monto a 25 mil"; el dato nuevo se aplica a la
-     propuesta antes de confirmarla.
+   - **Corrección**: "cambia el monto a 25 mil", "la cuenta es Nequi",
+     "no es de ayer, es de hoy", "con la categoría de Belleza"; el dato nuevo
+     se aplica a la propuesta antes de confirmarla (Fase 17 y 23).
 4. Frase larga solo confirma si empieza por una afirmación corta
    (`_es_confirmacion`): "gasté 20 mil" nunca confirma. El LLM no puede
    marcar como confirmación una frase larga aunque así lo diga.
@@ -2120,10 +2151,14 @@ no pueden usar el diálogo del otro.
 | "balance del mes" | totales del mes calendario. |
 | "¿cómo van mis metas?" | progreso, porcentaje y estado `v_metas_estado`. |
 | "¿cuánto debo ahorrar este mes?" | plan LP: capacidad y aportes recomendados. |
-| cuentas, categorías, movimientos, presupuesto, perfil | resúmenes desde catálogos reales. |
+| "muéstrame lo que hay pendiente" | movimientos pendientes sin confirmar; consultar no los resuelve (Fase 21). |
+| "¿cuáles son mis cuentas?" | cuentas base vs. propias, sin ocultas, con saldo (Fase 19). |
+| "¿cuáles son mis categorías?" (filtro "de gasto"/"de ingreso") | categorías con nº de registros y total confirmado; por voz, las principales (Fase 23). |
+| movimientos, presupuesto, perfil | resúmenes desde catálogos reales. |
 
 Las consultas devuelven `tipo_respuesta: "consulta"`, `intent` legible y
-`datos` con los números exactos; **nunca escribe**.
+`datos` con los números exactos; **nunca escribe**. Pedir “categorías de
+ahorro” no lista categorías: responde que el ahorro usa metas.
 
 ### 19.5 Creación de metas por diálogo
 
@@ -2225,6 +2260,52 @@ texto; no intenta sintetizar offline.
 
 Las respuestas incluyen `voz` cuando el backend está listo para hablar, lo que
 el simulador aprovecha con `[V]` para activar o silenciar.
+
+### 19.12 Fases 17 a 23: correcciones, validación, pendientes, cuentas y categorías
+
+**Fase 17 — Correcciones completas.** `_corregir_movimiento` corrige
+monto, categoría, cuenta, meta, fecha, tipo y concepto (antes solo monto y
+categoría). Las frases de corrección incluyen “no está bien”,
+“no es de ayer, es de hoy”, “la cuenta es Nequi” y “con la categoría de …”.
+`resolver_rango` ignora la fecha negada (“no es de ayer, es de hoy” → hoy).
+Una frase de registro completa con un pendiente abierto descarta el
+pendiente anterior y abre uno nuevo, en vez de dejar dos borradores.
+`services.update_transaction` acepta `tipo` y `fecha_local` manteniendo el
+CHECK del esquema (ahorro sin categoría; gasto/ingreso con categoría y sin
+meta).
+
+**Fase 18 — El LLM propone, el texto manda.** En `_interpretar` el monto del
+texto sobrescribe el del LLM; una cuenta o fecha del LLM que no aparece en
+el texto se descarta. En `construir_movimiento` la cuenta del LLM debe
+aparecer como palabra completa (“Nuwank” no es “Nu”); una pista
+“por/con <palabra desconocida>” o “en <categoría desconocida>” pide
+aclaración en vez de caer en la cuenta por defecto o en “Otros”.
+
+**Fase 19 — Mis cuentas.** `accounts_summary` filtra `oculta = 0` y expone
+`es_sistema` con JOIN. La consulta distingue “cuentas base” (las 5 sembradas
+por el trigger) de “cuentas propias”. Saldos negativos = sobregiro con
+`saldo_inicial = 0`.
+
+**Fase 21 — Consultar pendientes.** `consultar_pendientes` lista los
+movimientos `pendiente` (detalle en pantalla, conteo + más reciente por
+voz) y **no** los resuelve: el estado en memoria se conserva. Va antes de
+confirmar/cancelar para que “qué me falta por confirmar” sea consulta, no
+aceptación.
+
+**Fase 22 — Pendiente huérfano.** Sin estado en memoria, un “sí”,
+“cancela” o corrección busca los pendientes en la base: si hay
+**exactamente uno**, reconstruye la acción y ejecuta el flujo normal; si
+hay varios, pide aclaración sin confirmar nada; si no hay ninguno, responde
+lo de siempre. Nunca se confirma sin la frase afirmativa del usuario.
+
+**Fase 23 — Categorías.** La consulta muestra nº de registros y total
+confirmado por categoría (filtro opcional gasto/ingreso; ahorro → metas).
+Crear categoría por voz acepta “agrega esta categoría X en gasto”,
+“agrega la subcategoría X de ingreso” o “crea una categoría llamada X de
+gasto”; las “subcategorías” son categorías planas y ahorro no admite
+categorías. La categoría nueva inserta su nombre como palabra clave.
+Una categoría de corrección inexistente se crea y se aplica al pendiente
+(`aplicar_a_message_id`) antes de pedir el “sí” final del movimiento.
 
 ---
 

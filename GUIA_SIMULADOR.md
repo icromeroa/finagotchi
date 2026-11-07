@@ -8,7 +8,7 @@ Recorre las mismas pantallas que tendrá el firmware, definidas en `docs/DISPOSI
 
 | Pantalla | Qué muestra |
 |---|---|
-| D03 Reposo | Ánimo de Nancy, salud, cupo del día, gastos, ingresos, puntos, conexión y batería. |
+| D03 Reposo | Fecha y hora (p. ej. `sáb 7 nov · 22:55`), ánimo de Nancy, salud, cupo del día, gastos, ingresos, puntos, conexión y batería. |
 | D04 Grabando | "Te escucho", el tiempo transcurrido y la barra de audio. |
 | D05 Procesando | "Entendiendo tu mensaje". |
 | D06 Confirmar | "¿Registro esto?" con tipo, monto, categoría, cuenta y la frase transcrita. |
@@ -42,6 +42,10 @@ Recorre las mismas pantallas que tendrá el firmware, definidas en `docs/DISPOSI
 
 Presionar `Enter` en el menú equivale a `[H] Hablar`; cualquier frase natural
 escrita se envía directamente al agente, como si la hubieras dicho.
+
+Cuando Nancy pide confirmación tras una frase hablada, el micrófono vuelve a
+escuchar automáticamente sin pasar por el menú; si entraste por `[T]`, el
+simulador te recuerda usar `[H]` o `[T]` para responder.
 
 ## Sobre la transcripción y la IA
 
@@ -233,6 +237,9 @@ Consultas y cierre:
 - "Movimientos de ayer"
 - "Gastos del 3 al 5 de mayo"
 - "¿Cómo van mis metas?"
+- "¿Qué tengo pendiente?" (movimientos sin confirmar; no los resuelve)
+- "¿Cuáles son mis cuentas?" (base vs. propias, sin ocultas, con saldo)
+- "¿Cuáles son mis categorías de gasto?" (nº de registros y total por categoría)
 - "Cierra el día"
 
 Fechas al registrar:
@@ -251,11 +258,20 @@ Otras operaciones:
 
 - "Crea una cuenta llamada Ahorros de tipo cuenta de ahorros"
 - "Crea una categoría llamada Mascotas de gasto"
+- "Agrega esta categoría Belleza en gasto"
+- "Agrega la subcategoría Accesorios de ingreso"
+- "Gasté 10 mil en accesorios" (si no existe, Nancy pregunta si la crea)
 - "Cambia mi presupuesto diario a 30 mil"
 - "Mi ingreso mensual es 2 millones"
 - "Elimina la meta Viaje"
 - "Elimina el último movimiento"
 - "Edita el último movimiento"
+
+Correcciones del pendiente:
+
+- "No está bien, la cuenta es Nequi"
+- "No es de ayer, es de hoy"
+- "Con la categoría de Belleza" (si no existe, ofrece crearla y aplicarla)
 
 ## Flujo técnico
 
