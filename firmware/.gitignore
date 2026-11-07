@@ -1,0 +1,13 @@
+# PlatformIO build artifacts
+.pio/
+.pioenvs/
+.piolibdeps/
+*.elf
+*.bin
+*.hex
+
+# Secreto local fuera de Git (tokens al compilar)
+.env
+.env.*
+
+# Descentrado: .pio/ arriba ya cubre .pio/libdeps (TFT_eSPI)
