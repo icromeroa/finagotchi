@@ -59,7 +59,7 @@ DEFAULT_CONFIG = {
     "stt_provider": "gemini",
     "input_device": None,
     "voice_output": True,
-    "voice_scope": "acciones",
+    "voice_scope": "resumen",
     "request_timeout_s": 90,
 }
 
@@ -506,6 +506,13 @@ class Simulador:
                 print(pantallas.d16_error(codigo or "Error al procesar", mensaje, detalle))
             return
         self._procesar_respuesta(message)
+        if (message or {}).get("requiere_confirmacion"):
+            # Nancy preguntó: la voz es la entrada principal, así que el
+            # micrófono vuelve a escuchar sin pasar por el menú. Si el
+            # usuario cancela la captura, esta llamada retorna y el menú
+            # sigue disponible.
+            print("  Nancy espera tu respuesta. El micrófono va a escuchar otra vez.")
+            self.hablar()
 
     def escribir(self):
         """Entrada de texto equivalente a la voz, para cuando no se puede hablar."""
@@ -531,6 +538,8 @@ class Simulador:
             print(pantallas.d16_error(codigo or "Error al procesar", mensaje, detalle))
             return
         self._procesar_respuesta(message)
+        if (message or {}).get("requiere_confirmacion"):
+            print("  Nancy espera tu respuesta. Pulsa [H] para hablar o [T] para escribir.")
 
     # --- D09 -------------------------------------------------------------
     def cerrar_dia(self):

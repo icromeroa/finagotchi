@@ -421,6 +421,7 @@ def d15_conversacion(respuesta):
             lineas.append(f"   ... y {len(movimientos) - 5} más")
     if respuesta.get("requiere_confirmacion"):
         lineas.append("   Di sí, está bien, ok o no")
+        lineas.append("   [H] Hablar o [T] Escribir")
     lineas.append("")
     return _caja(lineas)
 

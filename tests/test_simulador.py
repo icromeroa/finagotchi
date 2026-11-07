@@ -146,8 +146,16 @@ class PantallasTests(unittest.TestCase):
         self.assertIn("NANCY", texto)
         self.assertIn("20.000", texto)
         self.assertIn("Di sí", texto)
+        self.assertIn("[H] Hablar", texto)
         self.assertNotIn("Estado:", texto)
         self.assertNotIn("confirmando_movimiento", texto)
+        lineas = texto.splitlines()
+        self.assertEqual(len({len(linea) for linea in lineas}), 1)
+
+    def test_la_voz_por_defecto_cubre_las_consultas(self):
+        from simulator.main import DEFAULT_CONFIG
+
+        self.assertEqual(DEFAULT_CONFIG["voice_scope"], "resumen")
 
     def test_la_pantalla_de_consulta_muestra_rango_y_movimientos(self):
         texto = pantallas.d15_conversacion(
