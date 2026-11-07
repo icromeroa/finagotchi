@@ -19,8 +19,8 @@ firmware/
 
 1. Instalar la extensión **PlatformIO IDE**.
 2. Abrir la carpeta `firmware/` en VS Code.
-3. Pulsar **Build** (marcador de verificación) para compilar sin conectar la placa.
-4. Conectar la ESP32-S3 SuperMini por USB-C y pulsar **Upload** (flecha a la derecha).
+3. Pulsar **Build** (✓ en la barra inferior o icono pio en la izquierda) → esperar `SUCCESS`, señal de que bajó el framework y `TFT_eSPI`.
+4. Cable USB-C **de datos** al PC (directo, sin hub). Si Windows dice *“Dispositivo USB desconocido”*, instala el driver Espressif USB-Serial-JTAG (§9 en `docs/FIRMWARE.md`). Recuerda que `firmware/src/main.cpp` solo pinta la pantalla, no lo que más vale para el proyecto.
 
 ## Conexión F1 (solo pantalla)
 

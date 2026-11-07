@@ -88,3 +88,54 @@ En este proyecto no editamos el `User_Setup.h` global de la librería; usamos `U
 - `SD`/`GAIN` del MAX98357A libres o a 3.3V; **nunca a GND**.
 - Tierra común en el riel GND de la protoboard para todos los módulos.
 - Cables cortos en bus SPI; soldadura recomendada antes de producción.
+
+## 9. USB JTAG: cable, driver y modo descarga (lo que resolvemos primero)
+
+La SuperMini S3 tiene **USB Serial/JTAG nativo** (no CH340). Windows debe verlo como **ESP32-S3 USB Composite (VID_303A)**. Si sale **Dispositivo USB desconocido** y **no hay COM**, casi siempre es cable o driver.
+
+### 9.1 Estado detectado en tu PC (2026-11-07)
+
+```powershell
+Get-PnpDevice -Class USB | Select-Object Status,FriendlyName,InstanceId
+```
+
+- `Unknown / VID_303A&PID_1001 / Dispositivo compuesto USB` → **es tu ESP32-S3**, presente pero sin driver/COM.
+- `Unknown / VID_0000&PID_0002 / Error solicitud descriptor` → suele ser **cable solo-carga** o puerto saturado. Cambiar cable.
+
+### 9.2 Checklist física (antes de drivers)
+
+1. **Cable USB-C de *datos*** (el que usa tu celular para MTP/transferir fotos). Si no transfiere archivos, no sirve para flashear.
+2. **Puerto directo de la PC** (no hub ni docking). Puertos USB 2.0/3.0 traseros suelen ser más fiables.
+3. **GND común**: si alimentas por batería mientras conectas USB, apaga el switch. Para flashear, mejor solo USB.
+4. **GPIO19/20 (D−/D+) no conectados** a otra cosa: no usados en tu circuito F1, correcto.
+
+### 9.3 Driver oficial — *ejecutar como Administrador* (no se pudo elevar solo)
+
+En Windows 10+ el JTAG/serial se autoinstala con internet; si no, usa Espressif:
+
+```powershell
+# PowerShell como Administrador
+Invoke-WebRequest 'https://dl.espressif.com/dl/idf-env/idf-env.exe' -OutFile .\idf-env.exe
+.\idf-env.exe driver install --espressif
+```
+
+**Tienes que ejecutarlo tú como Administrador.** Intenté hacerlo sin elevar y la instalación fue rechazada; una vez instalado, reabre el Administrador de dispositivos para confirmar: debe aparecer `USB JTAG/Serial debug unit` + puerto serie (COM).
+
+> Alternativa solo si la anterior falla: Zadig (Interface 0 → `usbser/CDC`, Interface 2 → `WinUSB SPISERIAL JTAG`. Ver ESP-IoT-Solution documentation en `USB Serial/JTAG Peripheral Introduction` Web fetch.
+
+### 9.4 Subir el firmware con BOOT
+
+1. Cable conectado.
+2. Mantén presionado **BOOT**.
+3. Toca **RESET** (o desconecta y vuelve a conectar el USB).
+4. Suelta **BOOT**.
+5. En PlatformIO (carpeta `firmware/`) pulsa **Upload (→)**. Debe verse el puerto COM en la lista superior.
+
+### 9.5 Síntomas → causa → acción
+
+| Síntoma | Causa probable | Acción |
+|---|---|---|
+| `Unknown / Error descriptor` | Cable de carga únicamente | Cambiar a cable de datos |
+| `VID_303A` sin COM | Falta driver JTAG | Ejecutar `idf-env.exe driver install --espressif` (admin) |
+| Upload se cuelga con `esptool` | Sin modo descarga | Hacer BOOT+RESET (paso 9.4) |
+| Puerto aparece y desaparece | Cable/puerto inestable | Otro cable/puerto directo, cable corto |
