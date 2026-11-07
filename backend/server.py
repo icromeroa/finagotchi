@@ -721,12 +721,7 @@ def create_app(database=None):
     @app.get("/api/v1/accounts")
     @auth_required
     def list_accounts():
-        conn = get_db()
-        rows = conn.execute(
-            "SELECT * FROM v_cuentas_resumen WHERE usuario_id = ? ORDER BY orden, cuenta_id",
-            (g.user_id,),
-        ).fetchall()
-        return ok(dict_rows(rows))
+        return ok(services.accounts_summary(get_db(), g.user_id))
 
     @app.post("/api/v1/accounts")
     @auth_required

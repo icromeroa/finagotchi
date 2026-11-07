@@ -363,6 +363,28 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(self.decir("mi presupuesto").get("intent"), "consultar_presupuesto")
         self.assertEqual(self.decir("mi perfil").get("intent"), "consultar_perfil")
 
+    def test_mis_cuentas_marcan_base_y_ocultan_ocultas(self):
+        respuesta = self.decir("¿cuáles son mis cuentas?")
+        self.assertIn("cuentas base", respuesta["mensaje_nancy"])
+        self.assertIn("Efectivo", respuesta["mensaje_nancy"])
+        self.assertIn("Nequi", respuesta["mensaje_nancy"])
+        self.assertTrue(any(c.get("es_sistema") for c in respuesta["datos"]["cuentas"]))
+
+        cuentas = self.client.get(
+            "/api/v1/accounts", headers=self.user["headers"]
+        ).get_json()["data"]
+        nequi = [c for c in cuentas if c["nombre"] == "Nequi"][0]
+        self.client.patch(
+            f"/api/v1/accounts/{nequi['cuenta_id']}",
+            json={"oculta": 1},
+            headers=self.user["headers"],
+        )
+        respuesta = self.decir("¿cuáles son mis cuentas?")
+        self.assertNotIn("Nequi", respuesta["mensaje_nancy"])
+        self.assertNotIn(
+            "Nequi", [c["nombre"] for c in respuesta["datos"]["cuentas"]]
+        )
+
     # --- Otras operaciones por voz -------------------------------------
     def test_crear_cuenta_por_voz(self):
         propuesta = self.decir("crea una cuenta llamada Ahorros de tipo cuenta de ahorros")

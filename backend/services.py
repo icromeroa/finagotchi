@@ -1508,8 +1508,20 @@ def transactions_between(conn, user_id, start_date, end_date, limit=None):
 
 
 def accounts_summary(conn, user_id):
+    """Cuentas visibles del usuario, con la marca de cuenta base.
+
+    Las cuentas ocultas no se muestran. La vista no trae ``es_sistema``,
+    así que se obtiene con JOIN sin cambiar el esquema.
+    """
     rows = conn.execute(
-        "SELECT * FROM v_cuentas_resumen WHERE usuario_id = ? ORDER BY orden, cuenta_id",
+        """
+        SELECT v.*, c.es_sistema
+        FROM v_cuentas_resumen v
+        JOIN cuentas c
+          ON c.usuario_id = v.usuario_id AND c.id = v.cuenta_id
+        WHERE v.usuario_id = ? AND v.oculta = 0
+        ORDER BY v.orden, v.cuenta_id
+        """,
         (user_id,),
     ).fetchall()
     return dict_rows(rows)

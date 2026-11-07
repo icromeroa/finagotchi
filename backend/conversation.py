@@ -977,16 +977,34 @@ def _consulta_plan(conn, usuario_id, estado, dispositivo_uid, texto):
 def _consulta_cuentas(conn, usuario_id, estado, dispositivo_uid, texto):
     cuentas = services.accounts_summary(conn, usuario_id)
     if cuentas:
-        detalle = "; ".join(
-            f"{cuenta['nombre']}: {_moneda(cuenta.get('saldo_actual'))}"
-            for cuenta in cuentas[:6]
-        )
-        detalle_voz = "; ".join(
-            f"{cuenta['nombre']}: {_monto_hablado(cuenta.get('saldo_actual'))}"
-            for cuenta in cuentas[:6]
-        )
-        mensaje = f"Tus cuentas son: {detalle}."
-        texto_voz = f"Tus cuentas son: {detalle_voz}."
+        base = [c for c in cuentas if c.get("es_sistema")]
+        propias = [c for c in cuentas if not c.get("es_sistema")]
+
+        def _detalle(lista):
+            return "; ".join(
+                f"{cuenta['nombre']}: {_moneda(cuenta.get('saldo_actual'))}"
+                for cuenta in lista[:6]
+            )
+
+        def _detalle_voz(lista):
+            return "; ".join(
+                f"{cuenta['nombre']}: {_monto_hablado(cuenta.get('saldo_actual'))}"
+                for cuenta in lista[:6]
+            )
+
+        mensaje = ""
+        texto_voz = ""
+        if base:
+            mensaje = f"Tus cuentas base son: {_detalle(base)}."
+            texto_voz = f"Tus cuentas base son: {_detalle_voz(base)}."
+        if propias:
+            frase = f"Tus cuentas propias son: {_detalle(propias)}."
+            frase_voz = f"Tus cuentas propias son: {_detalle_voz(propias)}."
+            mensaje = f"{mensaje} {frase}".strip()
+            texto_voz = f"{texto_voz} {frase_voz}".strip()
+        if not mensaje:
+            mensaje = f"Tus cuentas son: {_detalle(cuentas)}."
+            texto_voz = f"Tus cuentas son: {_detalle_voz(cuentas)}."
     else:
         mensaje = "No tienes cuentas registradas."
         texto_voz = mensaje
