@@ -26,13 +26,13 @@ firmware/
 
 | Pantalla | ESP32-S3 |
 |---|---|
-| VCC | 3V3 |
+| VCC | 3V3 (OUT) |
 | GND | GND |
-| SCL (SCK) | GP12 |
-| SDA (MOSI) | GP11 |
-| RES | GP9 |
-| DC | GP10 |
-| CS | GP13 (primero); si no responde, a GND |
+| SCL (SCK) | **Pin 2 → GP2** |
+| SDA (MOSI) | **Pin 13 → GP13** |
+| RES | **Pin 5 → GP5** |
+| DC | **Pin 6 → GP6** |
+| CS | **GND (físico)** → código `TFT_CS=-1` |
 
 > Cables cortos en SCL/SDA. VCC nunca a 5V. Compilar con el controlador **ILI9225**: otro controlador deja la pantalla blanca aunque esté bien conectada.
 

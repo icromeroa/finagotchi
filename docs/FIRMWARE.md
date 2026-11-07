@@ -29,17 +29,18 @@ Los números del borde de la SuperMini **no son GPIO**. La tabla correcta, segú
 
 Tu cableado anterior (CS a GND, Pin 2/13/5/6 genéricos) se corrige así:
 
-| Pantalla ILI9225 | ESP32-S3 SuperMini | Nota |
+| Pantalla ILI9225 | ESP32-S3 SuperMini (tu cableado real) | Nota |
 |---|---|---|
-| VCC | 3V3 | Nunca 5V |
-| GND | GND (riel común) | Tierra común obligatoria |
-| SCL (SCK) | **GP12** | SPI clock |
-| SDA (MOSI) | **GP11** | SPI data |
-| RES/RST | **GP9** | Reset físico |
-| DC/RS | **GP10** | Data/Command |
-| CS | **GP13** → luego GND si funciona | Primero como GPIO; si se atora, bajar a GND |
+| VCC | 3V3 (OUT) | Nunca 5V |
+| GND | GND | Tierra común con todo |
+| SCL (SCK) | **Pin 2 → GP2** | Reloj SPI |
+| SDA (MOSI) | **Pin 13 → GP13** | Datos SPI |
+| RES/RST | **Pin 5 → GP5** | Reset |
+| DC/RS | **Pin 6 → GP6** | Data/Command |
+| CS | **GND (físico)** | Sin pin; en el código se usa `TFT_CS=-1` |
 
-> Cables cortos (CLK/DATA). Conexión en orden de pines del módulo: `VCC, GND, SCL, SDA, RES, DC, CS` (ver foto trasera, serigrafía `GND VCC SCK SDA RST DC CS`).
+> Estos pines (GP1–GP13) son seguros para la N16R8. No usar GP33–GP38/GP45–GP48 (PSRAM/flash y RGB GP48).
+> Cables lo más cortos posible en SCL/SDA. Orden de pines del módulo (trasera): `VCC, GND, SCL, SDA, RES, DC, CS`.
 
 ## 4. Tabla propuesta para audio/botones (F2, no cablear aún en F1)
 
