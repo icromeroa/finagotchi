@@ -577,6 +577,28 @@ _PALABRAS_NO_CUENTA = {
 }
 
 
+_PALABRAS_NO_CATEGORIA = {
+    "la", "el", "los", "las", "mi", "mis", "un", "una", "unos", "unas",
+    "hoy", "ayer", "anteayer", "antier", "mes", "semana", "ano",
+    "efectivo", "trabajo", "almuerzo", "comida", "transporte",
+}
+
+
+def pista_categoria_no_reconocida(conn, user_id, texto, tipo_final):
+    """Palabra tras «en» que parece una categoría pero no se reconoce."""
+    normalized = normalize(texto)
+    for match in re.finditer(r"\ben\s+([a-z]+)\b", normalized):
+        palabra = match.group(1)
+        if palabra in _PALABRAS_NO_CATEGORIA:
+            continue
+        if detect_category_explicit(conn, user_id, palabra, tipo_final) is not None:
+            continue
+        if detect_account_explicit(conn, user_id, palabra) is not None:
+            continue
+        return palabra
+    return None
+
+
 def pista_cuenta_no_reconocida(conn, user_id, texto, tipo_final):
     """Palabra tras «por/con» que parece una cuenta pero no se reconoce.
 
@@ -673,6 +695,26 @@ def construir_movimiento(
         meta_final = None
         categoria_final = coincide_en_catalogo(categoria, categorias)
         if categoria_final is None:
+            categoria_final = detect_category_explicit(
+                conn, user_id, normalized, tipo_final
+            )
+        if categoria_final is None:
+            pista = pista_categoria_no_reconocida(
+                conn, user_id, normalized, tipo_final
+            )
+            if pista:
+                return {
+                    "intent": "requiere_aclaracion",
+                    "texto": texto,
+                    "error": (
+                        f"No tengo la categoría \"{pista}\". "
+                        "¿La creo como gasto o como ingreso? "
+                        "Dime: agrega la categoría "
+                        f"{pista} de gasto."
+                    ),
+                    "categoria_sugerida": pista,
+                    "transacciones": [],
+                }
             categoria_final = detect_category(conn, user_id, normalized, tipo_final)
         if categoria_final is None:
             return {
@@ -1220,10 +1262,19 @@ def detectar_intencion_conversacional(text):
     if any(word_in_text(palabra, normalized) for palabra in ("edita", "editar", "cambia", "cambiar", "corrige")):
         if any(word_in_text(palabra, normalized) for palabra in ("movimiento", "gasto", "ingreso", "registro")):
             return {"intent": "editar_movimiento", "entidades": {}, "confianza": 0.8}
-    if any(word_in_text(palabra, normalized) for palabra in ("crea", "crear", "nueva", "nuevo", "agrega")):
+    if any(
+        word_in_text(palabra, normalized)
+        for palabra in (
+            "crea", "crear", "nueva", "nuevo", "agrega", "agregar",
+            "añade", "anade", "guardar", "guarda",
+        )
+    ):
         if any(word_in_text(palabra, normalized) for palabra in ("cuenta",)):
             return {"intent": "crear_cuenta", "entidades": {}, "confianza": 0.85}
-        if any(word_in_text(palabra, normalized) for palabra in ("categoria", "categoría")):
+        if any(
+            word_in_text(palabra, normalized)
+            for palabra in ("categoria", "categoría", "subcategoria", "subcategoría")
+        ):
             return {"intent": "crear_categoria", "entidades": {}, "confianza": 0.85}
     if any(word_in_text(palabra, normalized) for palabra in ("presupuesto diario", "presupuesto", "cupo diario")):
         if parse_amount(normalized) is not None:

@@ -5,8 +5,16 @@ titulos, contenidos y botones siguen lo definido en docs/DISPOSITIVO.md
 (seccion 7, pantallas D01 a D13).
 """
 
+from datetime import datetime
+
 ANCHO = 38
 LINEA = "-" * ANCHO
+
+_DIAS_CORTO = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")
+_MESES_CORTO = (
+    "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sep", "oct", "nov", "dic",
+)
 
 TONO_FELIZ = [
     "Vas muy bien hoy.",
@@ -102,7 +110,7 @@ def d02_sin_vincular():
     )
 
 
-def d03_reposo(home, conectado=True, bateria=87, pendientes=0):
+def d03_reposo(home, conectado=True, bateria=87, pendientes=0, cuando=None):
     hoy = home.get("hoy", {})
     mascota = home.get("mascota", {})
     animo = _animo_normalizado(mascota.get("animo"))
@@ -110,9 +118,16 @@ def d03_reposo(home, conectado=True, bateria=87, pendientes=0):
     cupo = hoy.get("cupo_restante", 0)
     presupuesto = hoy.get("presupuesto_diario", 0)
     estado_red = "WiFi" if conectado else "Sin senal"
+    momento = cuando or datetime.now()
+    fecha_hora = (
+        f"{_DIAS_CORTO[momento.weekday()]} {momento.day} "
+        f"{_MESES_CORTO[momento.month - 1]} · "
+        f"{momento.hour:02d}:{momento.minute:02d}"
+    )
     lineas = [
         "",
         f"  NANCY · {animo}",
+        f"  {fecha_hora}",
         f"  Salud {_barra(salud)} {salud}%",
         "",
         f"  Te quedan {_dinero(cupo)} de {_dinero(presupuesto)}",

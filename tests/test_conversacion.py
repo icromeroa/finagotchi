@@ -413,6 +413,58 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(len(respuesta["datos"]["pendientes"]), 2)
         self.assertEqual(self.home()["hoy"]["gastos"], 0)
 
+    def test_categorias_muestran_conteo_y_total(self):
+        self.decir("gasté 20 mil en almuerzo")
+        self.decir("sí")
+        respuesta = self.decir("¿cuáles son mis categorías de gasto?")
+        self.assertEqual(respuesta["intent"], "consultar_categorias")
+        alimentacion = [
+            c for c in respuesta["datos"]["categorias"]
+            if c["nombre"] == "Alimentación"
+        ][0]
+        self.assertGreaterEqual(alimentacion["num_registros"], 1)
+        self.assertIn("registros", respuesta["mensaje_nancy"])
+        self.assertIn("registros", respuesta["texto_voz"])
+        self.assertNotIn("$", respuesta["texto_voz"])
+
+    def test_categoria_desconocida_pide_crearla_sin_escribir(self):
+        respuesta = self.decir("gasté 10 mil en accesorios")
+        self.assertEqual(respuesta["tipo_respuesta"], "aclaracion")
+        self.assertIn("No tengo la categoría", respuesta["mensaje_nancy"])
+        self.assertFalse(respuesta["requiere_confirmacion"])
+        self.assertEqual(self.home()["hoy"]["gastos"], 0)
+
+    def test_crear_categoria_por_voz_y_usarla_despues(self):
+        propuesta = self.decir("agrega esta categoría Belleza en gasto")
+        self.assertTrue(propuesta["requiere_confirmacion"])
+        self.assertEqual(propuesta["datos"]["accion"]["tipo"], "crear_categoria")
+        self.decir("sí")
+        categorias = self.client.get(
+            "/api/v1/categories", headers=self.user["headers"]
+        ).get_json()["data"]
+        self.assertTrue(any(c["nombre"] == "belleza" for c in categorias))
+
+        respuesta = self.decir("gasté 10 mil en belleza")
+        self.assertEqual(
+            respuesta["transacciones"][0]["categoria"], "belleza"
+        )
+
+    def test_corregir_pendiente_con_categoria_nueva(self):
+        self.decir("gasté 10 mil en almuerzo")
+        # La categoría aún no existe: la frase pide crearla aplicando
+        # al movimiento pendiente.
+        respuesta = self.decir("con la categoría de belleza")
+        self.assertTrue(respuesta["requiere_confirmacion"])
+        self.assertEqual(respuesta["datos"]["accion"]["tipo"], "crear_categoria")
+        self.decir("sí")
+        confirmacion = self.decir("sí")
+        self.assertEqual(confirmacion["tipo_respuesta"], "resultado")
+        categorias = self.client.get(
+            "/api/v1/categories", headers=self.user["headers"]
+        ).get_json()["data"]
+        self.assertTrue(any(c["nombre"] == "belleza" for c in categorias))
+        self.assertEqual(self.home()["hoy"]["gastos"], 10000)
+
     def test_mis_cuentas_marcan_base_y_ocultan_ocultas(self):
         respuesta = self.decir("¿cuáles son mis cuentas?")
         self.assertIn("cuentas base", respuesta["mensaje_nancy"])

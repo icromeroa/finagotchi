@@ -91,6 +91,17 @@ class PantallasTests(unittest.TestCase):
         self.assertIn("Puntos", texto)
         self.assertIn("Mant", texto)
 
+    def test_el_reposo_muestra_fecha_y_hora(self):
+        from datetime import datetime
+
+        texto = pantallas.d03_reposo(
+            HOME, cuando=datetime(2026, 11, 7, 22, 55)
+        )
+        self.assertIn("sáb 7 nov", texto)
+        self.assertIn("22:55", texto)
+        lineas = texto.splitlines()
+        self.assertEqual(len({len(linea) for linea in lineas}), 1)
+
     def test_confirmar_muestra_tipo_monto_categoria_y_cuenta(self):
         texto = pantallas.d06_confirmar(
             [{"tipo": "gasto", "monto": 20000, "categoria": "Alimentación", "cuenta": "Nequi"}],

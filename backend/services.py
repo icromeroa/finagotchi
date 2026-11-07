@@ -1547,9 +1547,22 @@ def accounts_summary(conn, user_id):
 
 
 def categories_summary(conn, user_id):
+    """Categorías con el número de registros y el total confirmado."""
     rows = conn.execute(
-        "SELECT id, nombre, tipo, icono, activa FROM categorias "
-        "WHERE usuario_id = ? ORDER BY tipo, nombre",
+        """
+        SELECT c.id, c.nombre, c.tipo, c.icono, c.activa, c.es_sistema,
+               COUNT(t.id) AS num_registros,
+               COALESCE(SUM(t.monto), 0) AS total
+        FROM categorias c
+        LEFT JOIN transacciones t
+          ON t.usuario_id = c.usuario_id
+         AND t.categoria_id = c.id
+         AND t.estado = 'confirmado'
+         AND t.is_deleted = 0
+        WHERE c.usuario_id = ? AND c.activa = 1
+        GROUP BY c.id
+        ORDER BY c.tipo, c.nombre
+        """,
         (user_id,),
     ).fetchall()
     return dict_rows(rows)
@@ -1623,6 +1636,13 @@ def create_category(conn, user_id, data):
         VALUES (?, ?, ?, ?, 0, 0, 1, ?)
         """,
         (user_id, nombre[:24], tipo, data.get("icono") or "🏷️", order),
+    )
+    # La palabra clave hace que la próxima frase «en <nueva categoría>»
+    # ya caiga aquí sin intervención del LLM.
+    conn.execute(
+        "INSERT OR IGNORE INTO categoria_palabras (usuario_id, categoria_id, palabra) "
+        "VALUES (?, ?, ?)",
+        (user_id, cursor.lastrowid, nombre[:40].lower()),
     )
     conn.commit()
     row = conn.execute(

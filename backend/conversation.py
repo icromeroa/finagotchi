@@ -372,7 +372,7 @@ def _es_correccion(texto):
     if any(nlp.word_in_text(palabra, normalized) for palabra in FRASES_CORRECCION):
         return True
     # Patrones que no caben en una sola palabra suelta: «no es de ayer, es de
-    # hoy», «la cuenta es Nequi», «era hoy».
+    # hoy», «la cuenta es Nequi», «era hoy», «con la categoría de Belleza».
     return bool(
         re.search(
             r"\b(?:no\s+)?(?:es|fue|era)\s+de\s+(?:hoy|ayer|anteayer)\b",
@@ -380,6 +380,11 @@ def _es_correccion(texto):
         )
         or re.search(r"\bno\s+(?:es|fue|era)\s+(?:hoy|ayer|anteayer)\b", normalized)
         or re.search(r"\bla cuenta es\b", normalized)
+        or re.search(
+            r"\b(?:con\s+)?(?:la\s+)?(?:sub)?categor[ií]a\s+(?:de|es|del)\b",
+            normalized,
+        )
+        or re.search(r"\b(?:cambia(?:la)?|pon(?:la)?)\b.*\bcategor", normalized)
     )
 
 
@@ -582,6 +587,28 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
         return None
     actual = payload["transacciones"][0]
     entidades = interpretacion.get("entidades") or {}
+    # «Con la categoría de Belleza» sin categoría en el catálogo: proponer
+    # crearla aplicando al movimiento pendiente tras la confirmación.
+    nombre_categoria = _nombre_dicho(texto, "categoria")
+    if nombre_categoria and re.search(
+        r"\b(?:con\s+)?(?:la\s+)?(?:sub)?categor[ií]a\s+(?:de|es|del)\b",
+        nlp.normalize(texto),
+    ):
+        existe = nlp.detect_category_explicit(
+            conn, usuario_id, texto, actual.get("tipo") or "gasto"
+        )
+        if existe is None:
+            propuesta = _proponer_accion(
+                conn,
+                usuario_id,
+                texto,
+                "crear_categoria",
+                entidades,
+                estado,
+                dispositivo_uid,
+            )
+            if propuesta is not None:
+                return propuesta
     tipos_validos = ("gasto", "ingreso", "ahorro")
     cambios = {}
 
@@ -1128,8 +1155,69 @@ def _consulta_cuentas(conn, usuario_id, estado, dispositivo_uid, texto):
 
 def _consulta_categorias(conn, usuario_id, estado, dispositivo_uid, texto):
     categorias = services.categories_summary(conn, usuario_id)
-    nombres = ", ".join(categoria["nombre"] for categoria in categorias[:10])
-    mensaje = f"Tus categorías son: {nombres}." if nombres else "No tienes categorías."
+    normalizado = nlp.normalize(texto)
+    pedido = nlp.detect_type_explicit(normalizado)
+    if "ahorro" in normalizado and pedido is None:
+        mensaje = (
+            "El ahorro usa metas, no categorías. "
+            "Tus categorías son de gasto o de ingreso."
+        )
+        return _respuesta(
+            mensaje,
+            "consulta",
+            estado,
+            datos={"categorias": categorias},
+            intent="consultar_categorias",
+            dispositivo_uid=dispositivo_uid,
+            usuario_id=usuario_id,
+            texto=texto,
+            texto_voz=mensaje,
+        )
+    if pedido in ("gasto", "ingreso"):
+        categorias = [c for c in categorias if c.get("tipo") == pedido]
+    if not categorias:
+        mensaje = "No tienes categorías."
+        texto_voz = mensaje
+    else:
+        def _ordenadas(lista):
+            return sorted(
+                lista,
+                key=lambda c: (-(c.get("num_registros") or 0), -(c.get("total") or 0)),
+            )
+
+        def _detalle(categoria):
+            return (
+                f"{categoria['nombre']} ({categoria.get('num_registros') or 0} "
+                f"registros, {_moneda(categoria.get('total'))})"
+            )
+
+        def _detalle_voz(categoria):
+            registros = categoria.get("num_registros") or 0
+            frase_registros = (
+                f"{registros} registro"
+                if registros == 1
+                else f"{registros} registros"
+            )
+            return (
+                f"{categoria['nombre']}: {frase_registros}, "
+                f"{_monto_hablado(categoria.get('total'))}"
+            )
+
+        grupos = []
+        grupos_voz = []
+        for tipo in ("gasto", "ingreso"):
+            lista = _ordenadas(
+                [c for c in categorias if c.get("tipo") == tipo]
+            )
+            if not lista:
+                continue
+            grupos.append(f"{tipo.capitalize()}: " + "; ".join(_detalle(c) for c in lista[:6]))
+            grupos_voz.append(
+                f"{tipo.capitalize()}: "
+                + "; ".join(_detalle_voz(c) for c in lista[:3])
+            )
+        mensaje = "Tus categorías son: " + ". ".join(grupos) + "."
+        texto_voz = "Tus categorías: " + ". ".join(grupos_voz) + "."
     return _respuesta(
         mensaje,
         "consulta",
@@ -1139,7 +1227,7 @@ def _consulta_categorias(conn, usuario_id, estado, dispositivo_uid, texto):
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
-        texto_voz=mensaje,
+        texto_voz=texto_voz,
     )
 
 
@@ -1607,13 +1695,20 @@ def _movimiento_objetivo(conn, usuario_id, texto, entidades):
 def _nombre_dicho(texto, palabra):
     normalizado = nlp.normalize(texto)
     match = re.search(
-        rf"{palabra}\s+(?:llamad[ao]|de|para)\s+([a-z0-9 ]+)", normalizado
+        rf"(?:sub)?{palabra}\b\s+"
+        rf"(?:(?:esta|la|una|un|nueva|nuevo)\s+)?"
+        rf"(?:llamad[ao]|de|para|como)?\s*([a-z0-9 ]+)",
+        normalizado,
     )
     if match:
         nombre = re.sub(r"\s+", " ", match.group(1)).strip(" .,;")
         nombre = nombre.split(" de tipo ")[0]
-        nombre = re.sub(r"\s+de\s+(gasto|ingreso)$", "", nombre)
-        return nombre[:30]
+        nombre = re.sub(r"\s+(?:de|en|como)\s+(?:gasto|ingreso|ahorro)$", "", nombre)
+        nombre = nombre.split(" de gasto")[0].split(" de ingreso")[0]
+        if nombre and nombre not in (
+            "gasto", "ingreso", "ahorro", "tipo", "de", "en", "la", "mi",
+        ):
+            return nombre[:30]
     return None
 
 
@@ -1723,7 +1818,25 @@ def _proponer_accion(
                 texto=texto,
             )
         tipo = entidades.get("tipo") or nlp.detect_type(texto)
+        if tipo not in ("gasto", "ingreso"):
+            return _respuesta(
+                "El ahorro usa metas, no categorías. "
+                "¿La creo como gasto o como ingreso?",
+                "aclaracion",
+                estado,
+                intent=intent,
+                dispositivo_uid=dispositivo_uid,
+                usuario_id=usuario_id,
+                texto=texto,
+            )
         accion = {"tipo": intent, "datos": {"nombre": nombre, "tipo": tipo}}
+        pendiente = estado.get("accion_pendiente") or {}
+        if pendiente.get("tipo") == "confirmar_mensaje" and pendiente.get("message_id"):
+            # Crear la categoría no abandona el movimiento pendiente:
+            # al confirmar, la categoría se aplica a ese movimiento.
+            accion["aplicar_a_message_id"] = pendiente["message_id"]
+            accion["aplicar_a_local_date"] = pendiente.get("local_date_value")
+            accion["aplicar_a_etiqueta"] = pendiente.get("etiqueta_fecha")
         mensaje = f"Voy a crear la categoría {nombre} de {tipo}. ¿La creo?"
     elif intent == "actualizar_presupuesto":
         monto = nlp._entero(entidades.get("monto")) or nlp.parse_amount(texto)
@@ -1823,6 +1936,54 @@ def _confirmar_accion(conn, usuario_id, texto, estado, dispositivo_uid):
         elif tipo == "crear_categoria":
             resultado = services.create_category(conn, usuario_id, accion.get("datos"))
             mensaje = f"Listo, creé la categoría {resultado['nombre']}."
+            aplicar_a = accion.get("aplicar_a_message_id")
+            if aplicar_a:
+                payload_mov = services.message_payload(conn, usuario_id, aplicar_a)
+                if payload_mov and payload_mov.get("transacciones"):
+                    transaccion_id = payload_mov["transacciones"][0]["id"]
+                    services.update_transaction(
+                        conn,
+                        usuario_id,
+                        transaccion_id,
+                        {"categoria_id": resultado["id"]},
+                    )
+                payload_mov = services.message_payload(conn, usuario_id, aplicar_a)
+                if payload_mov and payload_mov.get("transacciones"):
+                    transaccion = payload_mov["transacciones"][0]
+                    etiqueta_fecha = accion.get("aplicar_a_etiqueta")
+                    nuevo_estado = {
+                        **estado,
+                        "estado": ESTADO_CONFIRMANDO_MOVIMIENTO,
+                        "accion_pendiente": {
+                            "tipo": "confirmar_mensaje",
+                            "message_id": aplicar_a,
+                            "texto": texto,
+                            "local_date_value": accion.get("aplicar_a_local_date"),
+                            "etiqueta_fecha": etiqueta_fecha,
+                            "resumen": _describir_movimiento(transaccion, etiqueta_fecha),
+                            "resumen_hablado": _describir_movimiento_hablado(
+                                transaccion, etiqueta_fecha
+                            ),
+                        },
+                    }
+                    guardar_estado(usuario_id, dispositivo_uid, nuevo_estado)
+                    return _respuesta(
+                        f"{mensaje} Ahora, "
+                        f"¿Registro {_describir_movimiento(transaccion, etiqueta_fecha)}?",
+                        "confirmacion",
+                        nuevo_estado,
+                        datos={"transaccion": transaccion},
+                        requiere_confirmacion=True,
+                        payload=payload_mov,
+                        intent="registrar",
+                        dispositivo_uid=dispositivo_uid,
+                        usuario_id=usuario_id,
+                        texto=texto,
+                        texto_voz=(
+                            f"{mensaje} Ahora, "
+                            f"¿Registro {_describir_movimiento_hablado(transaccion, etiqueta_fecha)}?"
+                        ),
+                    )
         elif tipo == "actualizar_presupuesto":
             resultado = services.set_daily_budget(
                 conn, usuario_id, accion["datos"]["monto"]
