@@ -383,6 +383,36 @@ class ConversationTests(unittest.TestCase):
         tras_confirmar = self.decir("qué me falta por confirmar")
         self.assertEqual(tras_confirmar["datos"]["pendientes"], [])
 
+    def test_pendiente_huerfano_se_confirma_tras_perder_estado(self):
+        self.decir("gasté 20 mil en almuerzo")
+        # Simula el reinicio del backend: el estado en memoria desaparece,
+        # pero el pendiente sigue en la base.
+        conversation.limpiar_sesiones()
+
+        respuesta = self.decir("sí")
+        self.assertEqual(respuesta["tipo_respuesta"], "resultado")
+        self.assertEqual(self.home()["hoy"]["gastos"], 20000)
+
+    def test_pendiente_huerfano_se_cancela_tras_perder_estado(self):
+        self.decir("gasté 20 mil en almuerzo")
+        conversation.limpiar_sesiones()
+
+        respuesta = self.decir("no, cancela")
+        self.assertEqual(respuesta["tipo_respuesta"], "resultado")
+        self.assertEqual(self.home()["hoy"]["gastos"], 0)
+
+    def test_varios_pendientes_huerfanos_piden_aclaracion(self):
+        self.decir("gasté 20 mil en almuerzo")
+        conversation.limpiar_sesiones()
+        self.decir("gasté 10 mil en transporte")
+        conversation.limpiar_sesiones()
+
+        respuesta = self.decir("sí")
+        self.assertEqual(respuesta["tipo_respuesta"], "aclaracion")
+        self.assertIn("2 movimientos pendientes", respuesta["mensaje_nancy"])
+        self.assertEqual(len(respuesta["datos"]["pendientes"]), 2)
+        self.assertEqual(self.home()["hoy"]["gastos"], 0)
+
     def test_mis_cuentas_marcan_base_y_ocultan_ocultas(self):
         respuesta = self.decir("¿cuáles son mis cuentas?")
         self.assertIn("cuentas base", respuesta["mensaje_nancy"])

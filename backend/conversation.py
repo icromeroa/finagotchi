@@ -1009,6 +1009,76 @@ def _consulta_pendientes(conn, usuario_id, estado, dispositivo_uid, texto):
     )
 
 
+def _recuperar_accion_orfana(conn, usuario_id, estado, dispositivo_uid, texto):
+    """Reconstruye la acción pendiente desde la base si el estado se perdió.
+
+    Devuelve ``(estado, aclaracion)``. Si hay un solo pendiente con mensaje,
+    guarda el estado reconstruido y devuelve aclaración None. Si hay varios,
+    devuelve una aclaración sin confirmar nada. Si no hay ninguno, deja el
+    estado intacto para que el flujo normal responda.
+    """
+    pendientes = [
+        p
+        for p in services.pending_transactions(conn, usuario_id)
+        if p.get("mensaje_id")
+    ]
+    if not pendientes:
+        return estado, None
+    if len(pendientes) > 1:
+        respuesta = _respuesta(
+            f"Tienes {len(pendientes)} movimientos pendientes por confirmar. "
+            "Pregúntame qué tienes pendiente para verlos antes de confirmar.",
+            "aclaracion",
+            estado,
+            datos={"pendientes": pendientes},
+            intent="requiere_aclaracion",
+            dispositivo_uid=dispositivo_uid,
+            usuario_id=usuario_id,
+            texto=texto,
+        )
+        return estado, respuesta
+    pendiente = pendientes[0]
+    payload = services.message_payload(conn, usuario_id, pendiente["mensaje_id"])
+    if not payload or not payload.get("transacciones"):
+        return estado, None
+    transaccion = payload["transacciones"][0]
+    fecha_local = transaccion.get("fecha_local")
+    hoy = services.local_date()
+    if fecha_local == hoy:
+        etiqueta_fecha = None
+    elif fecha_local:
+        try:
+            dias = (
+                date_cls.fromisoformat(hoy) - date_cls.fromisoformat(fecha_local)
+            ).days
+        except (TypeError, ValueError):
+            dias = None
+        etiqueta_fecha = (
+            "ayer"
+            if dias == 1
+            else ("anteayer" if dias == 2 else _fecha_hablada(fecha_local))
+        )
+    else:
+        etiqueta_fecha = None
+    nuevo_estado = {
+        **estado,
+        "estado": ESTADO_CONFIRMANDO_MOVIMIENTO,
+        "accion_pendiente": {
+            "tipo": "confirmar_mensaje",
+            "message_id": pendiente["mensaje_id"],
+            "texto": transaccion.get("texto_transcrito") or texto,
+            "local_date_value": fecha_local,
+            "etiqueta_fecha": etiqueta_fecha,
+            "resumen": _describir_movimiento(transaccion, etiqueta_fecha),
+            "resumen_hablado": _describir_movimiento_hablado(
+                transaccion, etiqueta_fecha
+            ),
+        },
+    }
+    guardar_estado(usuario_id, dispositivo_uid, nuevo_estado)
+    return nuevo_estado, None
+
+
 def _consulta_cuentas(conn, usuario_id, estado, dispositivo_uid, texto):
     cuentas = services.accounts_summary(conn, usuario_id)
     if cuentas:
@@ -1858,6 +1928,20 @@ def procesar_turno(
     intent = interpretacion.get("intent") or "desconocido"
 
     accion = estado.get("accion_pendiente") or {}
+    if not accion and intent != "consultar_pendientes" and (
+        intent in ("confirmar", "cancelar", "corregir")
+        or _es_confirmacion(texto)
+        or _es_cancelacion(texto)
+        or _es_correccion(texto)
+    ):
+        # El estado vive en memoria: si el backend se reinicio, un
+        # pendiente puede seguir en la base sin accion en memoria.
+        estado, aclaracion = _recuperar_accion_orfana(
+            conn, usuario_id, estado, dispositivo_uid, texto
+        )
+        if aclaracion is not None:
+            return aclaracion
+        accion = estado.get("accion_pendiente") or {}
     if accion:
         # Una frase larga no puede confirmar ni cancelar solo porque el LLM
         # asi lo dijo: el usuario podria estar dictando un movimiento nuevo

@@ -1491,7 +1491,7 @@ def pending_transactions(conn, user_id, limit=20):
     """Movimientos pendientes de confirmación humana, más recientes primero."""
     rows = conn.execute(
         """
-        SELECT t.id, t.tipo, t.monto, t.fecha_local, t.concepto, t.estado,
+        SELECT t.id, t.mensaje_id, t.tipo, t.monto, t.fecha_local, t.concepto, t.estado,
                c.nombre AS categoria, cu.nombre AS cuenta, m.nombre AS meta
         FROM transacciones t
         LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
