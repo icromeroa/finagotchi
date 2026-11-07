@@ -55,6 +55,7 @@ transcribe, invoca la herramienta y reproduce la frase que devuelve FinaGotchi.
 | `mcp_servidor.py` | Herramienta MCP `finagotchi_turno` para que Xiaozhi llame al puente. |
 | `cliente_prueba.py` | Prueba el puente sin placas ni servidor Xiaozhi; opcionalmente reproduce la voz. |
 | `config.example.json` | Plantilla de configuración. Copia los valores a `config.local.json`. |
+| `.config.yaml.example` | Plantilla de Xiaozhi (STT Whisper, LLM con function_call, TTS Edge/custom Nancy). Copiar fuera del repo como `data/.config.yaml`. |
 | `test_bridge.py` | Pruebas unitarias del puente con HTTP simulado. |
 
 ## 3. Requisitos
@@ -282,6 +283,18 @@ audio nunca se persiste.
 - [x] Módulo MCP `finagotchi_turno`.
 - [x] Cliente de prueba con voz opcional.
 - [x] Pruebas unitarias del puente.
+- [x] Prueba del puente contra el backend real (ver `docs/PRUEBA_PUENTE.md`).
+- [x] Documentación de instalación Docker y configuración (ver `docs/`).
 - [ ] Prueba end-to-end con servidor Xiaozhi real.
 - [ ] Prueba en la placa ESP32-S3 con INMP441 y MAX98357A.
 - [ ] Decisión de arquitectura para la fase de firmware.
+
+## 11. Documentación detallada
+
+| Documento | Contenido |
+|---|---|
+| `docs/PRUEBA_PUENTE.md` | Evidencia de la prueba X0 (2026-11-06) con backend real |
+| `docs/INSTALL_XIAOZHI.md` | Instalación del servidor mínimo con Docker |
+| `docs/CONFIG_XIAOZHI.md` | Configuración ASR/LLM/TTS/MCP para FinaGotchi |
+| `docs/END_TO_END.md` | Flujo completo y guión de prueba MCP |
+| `docs/PRODUCTION_PORTABLE.md` | Brecha prototipo ↔ producción y riesgos |
