@@ -177,6 +177,7 @@ class PantallasTests(unittest.TestCase):
         self.assertIn("20.000", texto)
         self.assertIn("05/11", texto)
         self.assertIn("Alimentación", texto)
+        self.assertIn("Rango: ayer", texto)
         self.assertNotIn("Estado:", texto)
 
     def test_pantalla_de_error_explica_el_motivo(self):

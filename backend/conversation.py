@@ -242,7 +242,7 @@ def _respuesta(
     return base
 
 
-def _describir_movimiento(transaccion):
+def _describir_movimiento(transaccion, etiqueta_fecha=None):
     tipo = str(transaccion.get("tipo") or "movimiento").lower()
     partes = [f"un {tipo} de {_moneda(transaccion.get('monto'))}"]
     if transaccion.get("categoria"):
@@ -251,10 +251,12 @@ def _describir_movimiento(transaccion):
         partes.append(f"para la meta {transaccion['meta']}")
     if transaccion.get("cuenta"):
         partes.append(f"desde {transaccion['cuenta']}")
+    if etiqueta_fecha:
+        partes.append(f"con fecha de {etiqueta_fecha}")
     return " ".join(partes)
 
 
-def _describir_movimiento_hablado(transaccion):
+def _describir_movimiento_hablado(transaccion, etiqueta_fecha=None):
     """Resumen corto y natural del movimiento para la voz."""
     tipo = str(transaccion.get("tipo") or "movimiento").lower()
     partes = [f"un {tipo} de {_monto_hablado(transaccion.get('monto'))}"]
@@ -262,6 +264,8 @@ def _describir_movimiento_hablado(transaccion):
         partes.append(f"en {str(transaccion['categoria']).lower()}")
     if transaccion.get("meta"):
         partes.append(f"para la meta {transaccion['meta']}")
+    if etiqueta_fecha:
+        partes.append(f"con fecha de {etiqueta_fecha}")
     return " ".join(partes)
 
 
@@ -371,6 +375,8 @@ def _registrar_movimiento(
     origen,
     audio_duration_s,
     message_id=None,
+    local_date_value=None,
+    etiqueta_fecha=None,
 ):
     resultado = _propuesta_movimiento(conn, usuario_id, texto, interpretacion)
     if resultado.get("intent") != "registrar" or not resultado.get("transacciones"):
@@ -400,6 +406,7 @@ def _registrar_movimiento(
         device_uid=dispositivo_uid,
         origen=origen,
         audio_duration_s=audio_duration_s,
+        local_date_value=local_date_value,
         interpretacion=resultado,
     )
     transaccion = (payload.get("transacciones") or [{}])[0]
@@ -410,29 +417,37 @@ def _registrar_movimiento(
             "tipo": "confirmar_mensaje",
             "message_id": payload.get("id"),
             "texto": texto,
-            "resumen": _describir_movimiento(transaccion),
-            "resumen_hablado": _describir_movimiento_hablado(transaccion),
+            "local_date_value": local_date_value,
+            "etiqueta_fecha": etiqueta_fecha,
+            "resumen": _describir_movimiento(transaccion, etiqueta_fecha),
+            "resumen_hablado": _describir_movimiento_hablado(
+                transaccion, etiqueta_fecha
+            ),
         },
         "borrador": None,
     }
     _recordar(nuevo_estado, texto, "confirmacion")
     guardar_estado(usuario_id, dispositivo_uid, nuevo_estado)
     mensaje = (
-        f"¿Registro {_describir_movimiento(transaccion)}? "
+        f"¿Registro {_describir_movimiento(transaccion, etiqueta_fecha)}? "
         "Puedes decir sí, está bien, ok, o corregirlo."
     )
     return _respuesta(
         mensaje,
         "confirmacion",
         nuevo_estado,
-        datos={"transaccion": transaccion},
+        datos={"transaccion": transaccion, "rango": {"etiqueta": etiqueta_fecha}}
+        if etiqueta_fecha
+        else {"transaccion": transaccion},
         requiere_confirmacion=True,
         payload=payload,
         intent="registrar",
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
         texto=texto,
-        texto_voz=f"¿Registro {_describir_movimiento_hablado(transaccion)}?",
+        texto_voz=(
+            f"¿Registro {_describir_movimiento_hablado(transaccion, etiqueta_fecha)}?"
+        ),
     )
 
 
@@ -547,6 +562,7 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
     services.update_transaction(conn, usuario_id, actual["id"], cambios)
     payload = services.message_payload(conn, usuario_id, message_id)
     transaccion = payload["transacciones"][0]
+    etiqueta_fecha = accion.get("etiqueta_fecha")
     nuevo_estado = {
         **estado,
         "estado": ESTADO_CONFIRMANDO_MOVIMIENTO,
@@ -554,13 +570,19 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
             "tipo": "confirmar_mensaje",
             "message_id": message_id,
             "texto": texto,
-            "resumen": _describir_movimiento(transaccion),
-            "resumen_hablado": _describir_movimiento_hablado(transaccion),
+            "local_date_value": accion.get("local_date_value"),
+            "etiqueta_fecha": etiqueta_fecha,
+            "resumen": _describir_movimiento(transaccion, etiqueta_fecha),
+            "resumen_hablado": _describir_movimiento_hablado(
+                transaccion, etiqueta_fecha
+            ),
         },
     }
     guardar_estado(usuario_id, dispositivo_uid, nuevo_estado)
     return _respuesta(
-        f"Corregido: {_describir_movimiento(transaccion)}. ¿Está correcto ahora?",
+        "Corregido: "
+        f"{_describir_movimiento(transaccion, etiqueta_fecha)}. "
+        "¿Está correcto ahora?",
         "confirmacion",
         nuevo_estado,
         datos={"transaccion": transaccion},
@@ -572,7 +594,7 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
         texto=texto,
         texto_voz=(
             "Corregido. "
-            f"¿Registro {_describir_movimiento_hablado(transaccion)}?"
+            f"¿Registro {_describir_movimiento_hablado(transaccion, etiqueta_fecha)}?"
         ),
     )
 
@@ -580,74 +602,157 @@ def _corregir_movimiento(conn, usuario_id, texto, interpretacion, estado, dispos
 # ---------------------------------------------------------------------------
 # Consultas simples
 # ---------------------------------------------------------------------------
-def _consulta_balance(conn, usuario_id, periodo, estado, dispositivo_uid, texto):
-    periodo = periodo if periodo in ("hoy", "semana", "mes") else "hoy"
+def _rango_consulta(texto, interpretacion):
+    """Resuelve la fecha de una consulta sin confiar en el cálculo del LLM."""
+    entidades = (interpretacion or {}).get("entidades") or {}
+    fecha_texto = str(entidades.get("fecha_texto") or "").strip()
+    rango = nlp.resolver_rango(fecha_texto or texto)
+    if not rango.get("expresion"):
+        periodo = str(entidades.get("periodo") or "").strip().lower()
+        if periodo in ("hoy", "semana", "mes"):
+            rango = nlp.resolver_rango(periodo)
+    return rango
+
+
+def _periodo_legado(rango, hoy):
+    """Alias para clientes y pruebas que todavía leen ``datos.periodo``."""
+    if rango["desde"] == rango["hasta"] == hoy:
+        return "hoy"
+    if rango["alcance"] == "semana" and rango["expresion"].startswith("esta semana"):
+        return "semana"
+    if rango["alcance"] == "mes" and rango["expresion"] == "este mes":
+        return "mes"
+    return rango["alcance"]
+
+
+def _frase_rango(rango, hoy):
+    """Prefijo natural para hablar de un rango sin decir «en hoy»."""
+    if rango["desde"] == rango["hasta"] == hoy:
+        return "Hoy"
+    etiqueta = rango["etiqueta"]
+    if etiqueta == "ayer":
+        return "Ayer"
+    if etiqueta == "anteayer":
+        return "Anteayer"
+    if etiqueta.startswith("esta semana"):
+        return "Esta semana"
+    if etiqueta in ("este mes", "el mes pasado", "la semana pasada"):
+        return etiqueta[0].upper() + etiqueta[1:]
+    if etiqueta.startswith("del "):
+        # «Del 3 al 5 de mayo registraste…», no «En del 3…».
+        return etiqueta[0].upper() + etiqueta[1:]
+    return f"En {etiqueta}"
+
+
+def _fecha_movimiento(interpretacion):
+    """Valida la fecha dictada para registrar un movimiento.
+
+    Devuelve ``(fecha_iso, etiqueta, error)``. Solo se aceptan fechas entre
+    hoy y 365 días atrás; el futuro se rechaza antes de crear el pendiente.
+    """
+    entidades = (interpretacion or {}).get("entidades") or {}
+    fecha_texto = str(entidades.get("fecha_texto") or "").strip()
+    if not fecha_texto:
+        return None, None, None
+    rango = nlp.resolver_rango(fecha_texto)
+    if not rango.get("expresion") or rango.get("alcance") != "dia":
+        return None, None, None
+    hoy = date_cls.fromisoformat(services.local_date())
+    try:
+        fecha = date_cls.fromisoformat(rango["desde"])
+    except (TypeError, ValueError):
+        return None, None, None
+    if fecha > hoy:
+        return (
+            None,
+            None,
+            "Todavía no puedo registrar movimientos con fecha futura.",
+        )
+    if fecha < hoy - timedelta(days=365):
+        return (
+            None,
+            None,
+            "Solo puedo registrar movimientos de los últimos 365 días.",
+        )
+    etiqueta = None if fecha == hoy else rango["etiqueta"]
+    return fecha.isoformat(), etiqueta, None
+
+
+def _consulta_balance(conn, usuario_id, rango, estado, dispositivo_uid, texto):
     hoy = services.local_date()
-    if periodo == "hoy":
-        resumen = services.metrics_daily(conn, usuario_id, hoy)
-        resumen = {
-            "desde": hoy,
-            "hasta": hoy,
-            "total_ingresos": resumen.get("total_ingresos", 0),
-            "total_gastos": resumen.get("total_gastos", 0),
-            "total_ahorrado": resumen.get("total_ahorrado", 0),
-            "balance_neto": resumen.get("balance_neto", 0),
-            "cupo_restante": resumen.get("cupo_restante"),
-            "presupuesto_diario": resumen.get("presupuesto_diario"),
-            "num_registros": resumen.get("num_registros", 0),
-        }
-        mensaje = (
-            f"Hoy llevas {_moneda(resumen['total_gastos'])} en gastos y "
-            f"{_moneda(resumen['total_ahorrado'])} en ahorro. "
-            f"Tu balance neto es {_moneda(resumen['balance_neto'])}."
-        )
-        texto_voz = (
-            f"Hoy llevas {_monto_hablado(resumen['total_gastos'])} en gastos y "
-            f"{_monto_hablado(resumen['total_ahorrado'])} en ahorro. "
-            f"Tu balance neto es {_monto_hablado(resumen['balance_neto'])}."
-        )
-        if resumen.get("cupo_restante") is not None:
-            mensaje += f" Te queda un cupo diario de {_moneda(resumen['cupo_restante'])}."
-            texto_voz += (
-                f" Te queda un cupo diario de "
-                f"{_monto_hablado(resumen['cupo_restante'])}."
-            )
-    else:
-        if periodo == "semana":
-            desde = (date_cls.fromisoformat(hoy) - timedelta(days=6)).isoformat()
-            etiqueta = "esta semana"
-        else:
-            desde = hoy[:7] + "-01"
-            etiqueta = "este mes"
-        totales = services.period_totals(conn, usuario_id, desde, hoy)
+    desde, hasta = rango["desde"], rango["hasta"]
+    if desde == hasta:
+        base = services.metrics_daily(conn, usuario_id, desde)
         resumen = {
             "desde": desde,
-            "hasta": hoy,
+            "hasta": hasta,
+            "total_ingresos": base.get("total_ingresos", 0),
+            "total_gastos": base.get("total_gastos", 0),
+            "total_ahorrado": base.get("total_ahorrado", 0),
+            "balance_neto": base.get("balance_neto", 0),
+            "cupo_restante": base.get("cupo_restante"),
+            "presupuesto_diario": base.get("presupuesto_diario"),
+            "num_registros": base.get("num_registros", 0),
+        }
+        if desde != hoy:
+            # El cupo diario solo tiene sentido para el día de hoy; en una
+            # consulta histórica no se habla de «lo que te queda».
+            resumen["cupo_restante"] = None
+            resumen["presupuesto_diario"] = None
+    else:
+        totales = services.period_totals(conn, usuario_id, desde, hasta)
+        resumen = {
+            "desde": desde,
+            "hasta": hasta,
             "total_ingresos": totales["ingresos"],
             "total_gastos": totales["gastos"],
             "total_ahorrado": totales["ahorro"],
             "balance_neto": totales["balance_neto"],
+            "cupo_restante": None,
+            "presupuesto_diario": None,
             "num_registros": totales["num_registros"],
         }
-        mensaje = (
-            f"En {etiqueta} registraste {_moneda(resumen['total_gastos'])} en gastos, "
-            f"{_moneda(resumen['total_ingresos'])} en ingresos y "
-            f"{_moneda(resumen['total_ahorrado'])} en ahorro. "
-            f"El balance es {_moneda(resumen['balance_neto'])}."
-        )
-        texto_voz = (
-            f"En {etiqueta} registraste "
-            f"{_monto_hablado(resumen['total_gastos'])} en gastos, "
-            f"{_monto_hablado(resumen['total_ingresos'])} en ingresos y "
-            f"{_monto_hablado(resumen['total_ahorrado'])} en ahorro. "
-            f"El balance es {_monto_hablado(resumen['balance_neto'])}."
+
+    if desde == hasta and desde == hoy:
+        prefijo = "Hoy"
+        verbo = "llevas"
+    elif desde == hasta and rango["etiqueta"] == "ayer":
+        prefijo = "Ayer"
+        verbo = "registraste"
+    elif desde == hasta:
+        prefijo = f"El {rango['etiqueta']}"
+        verbo = "registraste"
+    else:
+        prefijo = rango["etiqueta"][0].upper() + rango["etiqueta"][1:]
+        verbo = "registraste"
+    mensaje = (
+        f"{prefijo} {verbo} {_moneda(resumen['total_gastos'])} en gastos, "
+        f"{_moneda(resumen['total_ingresos'])} en ingresos y "
+        f"{_moneda(resumen['total_ahorrado'])} en ahorro. "
+        f"El balance es {_moneda(resumen['balance_neto'])}."
+    )
+    texto_voz = (
+        f"{prefijo} {verbo} {_monto_hablado(resumen['total_gastos'])} en gastos, "
+        f"{_monto_hablado(resumen['total_ingresos'])} en ingresos y "
+        f"{_monto_hablado(resumen['total_ahorrado'])} en ahorro. "
+        f"El balance es {_monto_hablado(resumen['balance_neto'])}."
+    )
+    if resumen.get("cupo_restante") is not None:
+        mensaje += f" Te queda un cupo diario de {_moneda(resumen['cupo_restante'])}."
+        texto_voz += (
+            f" Te queda un cupo diario de "
+            f"{_monto_hablado(resumen['cupo_restante'])}."
         )
     estado = {**estado, "estado": ESTADO_INACTIVA, "accion_pendiente": None}
     return _respuesta(
         mensaje,
         "consulta",
         estado,
-        datos={"periodo": periodo, "resumen": resumen},
+        datos={
+            "periodo": _periodo_legado(rango, hoy),
+            "rango": rango,
+            "resumen": resumen,
+        },
         intent="consulta_estado",
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
@@ -776,29 +881,111 @@ def _consulta_categorias(conn, usuario_id, estado, dispositivo_uid, texto):
     )
 
 
-def _consulta_movimientos(conn, usuario_id, estado, dispositivo_uid, texto):
-    movimientos = services.recent_transactions(conn, usuario_id, limit=8)
-    if movimientos:
+def _consulta_movimientos(
+    conn, usuario_id, rango, estado, dispositivo_uid, texto, recientes=False
+):
+    """Lista movimientos de un rango; sin expresión temporal usa los recientes.
+
+    La voz recibe solo el resumen del rango. El detalle completo queda en
+    ``datos.movimientos`` para que la pantalla lo muestre.
+    """
+    hoy = services.local_date()
+    resumen = None
+    if recientes or not rango.get("expresion"):
+        movimientos = services.recent_transactions(conn, usuario_id, limit=8)
+        datos = {"movimientos": movimientos}
+        if movimientos:
+            detalle = "; ".join(
+                f"{movimiento['tipo']} de {_moneda(movimiento['monto'])}"
+                + (
+                    f" en {movimiento['categoria']}"
+                    if movimiento.get("categoria")
+                    else ""
+                )
+                for movimiento in movimientos[:6]
+            )
+            detalle_voz = "; ".join(
+                f"{movimiento['tipo']} de {_monto_hablado(movimiento['monto'])}"
+                + (
+                    f" en {movimiento['categoria']}"
+                    if movimiento.get("categoria")
+                    else ""
+                )
+                for movimiento in movimientos[:4]
+            )
+            mensaje = f"Tus últimos movimientos: {detalle}."
+            texto_voz = f"Tus últimos movimientos: {detalle_voz}."
+        else:
+            mensaje = "Todavía no tienes movimientos registrados."
+            texto_voz = mensaje
+        return _respuesta(
+            mensaje,
+            "consulta",
+            estado,
+            datos=datos,
+            intent="consultar_movimientos",
+            dispositivo_uid=dispositivo_uid,
+            usuario_id=usuario_id,
+            texto=texto,
+            texto_voz=texto_voz,
+        )
+
+    desde, hasta = rango["desde"], rango["hasta"]
+    movimientos = services.transactions_between(conn, usuario_id, desde, hasta)
+    totales = services.period_totals(conn, usuario_id, desde, hasta)
+    resumen = {
+        "desde": desde,
+        "hasta": hasta,
+        "total_ingresos": totales["ingresos"],
+        "total_gastos": totales["gastos"],
+        "total_ahorrado": totales["ahorro"],
+        "balance_neto": totales["balance_neto"],
+        "num_registros": totales["num_registros"],
+    }
+    datos = {
+        "periodo": _periodo_legado(rango, hoy),
+        "rango": rango,
+        "resumen": resumen,
+        "movimientos": movimientos,
+    }
+    frase = _frase_rango(rango, hoy)
+    if not movimientos:
+        etiqueta = rango["etiqueta"]
+        if etiqueta.startswith("del "):
+            mensaje = f"No encontré movimientos {etiqueta}."
+        else:
+            mensaje = f"No encontré movimientos para {etiqueta}."
+        texto_voz = mensaje
+    else:
+        cantidad = len(movimientos)
         detalle = "; ".join(
             f"{movimiento['tipo']} de {_moneda(movimiento['monto'])}"
-            + (f" en {movimiento['categoria']}" if movimiento.get("categoria") else "")
+            + (
+                f" en {movimiento['categoria']}"
+                if movimiento.get("categoria")
+                else ""
+            )
             for movimiento in movimientos[:6]
         )
-        detalle_voz = "; ".join(
-            f"{movimiento['tipo']} de {_monto_hablado(movimiento['monto'])}"
-            + (f" en {movimiento['categoria']}" if movimiento.get("categoria") else "")
-            for movimiento in movimientos[:4]
+        if cantidad > 6:
+            detalle += f"; y {cantidad - 6} más"
+        mensaje = (
+            f"{frase} registraste {cantidad} movimiento"
+            + ("" if cantidad == 1 else "s")
+            + f": {detalle}."
         )
-        mensaje = f"Tus últimos movimientos: {detalle}."
-        texto_voz = f"Tus últimos movimientos: {detalle_voz}."
-    else:
-        mensaje = "Todavía no tienes movimientos registrados."
-        texto_voz = mensaje
+        texto_voz = (
+            f"{frase} registraste {cantidad} movimiento"
+            + ("" if cantidad == 1 else "s")
+            + f". Gastos: {_monto_hablado(resumen['total_gastos'])}. "
+            f"Ingresos: {_monto_hablado(resumen['total_ingresos'])}. "
+            f"Ahorro: {_monto_hablado(resumen['total_ahorrado'])}."
+        )
     return _respuesta(
         mensaje,
         "consulta",
         estado,
-        datos={"movimientos": movimientos},
+        datos=datos,
         intent="consultar_movimientos",
         dispositivo_uid=dispositivo_uid,
         usuario_id=usuario_id,
@@ -1555,6 +1742,19 @@ def procesar_turno(
             return propuesta
 
     if intent in ("registrar_movimiento", "registrar"):
+        local_date_value, etiqueta_fecha, error_fecha = _fecha_movimiento(
+            interpretacion
+        )
+        if error_fecha:
+            return _respuesta(
+                error_fecha,
+                "aclaracion",
+                {**estado, "estado": ESTADO_INACTIVA},
+                intent="requiere_aclaracion",
+                dispositivo_uid=dispositivo_uid,
+                usuario_id=usuario_id,
+                texto=texto,
+            )
         return _registrar_movimiento(
             conn,
             usuario_id,
@@ -1566,6 +1766,8 @@ def procesar_turno(
             origen,
             audio_duration_s,
             message_id=message_id,
+            local_date_value=local_date_value,
+            etiqueta_fecha=etiqueta_fecha,
         )
     if intent in ("confirmar", "cancelar"):
         return _respuesta(
@@ -1578,9 +1780,9 @@ def procesar_turno(
             texto=texto,
         )
     if intent == "consultar_balance":
-        periodo = (interpretacion.get("entidades") or {}).get("periodo") or "hoy"
+        rango = _rango_consulta(texto, interpretacion)
         return _consulta_balance(
-            conn, usuario_id, periodo, estado, dispositivo_uid, texto
+            conn, usuario_id, rango, estado, dispositivo_uid, texto
         )
     if intent == "consultar_metas":
         return _consulta_metas(conn, usuario_id, estado, dispositivo_uid, texto)
@@ -1591,7 +1793,10 @@ def procesar_turno(
     if intent == "consultar_categorias":
         return _consulta_categorias(conn, usuario_id, estado, dispositivo_uid, texto)
     if intent == "consultar_movimientos":
-        return _consulta_movimientos(conn, usuario_id, estado, dispositivo_uid, texto)
+        rango = _rango_consulta(texto, interpretacion)
+        return _consulta_movimientos(
+            conn, usuario_id, rango, estado, dispositivo_uid, texto
+        )
     if intent == "consultar_presupuesto":
         return _consulta_presupuesto(conn, usuario_id, estado, dispositivo_uid, texto)
     if intent == "consultar_perfil":

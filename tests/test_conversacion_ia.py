@@ -85,15 +85,23 @@ class ReglasConversacionalesTests(unittest.TestCase):
             self.assertEqual(self.interpretar(frase)["intent"], "cancelar", frase)
 
     def test_balance_por_periodo(self):
+        hoy = self.interpretar("¿cómo me fue hoy?")
+        self.assertEqual(hoy["intent"], "consultar_balance")
+        self.assertEqual(hoy["entidades"]["periodo"], "hoy")
+
+        semanal = self.interpretar("balance de esta semana")
+        self.assertEqual(semanal["intent"], "consultar_balance")
+        self.assertEqual(semanal["entidades"]["fecha_texto"], "balance de esta semana")
         self.assertEqual(
-            self.interpretar("¿cómo me fue hoy?")["entidades"]["periodo"], "hoy"
-        )
-        self.assertEqual(
-            self.interpretar("balance de esta semana")["entidades"]["periodo"],
+            nlp.resolver_rango(semanal["entidades"]["fecha_texto"])["alcance"],
             "semana",
         )
+
+        mensual = self.interpretar("balance del mes")
+        self.assertEqual(mensual["intent"], "consultar_balance")
+        self.assertEqual(mensual["entidades"]["fecha_texto"], "balance del mes")
         self.assertEqual(
-            self.interpretar("balance del mes")["entidades"]["periodo"], "mes"
+            nlp.resolver_rango(mensual["entidades"]["fecha_texto"])["alcance"], "mes"
         )
 
     def test_consulta_de_metas_y_plan(self):

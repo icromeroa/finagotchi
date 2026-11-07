@@ -7,10 +7,11 @@ las pruebas sean deterministas; el respaldo por reglas debe bastar.
 import os
 import tempfile
 import unittest
+from datetime import date, timedelta
 from pathlib import Path
 from unittest import mock
 
-from backend import conversation
+from backend import conversation, services
 from backend.server import create_app
 
 
@@ -228,6 +229,57 @@ class ConversationTests(unittest.TestCase):
         self.assertIn("$20.000", semanal["mensaje_nancy"])
         mensual = self.decir("¿cuánto gasté este mes?")
         self.assertEqual(mensual["datos"]["periodo"], "mes")
+
+    def test_registrar_con_fecha_de_ayer(self):
+        hoy = date.fromisoformat(services.local_date())
+        ayer = (hoy - timedelta(days=1)).isoformat()
+        respuesta = self.decir("gasté 20 mil en almuerzo ayer")
+        self.assertEqual(respuesta["intent"], "registrar")
+        self.assertEqual(respuesta["transacciones"][0]["fecha_local"], ayer)
+        self.assertIn("con fecha de ayer", respuesta["texto_voz"])
+        self.decir("sí")
+        consulta = self.decir("¿cuánto gasté ayer?")
+        self.assertEqual(consulta["datos"]["rango"]["desde"], ayer)
+        self.assertEqual(consulta["datos"]["rango"]["etiqueta"], "ayer")
+        self.assertIn("Ayer registraste", consulta["mensaje_nancy"])
+        self.assertIn("$20.000", consulta["mensaje_nancy"])
+        self.assertIsNone(consulta["datos"]["resumen"]["cupo_restante"])
+        self.assertNotIn("cupo diario", consulta["texto_voz"])
+
+    def test_gaste_ayer_sin_monto_es_consulta_con_lista(self):
+        self.decir("gasté 20 mil en almuerzo ayer")
+        self.decir("sí")
+        respuesta = self.decir("gasté ayer")
+        self.assertEqual(respuesta["intent"], "consultar_movimientos")
+        self.assertEqual(respuesta["tipo_respuesta"], "consulta")
+        self.assertEqual(respuesta["datos"]["rango"]["etiqueta"], "ayer")
+        self.assertEqual(len(respuesta["datos"]["movimientos"]), 1)
+        self.assertEqual(respuesta["datos"]["resumen"]["total_gastos"], 20000)
+        self.assertIn("Gastos: 20 mil pesos", respuesta["texto_voz"])
+        self.assertIn("$20.000", respuesta["mensaje_nancy"])
+
+    def test_movimientos_de_un_rango_con_fecha(self):
+        hoy = date.fromisoformat(services.local_date())
+        fin_mes = hoy.replace(day=1) - timedelta(days=1)
+        inicio_mes = fin_mes.replace(day=1)
+        dia = inicio_mes.replace(day=2)
+        mes = conversation.MESES_HABLADOS[dia.month - 1]
+        self.decir(f"gasté 15 mil en comida el 2 de {mes} de {dia.year}")
+        self.decir("sí")
+        respuesta = self.decir(
+            f"movimientos del 2 al 3 de {mes} de {dia.year}"
+        )
+        self.assertEqual(respuesta["intent"], "consultar_movimientos")
+        self.assertEqual(respuesta["datos"]["rango"]["alcance"], "rango")
+        self.assertEqual(respuesta["datos"]["rango"]["desde"], dia.isoformat())
+        self.assertEqual(len(respuesta["datos"]["movimientos"]), 1)
+        self.assertIn("Gastos: 15 mil pesos", respuesta["texto_voz"])
+
+    def test_fecha_futura_no_se_registra(self):
+        anio = date.fromisoformat(services.local_date()).year + 1
+        respuesta = self.decir(f"gasté 20 mil en almuerzo el 1 de enero de {anio}")
+        self.assertEqual(respuesta["tipo_respuesta"], "aclaracion")
+        self.assertIn("futura", respuesta["mensaje_nancy"])
 
     def test_consulta_de_metas_y_plan(self):
         self.crear_meta()

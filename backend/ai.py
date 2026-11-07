@@ -579,11 +579,13 @@ Intenciones permitidas:
 - registrar_movimiento: gasto, ingreso o ahorro con un monto.
 - crear_meta: el usuario quiere plantear una meta nueva.
 - actualizar_meta: el usuario responde con un dato de la meta que se esta creando.
-- consultar_balance: como me fue, balance, estado del dia. Usa entidades.periodo = "hoy", "semana" o "mes".
+- consultar_balance: como me fue, balance, totales de un dia o rango. Copia la expresion temporal en entidades.fecha_texto.
 - consultar_metas: como van mis metas.
 - consultar_plan: cuanto debo ahorrar o que plan recomienda.
 - consultar_cuentas, consultar_categorias, consultar_movimientos,
   consultar_presupuesto, consultar_perfil: consultas del catalogo o del perfil.
+  En consultar_movimientos copia en entidades.fecha_texto la expresion temporal
+  si el usuario la menciona ("ayer", "esta semana", "del 3 al 5 de mayo").
 - editar_movimiento: cambiar monto, categoria, cuenta o meta de un movimiento.
 - eliminar_movimiento: borrar o anular un movimiento.
 - crear_cuenta: crear una cuenta nueva.
@@ -602,12 +604,21 @@ Entidades posibles (usa null cuando no aparezcan):
 tipo ("gasto", "ingreso" o "ahorro"), monto (entero en pesos), categoria,
 cuenta, meta, nombre (de la meta), plazo_meses (entero), plazo_dias (entero),
 frecuencia ("diaria", "semanal", "quincenal" o "mensual"), prioridad (1 a 5),
-periodo ("hoy", "semana" o "mes"), concepto, tipo_cuenta ("efectivo",
-"billetera_digital", "tarjeta", "cuenta_ahorros" o "inversion").
+periodo ("hoy", "semana" o "mes"), fecha_texto (la expresion temporal tal como
+la dijo el usuario), alcance ("dia", "semana", "mes" o "rango"), concepto,
+tipo_cuenta ("efectivo", "billetera_digital", "tarjeta", "cuenta_ahorros" o
+"inversion").
 
 Reglas:
 - No inventes montos, fechas, nombres, cuentas ni metas.
-- No calcules fechas ni aportes: solo extrae lo que el usuario dijo.
+- No calcules fechas ni aportes: solo extrae lo que el usuario dijo en fecha_texto.
+  El backend convierte esa expresion a fechas reales.
+- "esta semana" siempre significa de lunes a hoy; "la semana pasada" es la
+  semana anterior completa.
+- Si dice "gaste ayer", "que gaste ayer" o "mis gastos de ayer" sin monto, es
+  consultar_movimientos (o consultar_balance si pide el total) con
+  fecha_texto = "ayer". Si incluye un monto, es registrar_movimiento con
+  fecha_texto = "ayer".
 - Si la frase es una respuesta corta a una pregunta pendiente, usa el estado y el borrador para clasificarla.
 - "ahorre", "guarde" o "separe" con monto es registrar_movimiento con tipo "ahorro".
 - Si el usuario dice "para mi meta de ..." incluye meta y tipo "ahorro".

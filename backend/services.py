@@ -1440,6 +1440,26 @@ def recent_transactions(conn, user_id, limit=10):
     return dict_rows(rows)
 
 
+def transactions_between(conn, user_id, start_date, end_date, limit=None):
+    """Movimientos confirmados dentro de un rango de fechas locales."""
+    sql = """
+        SELECT t.id, t.tipo, t.monto, t.fecha_local, t.concepto, t.estado,
+               c.nombre AS categoria, cu.nombre AS cuenta, m.nombre AS meta
+        FROM transacciones t
+        LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
+        LEFT JOIN cuentas cu ON cu.usuario_id = t.usuario_id AND cu.id = t.cuenta_id
+        LEFT JOIN metas m ON m.usuario_id = t.usuario_id AND m.id = t.meta_id
+        WHERE t.usuario_id = ? AND t.fecha_local BETWEEN ? AND ?
+          AND t.estado = 'confirmado' AND t.is_deleted = 0
+        ORDER BY t.fecha_local DESC, t.fecha_hora DESC, t.id DESC
+    """
+    params = [user_id, start_date, end_date]
+    if limit is not None:
+        sql += " LIMIT ?"
+        params.append(int(limit))
+    return dict_rows(conn.execute(sql, params).fetchall())
+
+
 def accounts_summary(conn, user_id):
     rows = conn.execute(
         "SELECT * FROM v_cuentas_resumen WHERE usuario_id = ? ORDER BY orden, cuenta_id",

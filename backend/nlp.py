@@ -742,6 +742,233 @@ def nombre_meta_probable(text):
     return None
 
 
+MESES_RANGO = {
+    "enero": 1,
+    "ene": 1,
+    "febrero": 2,
+    "feb": 2,
+    "marzo": 3,
+    "mar": 3,
+    "abril": 4,
+    "abr": 4,
+    "mayo": 5,
+    "may": 5,
+    "junio": 6,
+    "jun": 6,
+    "julio": 7,
+    "jul": 7,
+    "agosto": 8,
+    "ago": 8,
+    "septiembre": 9,
+    "setiembre": 9,
+    "sep": 9,
+    "octubre": 10,
+    "oct": 10,
+    "noviembre": 11,
+    "nov": 11,
+    "diciembre": 12,
+    "dic": 12,
+}
+
+MESES_NOMBRES = (
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+)
+
+
+def _fecha_valida(anio, mes, dia):
+    from datetime import date as date_cls
+
+    try:
+        return date_cls(int(anio), int(mes), int(dia))
+    except (TypeError, ValueError):
+        return None
+
+
+def _fecha_desde_expresion(texto, base):
+    """Interpreta una fecha suelta (no un rango) y devuelve ``date`` o None."""
+    normalized = normalize(texto)
+
+    match = re.search(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b", normalized)
+    if match:
+        return _fecha_valida(match.group(1), match.group(2), match.group(3))
+
+    match = re.search(
+        r"(?<!\d)(\d{1,2})[/\-.](\d{1,2})(?:[/\-.](\d{2,4}))?(?!\d)", normalized
+    )
+    if match:
+        anio = int(match.group(3)) if match.group(3) else base.year
+        if anio < 100:
+            anio += 2000
+        return _fecha_valida(anio, match.group(2), match.group(1))
+
+    match = re.search(
+        r"\b(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?\b", normalized
+    )
+    if match and match.group(2) in MESES_RANGO:
+        return _fecha_valida(
+            match.group(3) or base.year, MESES_RANGO[match.group(2)], match.group(1)
+        )
+
+    match = re.search(
+        r"\b(\d{1,2})\s+([a-z]+)(?:\s+de\s+(\d{4}))?\b", normalized
+    )
+    if match and match.group(2) in MESES_RANGO:
+        return _fecha_valida(
+            match.group(3) or base.year, MESES_RANGO[match.group(2)], match.group(1)
+        )
+    return None
+
+
+def _etiqueta_dia(fecha):
+    return f"{fecha.day} de {MESES_NOMBRES[fecha.month - 1]} de {fecha.year}"
+
+
+def _etiqueta_rango(inicio, fin):
+    if inicio == fin:
+        return _etiqueta_dia(inicio)
+    if inicio.year == fin.year and inicio.month == fin.month:
+        return (
+            f"del {inicio.day} al {fin.day} de "
+            f"{MESES_NOMBRES[inicio.month - 1]}"
+        )
+    if inicio.year == fin.year:
+        return (
+            f"del {inicio.day} de {MESES_NOMBRES[inicio.month - 1]} "
+            f"al {fin.day} de {MESES_NOMBRES[fin.month - 1]}"
+        )
+    return (
+        f"del {inicio.day} de {MESES_NOMBRES[inicio.month - 1]} de {inicio.year} "
+        f"al {fin.day} de {MESES_NOMBRES[fin.month - 1]} de {fin.year}"
+    )
+
+
+def _resultado_rango(inicio, fin, etiqueta, alcance, expresion):
+    if inicio > fin:
+        inicio, fin = fin, inicio
+    return {
+        "desde": inicio.isoformat(),
+        "hasta": fin.isoformat(),
+        "etiqueta": etiqueta,
+        "alcance": alcance,
+        "expresion": expresion,
+    }
+
+
+def resolver_rango(texto, hoy=None):
+    """Resuelve una expresión temporal en un rango ISO determinista.
+
+    El LLM puede copiar la expresión, pero nunca calcula la fecha: esta
+    función lo hace con Python para que «esta semana» sea siempre lunes a hoy.
+    """
+    from datetime import date as date_cls
+    from datetime import timedelta
+
+    base = hoy or date_cls.today()
+    if isinstance(base, str):
+        base = date_cls.fromisoformat(base)
+    normalized = normalize(texto)
+
+    match = re.search(
+        r"\b(?:del|desde el|desde|entre el|entre|de)\s+"
+        r"(\d{1,2})(?:\s+de\s+([a-z]+))?(?:\s+de\s+(\d{4}))?"
+        r"\s+(?:al|a|hasta el|hasta|y)\s+"
+        r"(\d{1,2})(?:\s+de\s+([a-z]+))?(?:\s+de\s+(\d{4}))?",
+        normalized,
+    )
+    if match:
+        dia1, dia2 = int(match.group(1)), int(match.group(4))
+        mes1 = MESES_RANGO.get(match.group(2)) if match.group(2) else None
+        mes2 = MESES_RANGO.get(match.group(5)) if match.group(5) else None
+        anio1 = int(match.group(3)) if match.group(3) else None
+        anio2 = int(match.group(6)) if match.group(6) else None
+        if mes1 is None and mes2 is not None:
+            mes1 = mes2
+        if mes2 is None and mes1 is not None:
+            mes2 = mes1
+        mes1 = mes1 or base.month
+        mes2 = mes2 or base.month
+        anio_base = anio1 or anio2 or base.year
+        inicio = _fecha_valida(anio1 or anio_base, mes1, dia1)
+        fin = _fecha_valida(anio2 or anio_base, mes2, dia2)
+        if (
+            inicio
+            and fin
+            and inicio > fin
+            and mes1 > mes2
+            and not (anio1 and anio2)
+        ):
+            inicio = _fecha_valida(anio_base - 1, mes1, dia1)
+        if inicio and fin:
+            return _resultado_rango(
+                inicio,
+                fin,
+                _etiqueta_rango(inicio, fin),
+                "rango",
+                match.group(0),
+            )
+
+    if any(
+        word_in_text(palabra, normalized)
+        for palabra in ("anteayer", "antes de ayer", "antier")
+    ):
+        dia = base - timedelta(days=2)
+        return _resultado_rango(dia, dia, "anteayer", "dia", "anteayer")
+    if word_in_text("ayer", normalized):
+        dia = base - timedelta(days=1)
+        return _resultado_rango(dia, dia, "ayer", "dia", "ayer")
+    if word_in_text("hoy", normalized):
+        return _resultado_rango(base, base, "hoy", "dia", "hoy")
+
+    if any(
+        word_in_text(palabra, normalized)
+        for palabra in ("semana pasada", "la semana pasada", "ultima semana")
+    ):
+        inicio_semana = base - timedelta(days=base.weekday())
+        fin = inicio_semana - timedelta(days=1)
+        inicio = fin - timedelta(days=6)
+        return _resultado_rango(
+            inicio, fin, "la semana pasada", "semana", "semana pasada"
+        )
+    if word_in_text("esta semana", normalized) or word_in_text("semana", normalized):
+        inicio = base - timedelta(days=base.weekday())
+        return _resultado_rango(
+            inicio, base, "esta semana (lunes a hoy)", "semana", "esta semana"
+        )
+
+    if any(
+        word_in_text(palabra, normalized)
+        for palabra in ("mes pasado", "el mes pasado", "ultimo mes")
+    ):
+        inicio_mes = base.replace(day=1)
+        fin = inicio_mes - timedelta(days=1)
+        inicio = fin.replace(day=1)
+        return _resultado_rango(
+            inicio, fin, "el mes pasado", "mes", "mes pasado"
+        )
+    if word_in_text("este mes", normalized) or word_in_text("mes", normalized):
+        inicio = base.replace(day=1)
+        return _resultado_rango(inicio, base, "este mes", "mes", "este mes")
+
+    fecha = _fecha_desde_expresion(normalized, base)
+    if fecha:
+        return _resultado_rango(
+            fecha, fecha, _etiqueta_dia(fecha), "dia", normalized
+        )
+
+    return _resultado_rango(base, base, "hoy", "dia", "")
+
+
 INTENCIONES_CONSULTA = {
     "como me fue": "hoy",
     "como va mi dia": "hoy",
@@ -787,6 +1014,49 @@ def detectar_intencion_conversacional(text):
         return {"intent": "consultar_cuentas", "entidades": {}, "confianza": 0.85}
     if any(word_in_text(palabra, normalized) for palabra in ("mis categorias", "categorias tengo")):
         return {"intent": "consultar_categorias", "entidades": {}, "confianza": 0.85}
+
+    # Una expresion temporal con verbo o sustantivo de movimiento es una
+    # consulta por ese dia/rango, no un registro. Va antes de las frases
+    # genericas («mis movimientos») para que «movimientos de ayer» filtre.
+    # Un rango («del 3 al 5») nunca se lee como monto.
+    rango = resolver_rango(text)
+    if rango["expresion"]:
+        pide_balance = any(
+            word_in_text(palabra, normalized)
+            for palabra in ("cuanto", "balance", "resumen", "total")
+        )
+        menciona_movimiento = any(
+            word_in_text(palabra, normalized)
+            for palabra in (
+                "gaste",
+                "gastado",
+                "gasto",
+                "gastos",
+                "ingrese",
+                "ingresado",
+                "ingreso",
+                "ingresos",
+                "ahorre",
+                "ahorrado",
+                "ahorro",
+                "movimiento",
+                "movimientos",
+                "registro",
+                "registros",
+            )
+        )
+        consulta_temporal = (pide_balance or menciona_movimiento) and (
+            parse_amount(normalized) is None or rango["alcance"] == "rango"
+        )
+        if consulta_temporal:
+            return {
+                "intent": (
+                    "consultar_balance" if pide_balance else "consultar_movimientos"
+                ),
+                "entidades": {"fecha_texto": text},
+                "confianza": 0.85,
+            }
+
     if any(word_in_text(palabra, normalized) for palabra in ("mis movimientos", "ultimos movimientos", "movimientos de")):
         return {"intent": "consultar_movimientos", "entidades": {}, "confianza": 0.85}
     if any(word_in_text(palabra, normalized) for palabra in ("presupuesto", "cupo")):
@@ -866,9 +1136,17 @@ def detectar_intencion_conversacional(text):
         }
 
     if parse_amount(normalized) is not None:
+        entidades = {
+            "tipo": detect_type(normalized),
+            "monto": parse_amount(normalized),
+        }
+        # Solo una fecha de dia («ayer», «el 3 de mayo») fecha el movimiento.
+        # «este mes» o «esta semana» no convierten un gasto en un dia suelto.
+        if rango["expresion"] and rango["alcance"] == "dia":
+            entidades["fecha_texto"] = text
         return {
             "intent": "registrar_movimiento",
-            "entidades": {"tipo": detect_type(normalized), "monto": parse_amount(normalized)},
+            "entidades": entidades,
             "confianza": 0.8,
         }
 

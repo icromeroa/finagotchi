@@ -393,6 +393,9 @@ def d15_conversacion(respuesta):
         ]
     if meta:
         lineas += ["", f"   {str(meta.get('nombre') or '')[:24]}"]
+    rango = datos.get("rango") or {}
+    if rango.get("etiqueta"):
+        lineas += ["", f"   Rango: {str(rango['etiqueta'])[:24]}"]
     resumen = datos.get("resumen")
     if resumen:
         lineas += [
