@@ -11,6 +11,7 @@ definida) y comprueba que se puede sintetizar una WAV.
 import argparse
 import json
 import os
+import ssl
 import sys
 import urllib.request
 from pathlib import Path
@@ -23,6 +24,16 @@ VOCES = {
     "es_MX-claude-high.onnx": "es/es_MX/claude/high/es_MX-claude-high.onnx",
     "es_MX-ald-x_low.onnx": "es/es_MX/ald/x_low/es_MX-ald-x_low.onnx",
 }
+
+
+def _contexto_ssl():
+    """CA de certifi: el Python de macOS no siempre trae los certificados."""
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:  # noqa: BLE001 - sin certifi se usa el almacén del sistema
+        return None
 
 
 def _destino():
@@ -42,7 +53,9 @@ def _descargar(nombre, destino, ruta_hf):
         return modelo
 
     print(f"Descargando {nombre} (puede tardar)...")
-    with urllib.request.urlopen(modelo_url, timeout=600) as respuesta, modelo.open("wb") as archivo:
+    with urllib.request.urlopen(
+        modelo_url, timeout=600, context=_contexto_ssl()
+    ) as respuesta, modelo.open("wb") as archivo:
         leidos = 0
         total = int(respuesta.headers.get("Content-Length") or 0)
         while True:
@@ -56,7 +69,9 @@ def _descargar(nombre, destino, ruta_hf):
     print("")
 
     print("Descargando configuración...")
-    with urllib.request.urlopen(json_url, timeout=60) as respuesta:
+    with urllib.request.urlopen(
+        json_url, timeout=60, context=_contexto_ssl()
+    ) as respuesta:
         config.write_bytes(respuesta.read())
 
     try:

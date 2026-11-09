@@ -313,6 +313,72 @@ def _entrada_elegida():
         return None, "microfono predeterminado"
 
 
+class Grabacion:
+    """Grabacion controlada por codigo, sin teclado.
+
+    La GUI la usa desde su hilo principal: ``iniciar()`` abre el microfono y
+    acumula bloques; ``detener()`` lo cierra y devuelve
+    ``(wav_bytes, duracion, estadisticas)``. No usa ``keyboard``, que en macOS
+    llama a Carbon/HIToolbox y aborta el proceso si se invoca fuera del hilo
+    principal.
+    """
+
+    def __init__(self):
+        self._bloques = []
+        self._stream = None
+        self._inicio = None
+        self.nombre = "microfono predeterminado"
+
+    @property
+    def activa(self):
+        return self._stream is not None
+
+    def iniciar(self):
+        if not MICROFONO_DISPONIBLE:
+            raise RuntimeError(
+                "No se pudo cargar sounddevice/PortAudio. "
+                "Instala requirements-simulator.txt."
+            )
+        indice, self.nombre = _entrada_elegida()
+        self._bloques = []
+
+        def callback(indata, frames, time_info, status):
+            self._bloques.append(indata.copy())
+
+        self._stream = sd.InputStream(
+            samplerate=CONFIG["sample_rate"],
+            channels=1,
+            dtype="int16",
+            device=indice,
+            callback=callback,
+        )
+        self._stream.start()
+        self._inicio = time.time()
+        return self.nombre
+
+    def detener(self, duracion_maxima=40):
+        if self._stream is not None:
+            try:
+                self._stream.stop()
+            finally:
+                self._stream.close()
+                self._stream = None
+        duracion = round(time.time() - self._inicio, 1) if self._inicio else 0.0
+        self._inicio = None
+        if not self._bloques:
+            return b"", duracion, {"pico": 0, "rms": 0.0, "muestras": 0}
+
+        import numpy as np
+
+        muestras = np.concatenate(self._bloques, axis=0)
+        stats = _estadisticas_audio(muestras)
+        if duracion > duracion_maxima:
+            return b"", duracion, stats
+        buffer = io.BytesIO()
+        wav.write(buffer, CONFIG["sample_rate"], muestras)
+        return buffer.getvalue(), duracion, stats
+
+
 def listar_microfonos():
     if not MICROFONO_DISPONIBLE:
         print("  No se pudo cargar sounddevice / PortAudio.")

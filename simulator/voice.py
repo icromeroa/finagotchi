@@ -3,6 +3,10 @@
 La voz online usa `POST /device/voice/synthesize`; la voz offline usa el banco
 de frases pregrabadas en ``simulator/assets/voz``. Si no hay dispositivo de
 audio o el backend no tiene Piper, el simulador sigue mostrando el texto.
+
+La reproducción es multiplataforma: ``winsound`` en Windows y ``sounddevice``
+en macOS/Linux. Antes solo se usaba ``winsound``, así que en macOS no sonaba
+nada aunque el backend generara el WAV.
 """
 
 from pathlib import Path
@@ -11,6 +15,11 @@ try:
     import winsound
 except Exception:  # noqa: BLE001 - requiere Windows o una API de audio
     winsound = None
+
+try:
+    import sounddevice as sd
+except Exception:  # noqa: BLE001 - falta PortAudio o no hay tarjeta de audio
+    sd = None
 
 RAIZ = Path(__file__).resolve().parent.parent
 
@@ -56,25 +65,55 @@ def _debe_hablar(respuesta, alcance):
     return tipo in ("confirmacion", "resultado", "consulta", "error", "aclaracion")
 
 
-def _jugar_bytes(audio):
-    if not audio or winsound is None:
+def _reproducir_con_sounddevice(muestras, sample_rate):
+    if sd is None:
         return False
     try:
-        # SND_MEMORY exige bytes, no BytesIO. Pasar el buffer lanzaba
-        # «TypeError: a bytes-like object is required, not '_io.BytesIO'».
-        winsound.PlaySound(audio, winsound.SND_MEMORY)
+        sd.play(muestras, sample_rate)
+        sd.wait()
         return True
-    except Exception:  # noqa: BLE001 - plataforma sin audio o WAV invalido
+    except Exception:  # noqa: BLE001 - salida de audio no disponible
+        return False
+
+
+def _jugar_bytes(audio):
+    if not audio:
+        return False
+    if winsound is not None:
+        try:
+            # SND_MEMORY exige bytes, no BytesIO. Pasar el buffer lanzaba
+            # «TypeError: a bytes-like object is required, not '_io.BytesIO'».
+            winsound.PlaySound(audio, winsound.SND_MEMORY)
+            return True
+        except Exception:  # noqa: BLE001 - plataforma sin audio o WAV invalido
+            pass
+    # macOS/Linux (y respaldo de Windows): decodifica el WAV en memoria.
+    try:
+        import io
+
+        import scipy.io.wavfile as wav
+
+        sample_rate, muestras = wav.read(io.BytesIO(audio))
+        return _reproducir_con_sounddevice(muestras, sample_rate)
+    except Exception:  # noqa: BLE001 - WAV invalido o sin audio
         return False
 
 
 def _jugar_archivo(path):
-    if winsound is None or not path.exists():
+    if not path.exists():
         return False
+    if winsound is not None:
+        try:
+            winsound.PlaySound(str(path), winsound.SND_FILENAME)
+            return True
+        except Exception:  # noqa: BLE001 - sin altavoz o archivo incorrecto
+            pass
     try:
-        winsound.PlaySound(str(path), winsound.SND_FILENAME)
-        return True
-    except Exception:  # noqa: BLE001 - sin altavoz o archivo incorrecto
+        import scipy.io.wavfile as wav
+
+        sample_rate, muestras = wav.read(str(path))
+        return _reproducir_con_sounddevice(muestras, sample_rate)
+    except Exception:  # noqa: BLE001 - sin audio o archivo incorrecto
         return False
 
 

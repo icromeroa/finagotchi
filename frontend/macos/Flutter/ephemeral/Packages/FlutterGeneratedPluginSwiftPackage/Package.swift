@@ -15,12 +15,14 @@ let package = Package(
         .library(name: "FlutterGeneratedPluginSwiftPackage", type: .static, targets: ["FlutterGeneratedPluginSwiftPackage"])
     ],
     dependencies: [
+        .package(name: "record_macos", path: "../.packages/record_macos-1.2.2"),
         .package(name: "FlutterFramework", path: "../.packages/FlutterFramework")
     ],
     targets: [
         .target(
             name: "FlutterGeneratedPluginSwiftPackage",
             dependencies: [
+                .product(name: "record-macos", package: "record_macos"),
                 .product(name: "FlutterFramework", package: "FlutterFramework")
             ]
         )

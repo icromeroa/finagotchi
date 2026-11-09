@@ -657,7 +657,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               : AppColors.wine.withOpacity(0.15),
         ),
       ),
-      child: ListTile(
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
@@ -704,6 +706,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ? Colors.red.shade700
               : AppColors.wine,
           size: 14,
+        ),
         ),
       ),
     );

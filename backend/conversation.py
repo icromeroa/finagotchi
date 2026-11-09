@@ -283,6 +283,44 @@ def _describir_movimiento_hablado(transaccion, etiqueta_fecha=None):
     return " ".join(partes)
 
 
+def enriquecer_confirmacion(payload):
+    """Completa un mensaje confirmado con lo necesario para que Nancy hable.
+
+    ``services.confirm_message`` se usa tanto desde el flujo conversacional
+    (que ya añade ``tipo_respuesta`` y ``texto_voz``) como desde los endpoints
+    ``/confirm``. En este segundo caso el cliente recibía el movimiento sin
+    frase ni orden de voz y Nancy se quedaba callada. Esta función rellena esos
+    campos a partir de las transacciones ya guardadas.
+    """
+    if not payload:
+        return payload
+    transacciones = [
+        transaccion
+        for transaccion in (payload.get("transacciones") or [])
+        if not transaccion.get("is_deleted")
+    ]
+    if transacciones:
+        partes = [_describir_movimiento(t) for t in transacciones]
+        partes_voz = [_describir_movimiento_hablado(t) for t in transacciones]
+        if len(partes) > 1:
+            resumen = ", ".join(partes[:-1]) + " y " + partes[-1]
+            resumen_voz = ", ".join(partes_voz[:-1]) + " y " + partes_voz[-1]
+        else:
+            resumen = partes[0]
+            resumen_voz = partes_voz[0]
+        mensaje = f"Listo. Guardé {resumen}."
+        texto_voz = f"Listo. Guardé {resumen_voz}."
+    else:
+        mensaje = "Listo. Guardé el movimiento."
+        texto_voz = mensaje
+    payload.setdefault("tipo_respuesta", "resultado")
+    payload.setdefault("mensaje_nancy", mensaje)
+    payload.setdefault("texto_voz", texto_voz)
+    payload.setdefault("estado_conversacion", ESTADO_INACTIVA)
+    payload.setdefault("requiere_confirmacion", False)
+    return payload
+
+
 # ---------------------------------------------------------------------------
 # Interpretacion
 # ---------------------------------------------------------------------------

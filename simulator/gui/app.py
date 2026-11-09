@@ -20,9 +20,11 @@ import customtkinter as ctk
 from simulator import pantallas, voice
 from simulator.main import (
     CONFIG,
+    MICROFONO_DISPONIBLE,
+    NIVEL_SILENCIO,
     ApiError,
     FinaGotchiClient,
-    capture_voice,
+    Grabacion,
     load_config,
     verificar_backend,
 )
@@ -53,6 +55,7 @@ class App(ctk.CTk):
         self.ultima_respuesta = None
         self.cola = queue.Queue()
         self._grabando = False
+        self._grabadora = None
         self._sprite_fotos = []
         self._sprite_animacion = None
         self._construir_ui()
@@ -116,11 +119,14 @@ class App(ctk.CTk):
             ("Salir", self.destroy, tema.PRIMARY),
         ]
         for indice, (texto, accion, color) in enumerate(definiciones):
-            ctk.CTkButton(
+            boton = ctk.CTkButton(
                 botones, text=texto, command=accion, font=tema.cuerpo(12),
                 fg_color=color, text_color=tema.TEXTO if color != tema.PRIMARY else "white",
                 corner_radius=12, width=100, height=30,
-            ).grid(row=indice // 3, column=indice % 3, padx=3, pady=3)
+            )
+            boton.grid(row=indice // 3, column=indice % 3, padx=3, pady=3)
+            if texto.endswith("Hablar"):
+                self.boton_hablar = boton
 
     # --- Utilidades ------------------------------------------------------
     def _actualizar_fecha(self):
@@ -469,20 +475,57 @@ class App(ctk.CTk):
         threading.Thread(target=funcion, daemon=True).start()
 
     def hablar(self):
-        if self._grabando or self.client is None:
+        if self.client is None:
             return
-        self._grabando = True
-        self._poner_sprite("ola")
-        self.mostrar_texto("Te escucho", "Mantén presionada la tecla ESPACIO y habla. Suelta para enviar.")
+
+        if not self._grabando:
+            if not MICROFONO_DISPONIBLE:
+                self.mostrar_texto(
+                    "Sin micrófono",
+                    "No se pudo cargar sounddevice/PortAudio. "
+                    "Instala requirements-simulator.txt.",
+                )
+                return
+            self._grabadora = Grabacion()
+            try:
+                nombre = self._grabadora.iniciar()
+            except Exception as exc:  # noqa: BLE001 - el micrófono no debe tumbar la GUI
+                self.mostrar_texto("Sin micrófono", str(exc))
+                self._grabadora = None
+                return
+            self._grabando = True
+            self._poner_sprite("ola")
+            self.mostrar_texto(
+                "Te escucho",
+                f"Habla ahora ({nombre}) y pulsa [Detener] al terminar.",
+            )
+            self.boton_hablar.configure(text="■ Detener")
+            return
+
+        self._grabando = False
+        self.boton_hablar.configure(text="🎙 Hablar")
+        try:
+            wav_bytes, duracion, stats = self._grabadora.detener()
+        except Exception as exc:  # noqa: BLE001
+            self.mostrar_texto("Error de audio", str(exc))
+            return
+        finally:
+            self._grabadora = None
+
+        if not wav_bytes:
+            if stats.get("pico", 0) < NIVEL_SILENCIO:
+                self.mostrar_texto(
+                    "No escuché tu voz",
+                    "Revisa el micrófono o escribe la frase en el campo de texto.",
+                )
+            else:
+                self.mostrar_texto("Audio vacío", "No se pudo capturar la frase.")
+            return
+
+        self.mostrar_texto("Procesando", "Entendiendo tu mensaje…")
+        self._poner_sprite("puntos")
 
         def trabajo():
-            wav_bytes, duracion, _stats = capture_voice()
-            self._grabando = False
-            if not wav_bytes:
-                self.cola.put(("texto", ("Sin audio", "No se pudo capturar la frase.")))
-                return
-            self.cola.put(("texto", ("Procesando", "Entendiendo tu mensaje…")))
-            self.cola.put(("sprite", "puntos"))
             try:
                 respuesta = self.client.send_audio(
                     wav_bytes, duracion, str(uuid.uuid4())
@@ -494,6 +537,14 @@ class App(ctk.CTk):
             self.cola.put(("respuesta", respuesta))
 
         self._hilo(trabajo)
+
+    def destroy(self):
+        if getattr(self, "_grabando", False) and getattr(self, "_grabadora", None):
+            try:
+                self._grabadora.detener()
+            except Exception:  # noqa: BLE001
+                pass
+        super().destroy()
 
     def enviar_entrada(self):
         texto = self.entrada.get().strip()

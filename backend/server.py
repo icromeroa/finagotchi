@@ -1069,6 +1069,10 @@ def create_app(database=None):
         if payload is None:
             return error("MENSAJE_NO_ENCONTRADO", "El mensaje no existe", 404)
         conversation.invalidar_accion_pendiente(g.user_id, message_id)
+        payload = conversation.enriquecer_confirmacion(payload)
+        voz = _voz_endpoint()
+        if voz:
+            payload.setdefault("voz", voz)
         return ok(payload)
 
     @app.post("/api/v1/messages/<int:message_id>/discard")
@@ -1760,6 +1764,10 @@ def create_app(database=None):
         if payload is None:
             return error("MENSAJE_NO_ENCONTRADO", "El mensaje no existe", 404)
         conversation.invalidar_accion_pendiente(g.device["usuario_id"], message_id)
+        payload = conversation.enriquecer_confirmacion(payload)
+        voz = _voz_endpoint()
+        if voz:
+            payload.setdefault("voz", voz)
         return ok(payload)
 
     @app.post("/api/v1/device/close-day")

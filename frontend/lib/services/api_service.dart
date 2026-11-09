@@ -1,13 +1,14 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'api_config.dart';
 
 class ApiService {
   final String baseUrl;
 
   ApiService({
-    this.baseUrl = 'http://10.0.2.2:5000/api/v1',
-  });
+    String? baseUrl,
+  }) : baseUrl = baseUrl ?? apiBaseUrl;
 
   // ==============================
   // REGISTRO
@@ -184,6 +185,7 @@ class ApiService {
       accessToken: accessToken,
     );
   }
+
   // ==============================
   // MÉTODO INTERNO GET
   // ==============================

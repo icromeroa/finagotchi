@@ -6,10 +6,24 @@ El simulador representa el dispositivo físico: inicia sesión con un usuario de
 
 ## Interfaz gráfica (GUI)
 
-La forma principal de usar el simulador es la ventana moderna en `simulator/gui/` (CustomTkinter, paleta del mockup: fondo crema, marco verde, rosa y lima):
+La forma principal de usar el simulador es la ventana moderna en `simulator/gui/` (CustomTkinter, paleta del mockup: fondo crema, marco verde, rosa y lima).
+
+**Importante:** ejecuta el comando desde la **raíz del repositorio**, no desde dentro de `simulator/`. Si lo ejecutas dentro de esa carpeta, Python confunde `simulator.py` con el paquete y falla con `ModuleNotFoundError: No module named 'simulator.main'`.
 
 ```powershell
 py -3 -m simulator.gui.app
+```
+
+En macOS (desde la raíz del proyecto):
+
+```bash
+python3 -m simulator.gui.app
+```
+
+Si tu terminal no tiene activado el entorno virtual del proyecto, usa directamente su Python:
+
+```bash
+.venv/bin/python -m simulator.gui.app
 ```
 
 Qué muestra:
@@ -22,7 +36,7 @@ Qué muestra:
   - *Metas*: total ahorrado, barra de progreso y detalle por meta (monto, %, fecha, aporte).
   - *Pendientes* y *movimientos*: lista con tipo, monto, categoría/cuenta y fecha.
 - **Botones Sí/No** cuando Nancy pide confirmación (hablan la misma frase por el flujo conversacional).
-- **Entrada dual**: campo de texto y botón **Hablar** (mantén ESPACIO) + acciones Estado, Plan, Cerrar, Avisos, Repetir, Voz y Salir.
+- **Entrada dual**: campo de texto y botón **Hablar** (clic para empezar a grabar, clic en **Detener** para terminar) + acciones Estado, Plan, Cerrar, Avisos, Repetir, Voz y Salir.
 
 **Nancy lo dice en voz, no lo muestra**: la frase larga de Nancy no se pinta en la GUI (se reproduce por Piper o el banco offline). Solo los avisos (aclaración/error/ayuda) se muestran como tarjeta, porque sin ellos no sabrías por qué se pidió aclaración.
 
@@ -88,19 +102,29 @@ Con `[V]` activas o silencian la voz. El flujo es:
 
 Para instalar la voz local (fuera del repositorio; no se versiona el modelo):
 
-```powershell
+```bash
+# macOS / Linux
+.venv/bin/python tools/configurar_voz.py
+
+# Windows
 py -3 tools/configurar_voz.py
 ```
 
-Por defecto instala `es_MX-claude-high.onnx` en `%USERPROFILE%/.finagotchi/piper`.
-El altavoz debe ser audible. Si no hay audio, el simulador sigue mostrando el texto sin bloquear.
+Por defecto instala `es_MX-claude-high.onnx` en `~/.finagotchi/piper`
+(`%USERPROFILE%\.finagotchi\piper` en Windows). En macOS la reproducción usa
+`sounddevice`, no `winsound`; si no hay altavoz o modelo, el simulador sigue
+mostrando el texto sin bloquear. Comprueba el estado con:
+
+```bash
+.venv/bin/python -c "from backend import tts; print(tts.disponible(), tts.model_path())"
+```
 
 ## Requisitos
 
 - Python 3.10 o superior.
 - Micrófono.
 - Conexión a Internet **opcional**: con Ollama (`qwen3:4b`) y faster-whisper el flujo completo funciona offline.
-- Permisos de administrador para que `keyboard` capture la tecla ESPACIO.
+- En macOS, solo la consola usa `keyboard` (requiere `sudo`); la GUI graba por clic y **no** necesita permisos de administrador.
 
 ## Instalación
 
@@ -259,13 +283,19 @@ Debe responder `{"ok": true, "data": {"estado": "ok", …}}`. Si no responde, el
 python3 simulator/main.py
 ```
 
-O la GUI (macOS puede pedir permiso especial):
+O la GUI (macOS puede pedir permiso especial), también **desde la raíz del repositorio**:
 
 ```bash
 python3 -m simulator.gui.app
 ```
 
-> **Permiso de teclado (macOS):** para que `keyboard` capture ESPACIO sin problemas, ve a *System Settings → Privacy & Security → Accessibility* y autoriza la app de terminal (Terminal o iTerm2). Si no quieres dar permiso, el simulador avisa que usará **ENTER** para grabar.
+Si `python3` no tiene `customtkinter`, usa el Python del entorno virtual:
+
+```bash
+.venv/bin/python -m simulator.gui.app
+```
+
+> **Micrófono en macOS:** la GUI no usa la tecla ESPACIO: pulsa **Hablar** para empezar a grabar y **Detener** para terminar (no hace falta `sudo`). La consola sí usa `keyboard`, que en macOS exige `sudo`; si no lo tienes, cae automáticamente a **ENTER**.
 
 **Error típico “No se pudo conectar con el backend”:** casi siempre es “levanté el backend en 5000 pero el simulador busca 5001” (o al revés). Todo debe coincidir: **mismo puerto, backend abierto y simulador apuntando a ese puerto**.
 

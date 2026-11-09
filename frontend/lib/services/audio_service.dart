@@ -7,12 +7,12 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import 'api_config.dart';
+
 class AudioService {
   final AudioRecorder _audioRecorder = AudioRecorder();
 
-  // IMPORTANTE: esta dirección debe quedar escrita así, sin corchetes
-  // ni formato de enlace.
-  final String baseUrl = 'http://10.0.2.2:5000/api/v1';
+  final String baseUrl = apiBaseUrl;
 
   Future<void> startRecording() async {
     try {
@@ -34,6 +34,10 @@ class AudioService {
       await _audioRecorder.start(
         const RecordConfig(
           encoder: AudioEncoder.wav,
+          // El backend solo acepta WAV mono a 16 kHz y 16 bits. Sin esto
+          // macOS graba en estéreo a 44.1 kHz y la API responde 422.
+          numChannels: 1,
+          sampleRate: 16000,
         ),
         path: path,
       );
