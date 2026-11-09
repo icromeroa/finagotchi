@@ -88,6 +88,7 @@ Estos son los comandos del proyecto, verificados por `tests/test_comandos.py`, q
 |---|---|
 | `py -3 backend/server.py` | Levanta la API en el puerto 5000. |
 | `py -3 simulator/main.py` | Abre el dispositivo simulado con su menú de pantallas. |
+| `py -3 tools/configurar_voz.py` | Descarga e instala la voz local de Nancy en `%USERPROFILE%/.finagotchi/piper`. |
 | `py -3 database/init_db.py` | Crea o actualiza la base de datos. |
 | `py -3 -m unittest discover -s tests -v` | Corre todas las pruebas. |
 | `py -3 tools/verificar_entorno.py` | Revisa dependencias, base, clave, IA y micrófono. |
@@ -104,8 +105,9 @@ py -3 -m unittest discover -s tests -v
 py -3 -m compileall -q backend simulator tests
 ```
 
-Al cierre de esta versión son **161 pruebas**. Incluyen esquema, API, audio, IA,
-seguridad, codificación, simulador y optimización con programación lineal.
+Al cierre de esta versión son **206 pruebas**. Incluyen esquema, API, audio, IA,
+seguridad, codificación, simulador, el agente conversacional y la optimización
+con programación lineal.
 
 Con el backend levantado se puede probar el flujo completo con audio real:
 

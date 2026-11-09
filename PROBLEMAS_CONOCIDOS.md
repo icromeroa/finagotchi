@@ -43,6 +43,7 @@ Estado al cierre de la Fase A y la fase del simulador por menús.
 | "catorce mil" no se entendía | El intérprete solo tenía una lista fija de frases en palabras. | Se reescribió el intérprete: entiende cifras y palabras, de "catorce mil" a "dos millones quinientos mil". |
 | Los millones no se detectaban | El patrón no contemplaba "millones". | Se reconoce "millones" y "1.5 millones". |
 | "5 mil" se perdía | El modelo de transcripción lo escribe "5.000". | El intérprete entiende las dos formas. |
+| Un mensaje interpretado por IA sin monto devolvía `500 ERROR_INTERNO` | Las transacciones exigen `monto > 0` y el LLM puede olvidar el monto. | `services.create_message` valida antes de insertar y degrada a `requiere_aclaracion`; ya no puede llegar a la base. Hay prueba en `tests/test_mensajes.py`. |
 
 ### El dataset de la base de datos
 
@@ -63,7 +64,7 @@ Estado al cierre de la Fase A y la fase del simulador por menús.
 | La app mostraba los acentos rotos (la A con circunflejo en vez de la e con acento) | **Doble codificacion UTF-8.** Al leer un archivo UTF-8 como Windows-1252 (cp1252) y volverlo a guardar como UTF-8, cada acento queda partido en dos caracteres: la e con acento se convierte en una A con circunflejo seguida del signo de copyright. Fue un error mio al usar `Get-Content` y `Set-Content` en PowerShell sin `-Encoding UTF8`. Afecto 35 lineas en 3 archivos, incluidos dos mensajes de error de la API. | Se corrigieron re-codificando de cp1252 a UTF-8. `tests/test_codificacion.py` recorre el repo y falla si vuelve a aparecer, y comprueba que los textos visibles se lean bien. **Regla: nunca usar `Get-Content`/`Set-Content` sin `-Encoding UTF8` sobre archivos con acentos.** |
 | La app no dejaba llegar al home sin vincular el dispositivo | El paso de enlace era obligatorio | Se agregó el botón "Ahora no" en `device_link_screen.dart`, que lleva directo al home. |
 | La app Flutter no tiene capa HTTP | El frontend no consume la API | La rama actual volvió al prototipo visual (commit `d5b783d`). La versión conectada se conserva en la rama `respaldo-frontend-conectado`; falta integrarla de nuevo y conectar el onboarding (15 pantallas). |
-| Un mensaje interpretado por IA sin monto produce `500 ERROR_INTERNO` | Si el LLM no devuelve `monto` y las reglas no encuentran cifras, `nlp.interpretar_con_ia` entrega `monto: null`; `services.create_message` intenta insertarlo en `transacciones` (`monto NOT NULL CHECK (monto > 0)`) y la restricción aborta la petición. | Validar el monto antes de insertar y degradar a `requiere_aclaracion`, o completar con la ruta por reglas. Reproducido simulando `ai.extraer_estructura`. |
+
 | En web no se puede grabar la voz | El navegador solo ofrece webm/opus y el backend acepta WAV | La app lo detecta y ofrece escribir la frase a mano. La voz funciona en Android e iOS. |
 | Flutter 3.47.9 está en `C:\Users\ASUS\Downloads\flutter` pero no en el PATH de las terminales abiertas | Flutter no se encuentra | Cerrar y abrir la terminal, o usar `C:\Users\ASUS\Downloads\flutter\bin\flutter.bat` |
 | La carpeta `frontend/assets/animations/` no existía | `flutter test` y `flutter build` fallaban al leer el pubspec | Se creó la carpeta con su `.gitkeep`. |

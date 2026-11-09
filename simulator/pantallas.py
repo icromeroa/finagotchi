@@ -5,8 +5,16 @@ titulos, contenidos y botones siguen lo definido en docs/DISPOSITIVO.md
 (seccion 7, pantallas D01 a D13).
 """
 
+from datetime import datetime
+
 ANCHO = 38
 LINEA = "-" * ANCHO
+
+_DIAS_CORTO = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")
+_MESES_CORTO = (
+    "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sep", "oct", "nov", "dic",
+)
 
 TONO_FELIZ = [
     "Vas muy bien hoy.",
@@ -102,7 +110,7 @@ def d02_sin_vincular():
     )
 
 
-def d03_reposo(home, conectado=True, bateria=87, pendientes=0):
+def d03_reposo(home, conectado=True, bateria=87, pendientes=0, cuando=None):
     hoy = home.get("hoy", {})
     mascota = home.get("mascota", {})
     animo = _animo_normalizado(mascota.get("animo"))
@@ -110,9 +118,16 @@ def d03_reposo(home, conectado=True, bateria=87, pendientes=0):
     cupo = hoy.get("cupo_restante", 0)
     presupuesto = hoy.get("presupuesto_diario", 0)
     estado_red = "WiFi" if conectado else "Sin senal"
+    momento = cuando or datetime.now()
+    fecha_hora = (
+        f"{_DIAS_CORTO[momento.weekday()]} {momento.day} "
+        f"{_MESES_CORTO[momento.month - 1]} · "
+        f"{momento.hour:02d}:{momento.minute:02d}"
+    )
     lineas = [
         "",
         f"  NANCY · {animo}",
+        f"  {fecha_hora}",
         f"  Salud {_barra(salud)} {salud}%",
         "",
         f"  Te quedan {_dinero(cupo)} de {_dinero(presupuesto)}",
@@ -182,7 +197,7 @@ def d06_confirmar(transacciones, texto=""):
             lineas.append(f"          {detalles}")
     if texto:
         lineas += ["", f'   "{texto[:30]}"']
-    lineas += ["", "   OK para confirmar", ""]
+    lineas += ["", "   Di: sí, está bien u ok", ""]
     return _caja(lineas)
 
 
@@ -347,11 +362,133 @@ def d14_plan_ahorro(plan):
     return _caja(lineas)
 
 
+def _envolver(texto, ancho=ANCHO - 4):
+    palabras = str(texto or "").split()
+    lineas = []
+    actual = ""
+    for palabra in palabras:
+        if len(actual) + len(palabra) + 1 > ancho:
+            if actual:
+                lineas.append(actual)
+            actual = palabra
+        else:
+            actual = f"{actual} {palabra}".strip()
+    if actual:
+        lineas.append(actual)
+    return lineas or [""]
+
+
+def _fecha_corta(valor):
+    """Devuelve 05/11 para una fecha ISO; deja intacto lo que no lo sea."""
+    texto = str(valor or "")
+    if len(texto) >= 10 and texto[4] == "-" and texto[7] == "-":
+        return f"{texto[8:10]}/{texto[5:7]}"
+    return texto[:10]
+
+
+def d15_conversacion(respuesta):
+    """Respuesta conversacional de Nancy, valida para voz y texto."""
+    mensaje = respuesta.get("mensaje_nancy") or "No obtuve una respuesta."
+    lineas = ["", "   NANCY dice:", ""]
+    for linea in _envolver(mensaje)[:7]:
+        lineas.append(f"   {linea}")
+    datos = respuesta.get("datos") or {}
+    transaccion = datos.get("transaccion")
+    borrador = datos.get("borrador")
+    meta = datos.get("meta")
+    if transaccion:
+        lineas += ["", f"   {str(transaccion.get('tipo', '')).upper()} {_dinero(transaccion.get('monto', 0))}"]
+        if transaccion.get("meta"):
+            lineas.append(f"   Meta: {transaccion['meta'][:22]}")
+    if borrador:
+        lineas += [
+            "",
+            f"   Meta: {str(borrador.get('nombre') or '')[:22]}",
+            f"   Monto: {_dinero(borrador.get('monto_meta', 0))}",
+        ]
+    if meta:
+        lineas += ["", f"   {str(meta.get('nombre') or '')[:24]}"]
+    rango = datos.get("rango") or {}
+    if rango.get("etiqueta"):
+        lineas += ["", f"   Rango: {str(rango['etiqueta'])[:24]}"]
+    resumen = datos.get("resumen")
+    if resumen:
+        lineas += [
+            "",
+            f"   Ingresos  {_dinero(resumen.get('total_ingresos', 0)):>12}",
+            f"   Gastos    {_dinero(resumen.get('total_gastos', 0)):>12}",
+            f"   Ahorro    {_dinero(resumen.get('total_ahorrado', 0)):>12}",
+            f"   Balance   {_dinero(resumen.get('balance_neto', 0)):>12}",
+        ]
+    movimientos = datos.get("movimientos") or []
+    if movimientos:
+        lineas += ["", "   Movimientos"]
+        for movimiento in movimientos[:5]:
+            categoria = ""
+            if movimiento.get("categoria"):
+                categoria = f" {str(movimiento['categoria'])[:12]}"
+            lineas.append(
+                f"   {_fecha_corta(movimiento.get('fecha_local'))} "
+                f"{str(movimiento.get('tipo', ''))[:7].upper():<7} "
+                f"{_dinero(movimiento.get('monto', 0))}{categoria}"
+            )
+        if len(movimientos) > 5:
+            lineas.append(f"   ... y {len(movimientos) - 5} más")
+    if respuesta.get("requiere_confirmacion"):
+        lineas.append("   Di sí, está bien, ok o no")
+        lineas.append("   [H] Hablar o [T] Escribir")
+    lineas.append("")
+    return _caja(lineas)
+
+
+def d16_error(titulo, mensaje, detalle=None):
+    lineas = ["", f"   {str(titulo)[:30]}", ""]
+    for linea in _envolver(mensaje)[:6]:
+        lineas.append(f"   {linea}")
+    if detalle:
+        for linea in _envolver(detalle, ancho=ANCHO - 4)[:3]:
+            lineas.append(f"   {linea}")
+    lineas += ["", "   [T] Escribir o [H] Hablar", ""]
+    return _caja(lineas)
+
+
+def d17_microfono(dispositivo, pico, rms, correcto=True):
+    lineas = [
+        "",
+        "   Prueba de micrófono",
+        "",
+        f"   Dispositivo: {str(dispositivo)[:20]}",
+        f"   Pico: {pico}",
+        f"   RMS: {rms}",
+        "",
+        "   " + ("Señal detectada." if correcto else "Casi no hay señal."),
+        "",
+    ]
+    if not correcto:
+        lineas += [
+            "   Revisa el micrófono",
+            "   en Windows o elige",
+            "   otro dispositivo.",
+            "",
+        ]
+    return _caja(lineas)
+
+
 def menu():
-    """Menu principal del simulador."""
+    """Menu informativo: la entrada principal es la voz."""
     return (
         "\n"
-        "  [H] Hablar   [E] Estado del día   [C] Cerrar el día\n"
+        "  Habla con Nancy o escribe la misma frase natural.\n"
+        "  Puedes decir:\n"
+        "   - Gasté 20 mil en almuerzo\n"
+        "   - Ahorré 50 mil para mi meta\n"
+        "   - Quiero crear una meta para comprar audífonos\n"
+        "   - ¿Cómo me fue hoy?  /  ¿Cómo van mis metas?\n"
+        "   - Sí, está bien  /  No, cancela\n"
+        "\n"
+        "  [H] Hablar   [T] Escribir   [A] Probar micrófono   [V] Voz"
+        "\n"
+        "  [E] Estado del día   [C] Cerrar el día\n"
         "  [P] Plan de ahorro   [N] Notificaciones\n"
         "  [R] Repetir la última frase   [S] Salir"
     )

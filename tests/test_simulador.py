@@ -91,6 +91,17 @@ class PantallasTests(unittest.TestCase):
         self.assertIn("Puntos", texto)
         self.assertIn("Mant", texto)
 
+    def test_el_reposo_muestra_fecha_y_hora(self):
+        from datetime import datetime
+
+        texto = pantallas.d03_reposo(
+            HOME, cuando=datetime(2026, 11, 7, 22, 55)
+        )
+        self.assertIn("sáb 7 nov", texto)
+        self.assertIn("22:55", texto)
+        lineas = texto.splitlines()
+        self.assertEqual(len({len(linea) for linea in lineas}), 1)
+
     def test_confirmar_muestra_tipo_monto_categoria_y_cuenta(self):
         texto = pantallas.d06_confirmar(
             [{"tipo": "gasto", "monto": 20000, "categoria": "Alimentación", "cuenta": "Nequi"}],
@@ -125,6 +136,91 @@ class PantallasTests(unittest.TestCase):
         menu = pantallas.menu()
         for opcion in ("[H]", "[E]", "[C]", "[P]", "[N]", "[S]"):
             self.assertIn(opcion, menu)
+
+    def test_el_menu_es_voz_primero_y_ofrece_texto_y_microfono(self):
+        menu = pantallas.menu()
+        self.assertIn("Habla con Nancy", menu)
+        self.assertIn("[T] Escribir", menu)
+        self.assertIn("[A] Probar micrófono", menu)
+        self.assertIn("[V] Voz", menu)
+        self.assertIn("Quiero crear una meta", menu)
+
+    def test_la_pantalla_conversacional_muestra_a_nancy(self):
+        texto = pantallas.d15_conversacion(
+            {
+                "mensaje_nancy": "Entendí un GASTO de $20.000 en Alimentación. ¿Está correcto?",
+                "estado_conversacion": "confirmando_movimiento",
+                "requiere_confirmacion": True,
+                "datos": {"transaccion": {"tipo": "gasto", "monto": 20000}},
+            }
+        )
+        self.assertIn("NANCY", texto)
+        self.assertIn("20.000", texto)
+        self.assertIn("Di sí", texto)
+        self.assertIn("[H] Hablar", texto)
+        self.assertNotIn("Estado:", texto)
+        self.assertNotIn("confirmando_movimiento", texto)
+        lineas = texto.splitlines()
+        self.assertEqual(len({len(linea) for linea in lineas}), 1)
+
+    def test_la_voz_por_defecto_cubre_las_consultas(self):
+        from simulator.main import DEFAULT_CONFIG
+
+        self.assertEqual(DEFAULT_CONFIG["voice_scope"], "resumen")
+
+    def test_la_pantalla_de_consulta_muestra_rango_y_movimientos(self):
+        texto = pantallas.d15_conversacion(
+            {
+                "mensaje_nancy": "Ayer registraste 2 movimientos.",
+                "tipo_respuesta": "consulta",
+                "estado_conversacion": "inactiva",
+                "datos": {
+                    "rango": {"etiqueta": "ayer"},
+                    "resumen": {
+                        "total_ingresos": 0,
+                        "total_gastos": 20000,
+                        "total_ahorrado": 5000,
+                        "balance_neto": -20000,
+                    },
+                    "movimientos": [
+                        {
+                            "tipo": "gasto",
+                            "monto": 20000,
+                            "fecha_local": "2026-11-05",
+                            "categoria": "Alimentación",
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertIn("20.000", texto)
+        self.assertIn("05/11", texto)
+        self.assertIn("Alimentación", texto)
+        self.assertIn("Rango: ayer", texto)
+        self.assertNotIn("Estado:", texto)
+
+    def test_pantalla_de_error_explica_el_motivo(self):
+        texto = pantallas.d16_error(
+            "STT_SIN_TEXTO", "No se pudo transcribir el audio", "pico 1"
+        )
+        self.assertIn("STT_SIN_TEXTO", texto)
+        self.assertIn("pico 1", texto)
+        self.assertIn("[T] Escribir", texto)
+
+    def test_pantalla_de_microfono_avisa_silencio(self):
+        texto = pantallas.d17_microfono("Realtek", 1, 0.48, False)
+        self.assertIn("Realtek", texto)
+        self.assertIn("Casi no hay señal", texto)
+
+
+class AudioSimuladorTests(unittest.TestCase):
+    def test_estadisticas_detectan_silencio(self):
+        from simulator import main as simulador_main
+
+        stats = simulador_main._estadisticas_audio([0, 0, 0, 0])
+        self.assertEqual(stats["pico"], 0)
+        self.assertEqual(stats["rms"], 0.0)
+        self.assertEqual(stats["muestras"], 4)
 
     def test_el_plan_de_ahorro_muestra_capacidad_y_metas(self):
         texto = pantallas.d14_plan_ahorro(
