@@ -4,6 +4,32 @@ El simulador representa el dispositivo físico: inicia sesión con un usuario de
 
 **La voz es la entrada principal.** El menú solo informa de qué puedes decir y qué teclas existen; lo normal es hablar o escribir la misma frase. Quien no pueda hablar usa `[T] Escribir`. Con `[A] Probar micrófono` el simulador mide el pico y el RMS de la señal y explica por qué puedes no estar escuchando nada.
 
+## Interfaz gráfica (GUI)
+
+La forma principal de usar el simulador es la ventana moderna en `simulator/gui/` (CustomTkinter, paleta del mockup: fondo crema, marco verde, rosa y lima):
+
+```powershell
+py -3 -m simulator.gui.app
+```
+
+Qué muestra:
+
+- **Cabecera** con fecha y hora y marco tipo dispositivo.
+- **Nancy con sprite** (PNG/GIF según ánimo; el estado `escuchando`, `dormida` y las animaciones `ola`/`puntos` se muestran al grabar/procesar).
+- **Tarjetas estructuradas**, nunca diccionarios crudos:
+  - *Cuentas*: rejilla con distintivo PREDET./TUYA, nº de movimientos y saldo.
+  - *Categorías*: pestañas Gastos/Ingresos con nº de movimientos por categoría.
+  - *Metas*: total ahorrado, barra de progreso y detalle por meta (monto, %, fecha, aporte).
+  - *Pendientes* y *movimientos*: lista con tipo, monto, categoría/cuenta y fecha.
+- **Botones Sí/No** cuando Nancy pide confirmación (hablan la misma frase por el flujo conversacional).
+- **Entrada dual**: campo de texto y botón **Hablar** (mantén ESPACIO) + acciones Estado, Plan, Cerrar, Avisos, Repetir, Voz y Salir.
+
+**Nancy lo dice en voz, no lo muestra**: la frase larga de Nancy no se pinta en la GUI (se reproduce por Piper o el banco offline). Solo los avisos (aclaración/error/ayuda) se muestran como tarjeta, porque sin ellos no sabrías por qué se pidió aclaración.
+
+Sprites e imágenes en `simulator/gui/assets/` (`sprites/`, `gifs/`, `iconos/`): ver `simulator/gui/assets/README.md` para los nombres exactos (`nancy_feliz.png`, `nancy_preocupada.png`, `nancy_escuchando.gif`, …). Si falta un archivo, la GUI dibuja un placeholder rosa y nunca se rompe. Las fuentes Outfit/Space Grotesk están en `simulator/gui/fonts/`.
+
+La consola (`py -3 simulator/main.py`) sigue disponible como alternativa sin ventana y se comporta igual.
+
 Recorre las mismas pantallas que tendrá el firmware, definidas en `docs/DISPOSITIVO.md`:
 
 | Pantalla | Qué muestra |
@@ -19,7 +45,7 @@ Recorre las mismas pantallas que tendrá el firmware, definidas en `docs/DISPOSI
 | D11 No entendí | Pide repetir con el monto y el tipo de movimiento. |
 | D13 Avisos | Las notificaciones del dispositivo. |
 | D14 Plan de ahorro | El plan LP de metas, solo lectura. |
-| D15 Respuesta de Nancy | Lo que Nancy dijo (voz y texto comparten pantalla). |
+| D15 Respuesta de Nancy | Lo que Nancy dijo (voz y texto comparten pantalla). En la GUI el texto largo no se pinta: solo se reproduce en voz y en pantalla va la tarjeta estructurada. |
 | D16 Error explicado | El motivo del error y la alternativa. |
 | D17 Prueba de micrófono | Pico y RMS de la señal y si hay voz. |
 
@@ -182,7 +208,13 @@ Terminal 1, desde la raíz del proyecto:
 py -3 backend/server.py
 ```
 
-Terminal 2, ejecutada como administrador:
+Terminal 2, ejecutada como administrador (GUI moderna):
+
+```powershell
+py -3 -m simulator.gui.app
+```
+
+O la consola clásica:
 
 ```powershell
 py -3 simulator/main.py
