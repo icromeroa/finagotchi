@@ -35,7 +35,7 @@ simulador funcionan de extremo a extremo. Al cierre de este documento:
 | Base de datos | SQLite, esquema 4, 40 tablas, 15 vistas y 11 triggers. |
 | Agente de voz | STT y LLM con proveedores intercambiables; faster-whisper es opcional. El agente conversacional (`backend/conversation.py`) conoce el diálogo en curso y confirma con frases naturales. |
 | Simulador | Cliente real del backend en `simulator/`; entrada voz-primero con `[T]` texto y `[A]` prueba de micrófono; pantallas D14 plan de ahorro, D15 respuesta de Nancy, D16 error explicado y D17 prueba de micrófono. |
-| App Flutter | Prototipo visual sin capa HTTP; la versión conectada está en la rama `respaldo-frontend-conectado`. |
+| App Flutter | App conectada al backend: login/registro real, vinculación por PIN y cuentas con saldo real. |
 | Automatización temporal | No existe scheduler; todo cálculo ocurre dentro de una petición. |
 | Optimización de metas | Implementada on-the-fly con programación lineal; ver `docs/OPTIMIZACION_IO.md`. |
 

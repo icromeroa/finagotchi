@@ -37,9 +37,9 @@ Etiquetas usadas:
 FinaGotchi es, en la práctica, un **backend Flask + SQLite**. El backend hace
 todo el trabajo de negocio: autentica, interpreta frases, crea propuestas de
 movimiento, exige confirmación, calcula presupuestos, puntos, metas, salud y
-notificaciones. El simulador de escritorio es el único cliente funcional de
-extremo a extremo. La app Flutter actual es un **prototipo visual**: no tiene
-capa HTTP y no lee ni escribe en el backend.
+notificaciones. El simulador de escritorio es el cliente funcional de
+extremo a extremo, junto con la app Flutter (login real, vinculación por PIN
+y cuentas con saldo real).
 
 El bucle central es:
 
@@ -1491,7 +1491,7 @@ Si el usuario cancela en cualquier punto, la meta no existe en la base.
 | Confirmación | Se describe confirmación por movimiento | Es por mensaje: confirma todas las pendientes del mensaje. |
 | Confirmación por voz | Se especula en el texto "OK" | Acepta frases naturales: sí, ok, correcto, está bien, confirmo. |
 | Consulta de estado | Se describe solo en la app | El agente responde por voz/texto y calcula sin escribir. |
-| Frontend | La especificación describe un cliente completo | La app actual es un prototipo visual sin HTTP; la versión conectada está en `respaldo-frontend-conectado`. |
+| Frontend | La especificación describe un cliente completo | La app está conectada a la API (login/registro, vinculación por PIN, cuentas con saldo real); ver `frontend/lib/services/api_service.dart`. |
 | Zona horaria | `usuarios.zona_horaria` por usuario | El backend siempre usa `America/Bogota`. |
 | Recordatorios | Se especifican notificaciones y recordatorios | No hay scheduler; solo se crea `movimiento_registrado` al confirmar. |
 | Alertas | `alertas_log` con muchos tipos | Ningún código inserta en `alertas_log`. |
@@ -1542,7 +1542,7 @@ Si el usuario cancela en cualquier punto, la meta no existe en la base.
 12. **No hay historial de presupuesto diario para fechas anteriores al primer
     registro.** Se usa el presupuesto actual como fallback.
 13. **El cierre acepta fechas futuras o pasadas sin validación.**
-14. **La app Flutter no es un cliente real.** Es un prototipo visual.
+14. **La app Flutter usa datos reales de la API.** Pinta home, cuentas y movimientos desde el backend; si hay error de red, lo muestra como error.
 15. **Una propuesta de IA sin monto ya no rompe la base.** Está validada antes de insertar; degrada a `requiere_aclaracion`. Ver sección 19.
 16. **Algunos campos numéricos opcionales responden 500 si llegan en `null`.**
     `int(None)` lanza `TypeError`, que no captura el manejador de `ValueError`.
