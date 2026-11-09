@@ -1,0 +1,95 @@
+"""Pruebas de la GUI del simulador (Fase 24), sin red ni micrófono.
+
+Las pruebas de ventana se omiten si no hay pantalla disponible; las de
+tema y sprites corren siempre.
+"""
+
+import os
+import tempfile
+import unittest
+from pathlib import Path
+
+from simulator.gui import sprites, tema
+
+
+class TemaTests(unittest.TestCase):
+    def test_paleta_del_mockup(self):
+        self.assertEqual(tema.PRIMARY, "#832D52")
+        self.assertEqual(tema.SECONDARY, "#F0AFC5")
+        self.assertEqual(tema.TERTIARY, "#B2CE45")
+        self.assertEqual(tema.NEUTRAL, "#F6E5D1")
+
+    def test_fuentes_con_fallback(self):
+        self.assertTrue(tema.headline(20))
+        self.assertTrue(tema.cuerpo(14))
+
+
+class SpritesTests(unittest.TestCase):
+    def test_sin_archivo_hay_placeholder(self):
+        with tempfile.TemporaryDirectory() as carpeta:
+            original = sprites.ASSETS
+            sprites.ASSETS = Path(carpeta)
+            try:
+                frames, _duracion = sprites.cargar_frames("feliz")
+            finally:
+                sprites.ASSETS = original
+        self.assertEqual(len(frames), 1)
+        self.assertEqual(frames[0].size, (sprites.ANCHO_SPRITE,) * 2)
+
+    def test_png_se_anima_como_un_frame(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as carpeta:
+            original = sprites.ASSETS
+            sprites.ASSETS = Path(carpeta)
+            ruta = sprites.ASSETS / "nancy_feliz.png"
+            Image.new("RGB", (40, 40), (240, 175, 197)).save(ruta)
+            try:
+                frames, _duracion = sprites.cargar_frames("feliz")
+            finally:
+                sprites.ASSETS = original
+        self.assertEqual(len(frames), 1)
+
+    def test_gif_se_descompone_en_frames(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as carpeta:
+            original = sprites.ASSETS
+            sprites.ASSETS = Path(carpeta)
+            ruta = sprites.ASSETS / "nancy_escuchando.gif"
+            imagen = Image.new("RGB", (40, 40), (240, 175, 197))
+            imagen.save(ruta, save_all=True, append_images=[imagen.copy()], duration=100, loop=0)
+            try:
+                frames, duracion = sprites.cargar_frames("escuchando")
+            finally:
+                sprites.ASSETS = original
+        self.assertGreaterEqual(len(frames), 1)
+        self.assertGreater(duracion, 0)
+
+
+@unittest.skipIf(os.environ.get("CI"), "Sin pantalla en CI")
+class NavegacionTests(unittest.TestCase):
+    def test_la_ventana_se_construye_y_pinta_reposo(self):
+        from simulator.gui.app import App
+
+        try:
+            app = App(arranque=False)
+        except Exception as exc:  # noqa: BLE001 - sin display no se puede
+            self.skipTest(f"Sin pantalla: {exc}")
+        try:
+            app.mostrar_reposo(
+                {
+                    "hoy": {"gastos": 20000, "ingresos": 800000,
+                            "cupo_restante": 10000, "presupuesto_diario": 30000},
+                    "mascota": {"animo": "FELIZ", "salud": 92},
+                    "puntos": 3,
+                }
+            )
+            self.assertTrue(app.contenido.winfo_children())
+            app.update()
+        finally:
+            app.destroy()
+
+
+if __name__ == "__main__":
+    unittest.main()
