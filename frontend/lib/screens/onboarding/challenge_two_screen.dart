@@ -25,10 +25,15 @@ class _ChallengeTwoScreenState extends State<ChallengeTwoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.cream,
       body: SafeArea(
         child: Column(
           children: [
-            OnboardingHeader(step: 5, onBack: () => Navigator.pop(context), onSkip: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChallengeThreeScreen(name: widget.name)))),
+            OnboardingHeader(
+              step: 5,
+              onBack: () => Navigator.pop(context),
+              onSkip: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChallengeThreeScreen(name: widget.name))),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
@@ -37,10 +42,21 @@ class _ChallengeTwoScreenState extends State<ChallengeTwoScreen> {
                   children: [
                     const Text('Mini Reto #2 con Nancy 🛒', style: TextStyle(color: AppColors.wine, fontSize: 20, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 22),
-                    const Row(
+                    Row(
                       children: [
-                        Expanded(child: Icon(Icons.pets, size: 75, color: AppColors.mutedPink)),
-                        Expanded(child: _Bubble(text: 'Cuidado con el monstruo silencioso... ¡Veamos qué tanto sabes de precios!')),
+                        Expanded(
+                          child: SizedBox(
+                            height: 125,
+                            child: Image.asset(
+                              'assets/images/nancy_pregunta.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.pets, size: 75, color: AppColors.mutedPink);
+                              },
+                            ),
+                          ),
+                        ),
+                        const Expanded(child: _Bubble(text: 'Cuidado con el monstruo silencioso... ¡Veamos qué tanto sabes de precios!')),
                       ],
                     ),
                     const SizedBox(height: 28),

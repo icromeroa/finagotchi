@@ -352,7 +352,11 @@ CREATE TABLE IF NOT EXISTS dispositivos_telemetria (
     bateria           INTEGER CHECK (bateria BETWEEN 0 AND 100),
     estado            TEXT,
     boton             INTEGER CHECK (boton IN (0,1)),
+<<<<<<< HEAD
     audio_duracion_s  REAL    CHECK (audio_duracion_s IS NULL OR audio_duracion_s BETWEEN 0.5 AND 40),
+=======
+    audio_duracion_s  REAL    CHECK (audio_duracion_s IS NULL OR audio_duracion_s BETWEEN 0.5 AND 30),
+>>>>>>> helen
     payload_json      TEXT,
     recibido_en       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
     fecha_local       TEXT    NOT NULL

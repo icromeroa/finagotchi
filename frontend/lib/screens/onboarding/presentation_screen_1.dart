@@ -24,7 +24,7 @@ class PresentationScreen1 extends StatelessWidget {
             return Stack(
               clipBehavior: Clip.hardEdge,
               children: [
-                // 1. Fondo base (sin Positioned para que el Stack tome tamaño real y funcionen los clics)
+                // 1. Fondo base
                 Container(
                   width: w,
                   height: h,
@@ -42,7 +42,7 @@ class PresentationScreen1 extends StatelessWidget {
                   ),
                 ),
 
-                // Fondo rosado superior con la onda exacta.
+                // Fondo rosado superior con la onda exacta
                 Positioned(
                   top: 0,
                   left: 0,
@@ -56,7 +56,7 @@ class PresentationScreen1 extends StatelessWidget {
                   ),
                 ),
 
-                // Monedas decorativas con tu imagen coin.png
+                // Monedas decorativas con coin.png
                 Positioned(
                   top: h * 0.08,
                   left: w * 0.08,
@@ -73,7 +73,23 @@ class PresentationScreen1 extends StatelessWidget {
                   child: const _Coin(size: 42),
                 ),
 
-                // Indicador de tres presentaciones (Barrita activa en el primer lugar).
+                // ===================================================
+                // NANCY CON LIBRETA (Imagen central en la zona rosada)
+                // ===================================================
+                Positioned(
+                  top: h * 0.09,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/nancy_libreta 1.png', // Asegúrate de tenerla en esta ruta
+                      width: w * 0.38,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+
+                // Indicador de tres presentaciones
                 Positioned(
                   top: h * 0.385,
                   left: 0,
@@ -111,7 +127,7 @@ class PresentationScreen1 extends StatelessWidget {
                   ),
                 ),
 
-                // Título principal.
+                // Título principal
                 Positioned(
                   top: h * 0.43,
                   left: 20,
@@ -146,7 +162,7 @@ class PresentationScreen1 extends StatelessWidget {
                   ),
                 ),
 
-                // Descripción.
+                // Descripción
                 Positioned(
                   top: h * 0.56,
                   left: 28,
@@ -176,7 +192,7 @@ class PresentationScreen1 extends StatelessWidget {
                   ),
                 ),
 
-                // Etiquetas (Presiona para hablar / Nancy feliz).
+                // Etiquetas (Presiona para hablar / Nancy feliz)
                 Positioned(
                   top: h * 0.68,
                   left: 16,
@@ -234,7 +250,7 @@ class PresentationScreen1 extends StatelessWidget {
                   ),
                 ),
 
-                // Bloque inferior organizado con un TextButton 100% interactivo
+                // Bloque inferior organizado
                 Positioned(
                   bottom: h * 0.03,
                   left: 20,
@@ -363,7 +379,6 @@ class _WavePainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.fill;
 
-    // Curva exacta superior para replicar el diseño limpio de Figma
     final path = Path()
       ..lineTo(0, size.height * 0.75)
       ..cubicTo(
@@ -387,7 +402,6 @@ class _WavePainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
 
-    // Línea de contorno (stroke) idéntica a la onda
     final linePath = Path()
       ..lineTo(0, size.height * 0.75)
       ..cubicTo(
