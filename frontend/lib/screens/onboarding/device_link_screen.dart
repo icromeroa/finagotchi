@@ -132,7 +132,48 @@ class _LinkingViewState extends State<_LinkingView> {
   final _pinController = TextEditingController();
   final _api = ApiService();
   bool _linking = false;
+  bool _unlinking = false;
   String? _error;
+  String? _unlinkMsg;
+
+  Future<void> _desvincular() async {
+    if (_unlinking) return;
+    final deviceUid = _deviceUidController.text.trim();
+    if (deviceUid.isEmpty) {
+      setState(() => _error = 'Escribe el device_uid del dispositivo.');
+      return;
+    }
+    final token = AuthSession.accessToken;
+    if (token == null || token.isEmpty) {
+      setState(() => _error = 'Primero inicia sesión en la app.');
+      return;
+    }
+    setState(() {
+      _unlinking = true;
+      _error = null;
+      _unlinkMsg = null;
+    });
+    try {
+      final result = await _api.unlinkDevice(
+        deviceUid: deviceUid,
+        accessToken: token,
+      );
+      if (!mounted) return;
+      final desvinculado = (result['data'] as Map?)?['desvinculado'] == true;
+      setState(() {
+        _unlinkMsg = desvinculado
+            ? 'Dispositivo desvinculado. Reinicia el simulador para generar un PIN nuevo.'
+            : 'No se pudo desvincular.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() => _unlinking = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -437,6 +478,20 @@ class _LinkingViewState extends State<_LinkingView> {
             ),
           ),
           const SizedBox(height: 10),
+          if (_unlinkMsg != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _unlinkMsg!,
+                  style: const TextStyle(color: Color(0xFF0B5D3B), fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
+          TextButton(
+            onPressed: _unlinking ? null : _desvincular,
+            child: Text(
+              _unlinking ? 'Desvinculando…' : 'Desvincular este dispositivo',
+              style: const TextStyle(color: AppColors.wine, fontWeight: FontWeight.bold, fontSize: 12.5, decoration: TextDecoration.underline),
+            ),
+          ),
           TextButton(
             onPressed: onCancel,
             child: const Text(

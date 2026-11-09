@@ -299,6 +299,32 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> claimDevice({
+    required String deviceUid,
+    required String pin,
+  }) async {
+    return _post(
+      '/device/claim',
+      {
+        'device_uid': deviceUid,
+        'pin': pin,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> unlinkDevice({
+    required String deviceUid,
+    required String accessToken,
+  }) async {
+    return _post(
+      '/device/unlink',
+      {
+        'device_uid': deviceUid,
+      },
+      accessToken: accessToken,
+    );
+  }
+
   Future<Map<String, dynamic>> listDevices({
     required String accessToken,
   }) async {
