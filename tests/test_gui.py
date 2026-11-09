@@ -25,14 +25,22 @@ class TemaTests(unittest.TestCase):
 
 
 class SpritesTests(unittest.TestCase):
+    def _con_carpetas(self, carpeta):
+        original = sprites.SPRITES
+        gifs_original = sprites.GIFS
+        sprites.SPRITES = Path(carpeta)
+        sprites.GIFS = Path(carpeta) / "vacio"
+        sprites.GIFS.mkdir(exist_ok=True)
+        return original, gifs_original
+
     def test_sin_archivo_hay_placeholder(self):
         with tempfile.TemporaryDirectory() as carpeta:
-            original = sprites.ASSETS
-            sprites.ASSETS = Path(carpeta)
+            original, gifs_original = self._con_carpetas(carpeta)
             try:
                 frames, _duracion = sprites.cargar_frames("feliz")
             finally:
-                sprites.ASSETS = original
+                sprites.SPRITES = original
+                sprites.GIFS = gifs_original
         self.assertEqual(len(frames), 1)
         self.assertEqual(frames[0].size, (sprites.ANCHO_SPRITE,) * 2)
 
@@ -40,29 +48,48 @@ class SpritesTests(unittest.TestCase):
         from PIL import Image
 
         with tempfile.TemporaryDirectory() as carpeta:
-            original = sprites.ASSETS
-            sprites.ASSETS = Path(carpeta)
-            ruta = sprites.ASSETS / "nancy_feliz.png"
+            original, gifs_original = self._con_carpetas(carpeta)
+            ruta = sprites.SPRITES / "nancy_feliz.png"
             Image.new("RGB", (40, 40), (240, 175, 197)).save(ruta)
             try:
                 frames, _duracion = sprites.cargar_frames("feliz")
             finally:
-                sprites.ASSETS = original
+                sprites.SPRITES = original
+                sprites.GIFS = gifs_original
+        self.assertEqual(len(frames), 1)
+
+    def test_alias_preocupada_equivale_a_preocupado(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as carpeta:
+            original = sprites.SPRITES
+            gifs_original = sprites.GIFS
+            sprites.SPRITES = Path(carpeta)
+            sprites.GIFS = Path(carpeta) / "vacio"
+            (sprites.SPRITES / "nancy_preocupada.png").parent.mkdir(exist_ok=True)
+            Image.new("RGB", (40, 40), (240, 175, 197)).save(
+                sprites.SPRITES / "nancy_preocupada.png"
+            )
+            try:
+                frames, _duracion = sprites.cargar_frames("preocupado", tamano=40)
+            finally:
+                sprites.SPRITES = original
+                sprites.GIFS = gifs_original
         self.assertEqual(len(frames), 1)
 
     def test_gif_se_descompone_en_frames(self):
         from PIL import Image
 
         with tempfile.TemporaryDirectory() as carpeta:
-            original = sprites.ASSETS
-            sprites.ASSETS = Path(carpeta)
-            ruta = sprites.ASSETS / "nancy_escuchando.gif"
+            original, gifs_original = self._con_carpetas(carpeta)
+            ruta = sprites.SPRITES / "nancy_escuchando.gif"
             imagen = Image.new("RGB", (40, 40), (240, 175, 197))
             imagen.save(ruta, save_all=True, append_images=[imagen.copy()], duration=100, loop=0)
             try:
                 frames, duracion = sprites.cargar_frames("escuchando")
             finally:
-                sprites.ASSETS = original
+                sprites.SPRITES = original
+                sprites.GIFS = gifs_original
         self.assertGreaterEqual(len(frames), 1)
         self.assertGreater(duracion, 0)
 

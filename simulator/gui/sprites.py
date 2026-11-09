@@ -1,12 +1,15 @@
 """Sprites de Nancy (PNG o GIF) con respaldo dibujado.
 
-Los archivos van en ``simulator/gui/assets/sprites/`` con el nombre
-``nancy_<estado>.png`` o ``.gif`` (ver ``assets/README.md``). Si un estado
-no tiene archivo, se genera un placeholder rosa con el nombre del estado:
-la GUI nunca se rompe por falta de arte.
+Los archivos van en ``simulator/gui/assets/sprites/`` (cerditas) y
+``simulator/gui/assets/gifs/`` (animaciones sueltas). Nombres esperados:
+``nancy_<estado>.png`` o ``.gif``; también se acepta el alias femenino
+``nancy_preocupada`` para el estado ``preocupado``. Si un estado no tiene
+archivo, se genera un placeholder rosa con el nombre del estado: la GUI
+nunca se rompe por falta de arte.
 
 Los GIF se descomponen en frames con Pillow; el widget que los muestra
-recorre los frames con ``after()``.
+recorre los frames con ``after()``. El arte conserva su proporción
+vertical (no se estira a cuadrado).
 """
 
 from pathlib import Path
@@ -14,7 +17,9 @@ from pathlib import Path
 import customtkinter as ctk
 from PIL import Image
 
-ASSETS = Path(__file__).resolve().parent / "assets" / "sprites"
+RAIZ = Path(__file__).resolve().parent
+SPRITES = RAIZ / "assets" / "sprites"
+GIFS = RAIZ / "assets" / "gifs"
 ANCHO_SPRITE = 180
 
 ESTADOS = (
@@ -25,11 +30,35 @@ ESTADOS = (
     "escuchando",
     "dormida",
     "cierre",
+    "ola",
+    "puntos",
 )
 
+_ALIASES = {
+    "preocupado": ("preocupado", "preocupada"),
+    "ola": ("ola", "ola_grabando"),
+    "puntos": ("puntos", "puntos_pensando"),
+}
 
-def _ruta(estado, extension):
-    return ASSETS / f"nancy_{estado}{extension}"
+
+def _candidatos(estado):
+    estado = str(estado or "feliz").lower()
+    nombres = _ALIASES.get(estado, (estado,))
+    rutas = []
+    for nombre in nombres:
+        for carpeta in (SPRITES, GIFS):
+            for extension in (".gif", ".png"):
+                rutas.append(carpeta / f"nancy_{nombre}{extension}")
+                rutas.append(carpeta / f"{nombre}{extension}")
+    return rutas
+
+
+def _ajustar(imagen, tamano):
+    copia = imagen.convert("RGBA").copy()
+    copia.thumbnail((tamano, tamano), Image.LANCZOS)
+    lienzo = Image.new("RGBA", (tamano, tamano), "#F0AFC5")
+    lienzo.alpha_composite(copia, ((tamano - copia.width) // 2, (tamano - copia.height) // 2))
+    return lienzo.convert("RGB")
 
 
 def _placeholder(estado, tamano=ANCHO_SPRITE):
@@ -48,15 +77,14 @@ def _placeholder(estado, tamano=ANCHO_SPRITE):
 def cargar_frames(estado, tamano=ANCHO_SPRITE):
     """Devuelve ``(frames, duracion_ms)`` para un estado; nunca lanza."""
     estado = str(estado or "feliz").lower()
-    gif = _ruta(estado, ".gif")
-    png = _ruta(estado, ".png")
+    ruta = next((r for r in _candidatos(estado) if r.exists()), None)
     frames = []
     duracion = 100
     try:
-        if gif.exists():
-            with Image.open(gif) as con_gif:
+        if ruta is not None and ruta.suffix.lower() == ".gif":
+            with Image.open(ruta) as con_gif:
                 while True:
-                    frame = con_gif.convert("RGB").resize((tamano, tamano))
+                    frame = _ajustar(con_gif.convert("RGB"), tamano)
                     frames.append(frame)
                     try:
                         duracion = int(con_gif.info.get("duration") or 100)
@@ -66,8 +94,9 @@ def cargar_frames(estado, tamano=ANCHO_SPRITE):
                         con_gif.seek(con_gif.tell() + 1)
                     except EOFError:
                         break
-        elif png.exists():
-            frames = [Image.open(png).convert("RGB").resize((tamano, tamano))]
+        elif ruta is not None:
+            with Image.open(ruta) as png:
+                frames = [_ajustar(png.convert("RGB"), tamano)]
     except Exception:  # noqa: BLE001 - sin sprite válido, placeholder
         frames = []
     if not frames:

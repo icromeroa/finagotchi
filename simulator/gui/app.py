@@ -231,6 +231,13 @@ class App(ctk.CTk):
             return
         self.ultima_respuesta = respuesta
         self._limpiar()
+        self._poner_sprite(
+            ESTADO_ANIMO.get(
+                str((respuesta.get("datos") or {}).get("animo") or "FELIZ"), "feliz"
+            )
+            if not respuesta.get("requiere_confirmacion")
+            else "escuchando"
+        )
         escuchado = respuesta.get("texto_transcrito")
         if escuchado:
             self._tarjeta("Escuché", f'"{escuchado}"', tema.NEUTRAL)
@@ -274,7 +281,7 @@ class App(ctk.CTk):
         if self._grabando or self.client is None:
             return
         self._grabando = True
-        self._poner_sprite("escuchando")
+        self._poner_sprite("ola")
         self.mostrar_texto("Te escucho", "Mantén presionada la tecla ESPACIO y habla. Suelta para enviar.")
 
         def trabajo():
@@ -284,6 +291,7 @@ class App(ctk.CTk):
                 self.cola.put(("texto", ("Sin audio", "No se pudo capturar la frase.")))
                 return
             self.cola.put(("texto", ("Procesando", "Entendiendo tu mensaje…")))
+            self.cola.put(("sprite", "puntos"))
             try:
                 respuesta = self.client.send_audio(
                     wav_bytes, duracion, str(uuid.uuid4())
@@ -357,6 +365,7 @@ class App(ctk.CTk):
             try:
                 cierre = self.client.close_day()
                 self.cola.put(("texto", ("Cierre del día", str(cierre))))
+                self.cola.put(("sprite", "dormida"))
             except ApiError as exc:
                 self.cola.put(("texto", ("No se pudo cerrar", str(exc))))
 
