@@ -361,6 +361,20 @@ simulador (`GUIA_SIMULADOR.md`).
 - `fecha_hora` en UTC y `fecha_local` en `America/Bogota`.
 - Solo las transacciones `confirmado` afectan balances, puntos, metas y salud.
 
+## Anexos y evidencias dentro del repositorio
+
+Todas las evidencias se guardan **dentro del repo** (no en Drive ni en capturas sueltas). Estructura:
+
+| Anexo | Ruta en el repo | Estado / contenido |
+|---|---|---|
+| Capturas GUI simulador | `docs/evidencias/guia-4/A0..A9/` y capturas de pantalla junto a la doc | Pendientes de comprimir (PNG/JPG liviano) |
+| Fotografías del dispositivo | `docs/evidencias/hardware/` (si aplica) | Pendientes — ESP32-S3 + TFT + mic/amp + batería |
+| Videos/enlaces (demo) | `docs/evidencias/demo/` (GIFs/MP4 cortos o enlace) | Pendiente — flujo voz → confirmación → “¡Listo!” |
+| Manual de usuario | `docs/MANUAL_USUARIO.md` (sin crear en este commit) + `GUIA_SIMULADOR.md` | Pendiente (contenido detallado por rol) |
+| Pruebas | `tests/` (suite `unittest`) + `docs/decisiones/api-rest.md` | 240+ pruebas, compilación y casos 200/404/422 |
+
+> Para completar el entregable: agregar una carpeta desglosada por actividad (`A0_checkpoint/`, `A1_diseno_api/`, `A2_get_measurements/`, …) con capturas de Swagger/postman, de la BD y de la app. El índice ya está en `docs/evidencias/guia-4/README.md`.
+
 ## Documentación
 
 - `docs/ESPECIFICACIONES.md`: contrato funcional, endpoints, esquema y decisiones.
