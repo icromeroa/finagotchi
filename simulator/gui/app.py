@@ -335,6 +335,8 @@ class App(ctk.CTk):
                     )
                 elif accion == "vinculacion":
                     self.mostrar_vinculacion(payload)
+                elif accion == "vinculacion_error":
+                    self.mostrar_vinculacion_error(payload)
                 elif accion == "reposo":
                     self.mostrar_reposo(payload)
                 elif accion == "respuesta":
@@ -371,7 +373,10 @@ class App(ctk.CTk):
                 registration = client.generar_pin()
                 pin = registration["pin"]
             except RuntimeError as exc:
-                self.cola.put(("texto", ("Dispositivo vinculado", str(exc))))
+                self.cola.put(("vinculacion_error", {
+                    "device_uid": client.device_uid,
+                    "mensaje": str(exc),
+                }))
                 return
             if pin is not None:
                 self.cola.put(("vinculacion", {
@@ -411,6 +416,45 @@ class App(ctk.CTk):
             return {}
 
     # --- Pantallas ---------------------------------------------------------
+
+    def mostrar_vinculacion_error(self, vinculacion):
+        """D02 error: dispositivo ya vinculado a otra cuenta."""
+        self._limpiar()
+        self.etiqueta_animo.configure(text="Nancy · Esperando")
+        self._poner_sprite("puntos")
+        device_uid = str((vinculacion or {}).get("device_uid") or "")
+        mensaje = str((vinculacion or {}).get("mensaje") or "")
+        tarjeta = ctk.CTkFrame(
+            self.contenido, fg_color=tema.SECONDARY, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
+        )
+        ctk.CTkLabel(
+            tarjeta, text="Dispositivo vinculado",
+            font=tema.headline(18), text_color=tema.PRIMARY,
+        ).pack(pady=(12, 0))
+        ctk.CTkLabel(
+            tarjeta,
+            text=mensaje or "El dispositivo está vinculado a otra cuenta. Desvincúlalo desde Flutter (GET /device + POST /device/unlink) o usa otro device_uid.",
+            font=tema.cuerpo(12), text_color=tema.TEXTO, wraplength=280, justify="center",
+        ).pack(padx=12, pady=8)
+        ctk.CTkLabel(
+            tarjeta,
+            text=f"Dispositivo: {device_uid}",
+            font=tema.cuerpo(11), text_color=tema.TEXTO,
+        ).pack(padx=12, pady=(0, 12))
+        tarjeta.pack(fill="x", pady=4, padx=4)
+
+        def reintentar():
+            self._hilo(lambda: self._arranque_hilo())
+
+        ctk.CTkButton(
+            self.contenido,
+            text="Ya lo desvinculé, reintentar",
+            font=tema.headline(14),
+            fg_color=tema.TERTIARY,
+            text_color=tema.TEXTO,
+            command=reintentar,
+        ).pack(pady=8)
 
     def mostrar_vinculacion(self, vinculacion):
         """D02 Sin vincular: muestra PIN grande esperando el ingreso en Flutter."""
