@@ -7,7 +7,7 @@ class AppColors {
   static const softBackground = Color(0xFFF9EDE2);
 
   // Botones y acentos principales
-  static const lime = Color(0xFFB8D833);       // Verde lima brillante de botones de acción
+  static const lime = Color(0xFFB2CE45);       // Verde lima brillante de botones de acción
   static const darkGreen = Color(0xFF006B52);  // Textos e íconos principales
   static const wine = Color(0xFF872B54);       // Tono vino/morado corporativo de títulos y barras
   static const mutedPink = Color(0xFFE8A7C2);  // Rosa suave para bordes e indicadores

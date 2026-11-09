@@ -40,7 +40,7 @@ class PresentationScreen3 extends StatelessWidget {
                   ),
                 ),
 
-                // Luceros / Estrellas decorativas con tu imagen lucero.png
+                // Luceros / Estrellas decorativas con lucero.png
                 Positioned(
                   top: h * 0.10,
                   left: w * 0.15,
@@ -62,7 +62,9 @@ class PresentationScreen3 extends StatelessWidget {
                   child: const _Lucero(size: 32),
                 ),
 
-                // Círculo central grande con anillos concéntricos.
+                // ===================================================
+                // CÍRCULO CENTRAL CON NANCY CON TOGA
+                // ===================================================
                 Positioned(
                   top: h * 0.07,
                   left: 0,
@@ -86,13 +88,22 @@ class PresentationScreen3 extends StatelessWidget {
                               ),
                             ),
                           ),
-                          // Círculo interior beige central para la ilustración
+                          // Círculo interior beige central
                           Container(
                             width: w * 0.58,
                             height: w * 0.58,
                             decoration: const BoxDecoration(
                               color: cream,
                               shape: BoxShape.circle,
+                            ),
+                          ),
+                          // Nancy Toga / Graduada
+                          Positioned(
+                            top: w * 0.04,
+                            child: Image.asset(
+                              'assets/images/nancy_toga.png', // Asegúrate de tenerla en esta ruta
+                              width: w * 0.52,
+                              fit: BoxFit.contain,
                             ),
                           ),
                         ],
@@ -187,64 +198,104 @@ class PresentationScreen3 extends StatelessWidget {
                   ),
                 ),
 
-                // Bloque inferior organizado: Botones de navegación (Sin el texto de inicio de sesión).
+                // Bloque inferior organizado: Botones de navegación y enlace de inicio de sesión.
                 Positioned(
-                  bottom: h * 0.16,
+                  bottom: h * 0.12,
                   left: 20,
                   right: 20,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Botón de retroceso circular
-                      Container(
-                        height: 44,
-                        width: 44,
-                        decoration: BoxDecoration(
-                          color: cream,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: darkGreen,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.arrow_back, color: darkGreen, size: 20),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Botón principal de acción ("¡Arranquemos!")
-                      SizedBox(
-                        height: 44,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const LoginScreen(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Botón de retroceso circular
+                          Container(
+                            height: 44,
+                            width: 44,
+                            decoration: BoxDecoration(
+                              color: cream,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: darkGreen,
+                                width: 1.5,
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: lime,
-                            foregroundColor: darkGreen,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 35),
-                            shape: const StadiumBorder(),
-                            side: const BorderSide(
-                              color: darkGreen,
-                              width: 1.5,
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.arrow_back, color: darkGreen, size: 20),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
                             ),
                           ),
-                          child: const Text(
-                            '¡Arranquemos!',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(width: 12),
+                          // Botón principal de acción ("¡Arranquemos!")
+                          SizedBox(
+                            height: 44,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LoginScreen(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: lime,
+                                foregroundColor: darkGreen,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 35),
+                                shape: const StadiumBorder(),
+                                side: const BorderSide(
+                                  color: darkGreen,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: const Text(
+                                '¡Arranquemos!',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      // Enlace de inicio de sesión
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(
+                              color: cream,
+                              fontSize: 11.5,
+                            ),
+                            children: [
+                              TextSpan(text: '¿Ya tienes cuenta? '),
+                              TextSpan(
+                                text: 'Inicia sesión',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
