@@ -1,5 +1,6 @@
-
 import 'package:flutter/material.dart';
+import 'package:frontend/services/api_service.dart';
+import 'package:frontend/services/auth_session.dart';
 import 'package:frontend/theme/app_colors.dart';
 
 
@@ -20,6 +21,178 @@ class MetricsScreen extends StatefulWidget {
 
 class _MetricsScreenState extends State<MetricsScreen> {
   int selectedTab = 2;
+  final ApiService _api = ApiService();
+  DateTime _fecha = DateTime.now();
+  Map<String, dynamic> _metricas = {};
+  List<Map<String, dynamic>> _transacciones = [];
+  bool _cargando = true;
+  String? _error;
+  int _requestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarMetricas();
+  }
+
+  String _fechaApi(DateTime fecha) =>
+      '${fecha.year.toString().padLeft(4, '0')}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}';
+
+  Map<String, dynamic> _map(dynamic valor) =>
+      valor is Map ? Map<String, dynamic>.from(valor) : {};
+
+  List<Map<String, dynamic>> _lista(dynamic valor) => valor is List
+      ? valor.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList()
+      : [];
+
+  double _numero(dynamic valor) => valor is num
+      ? valor.toDouble()
+      : double.tryParse(valor?.toString() ?? '') ?? 0;
+
+  String _dinero(num valor, {bool signo = false}) {
+    final n = valor.round();
+    final texto = n.abs().toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.',
+    );
+    return '${n < 0 ? '-' : signo && n > 0 ? '+' : ''}\$$texto';
+  }
+
+  Map<String, dynamic> get _resumen => _map(_metricas['resumen']);
+
+  double get _ingresos => _numero(
+    selectedTab == 0
+        ? _resumen['total_ingresos']
+        : _resumen['ingresos'],
+  );
+
+  double get _gastos => _numero(
+    selectedTab == 0
+        ? _resumen['total_gastos']
+        : _resumen['gastos'],
+  );
+
+  double get _balance => _numero(_resumen['balance_neto'] ?? (_ingresos - _gastos));
+
+  DateTime get _inicioPeriodo {
+    if (selectedTab == 0) return _fecha;
+    if (selectedTab == 1) return _fecha.subtract(const Duration(days: 6));
+    return DateTime(_fecha.year, _fecha.month, 1);
+  }
+
+  Future<void> _cargarMetricas() async {
+    final token = AuthSession.accessToken;
+    final id = ++_requestId;
+    setState(() { _cargando = true; _error = null; });
+    if (token == null || token.isEmpty) {
+      setState(() { _cargando = false; _error = 'Inicia sesión para consultar tus métricas.'; });
+      return;
+    }
+    try {
+      final fecha = _fechaApi(_fecha);
+      final Future<Map<String, dynamic>> peticion = selectedTab == 0
+          ? _api.getDailyMetrics(accessToken: token, fecha: fecha)
+          : selectedTab == 1
+          ? _api.getWeeklyMetrics(accessToken: token, fecha: fecha)
+          : _api.getMonthlyMetrics(accessToken: token, fecha: fecha);
+      final respuesta = await peticion;
+      final movimientos = await _api.getTransactions(
+        accessToken: token,
+        desde: _fechaApi(_inicioPeriodo),
+        hasta: fecha,
+        estado: 'confirmado',
+        limit: 100,
+      );
+      if (!mounted || id != _requestId) return;
+      // La API envuelve el contenido en data cuando responde ok=true.
+      final datos = _map(respuesta['data'] ?? respuesta['datos'] ?? respuesta);
+      final historial = movimientos['data'] ?? movimientos['datos'] ?? movimientos;
+      final lista = historial is List ? historial :
+      _map(historial)['transacciones'] ?? _map(historial)['items'] ?? _map(historial)['movimientos'] ?? [];
+      setState(() {
+        _metricas = datos;
+        _transacciones = _lista(lista);
+        _cargando = false;
+      });
+    } catch (e) {
+      if (!mounted || id != _requestId) return;
+      setState(() { _cargando = false; _error = e.toString(); });
+    }
+  }
+
+  void _cambiarTab(int tab) {
+    if (selectedTab == tab) return;
+    setState(() => selectedTab = tab);
+    _cargarMetricas();
+  }
+
+  void _moverPeriodo(int sentido) {
+    setState(() {
+      if (selectedTab == 0) {
+        _fecha = _fecha.add(Duration(days: sentido));
+      } else if (selectedTab == 1) {
+        _fecha = _fecha.add(Duration(days: 7 * sentido));
+      } else {
+        final mes = DateTime(_fecha.year, _fecha.month + sentido + 1, 0);
+        _fecha = DateTime(mes.year, mes.month, _fecha.day.clamp(1, mes.day));
+      }
+      if (_fecha.isAfter(DateTime.now())) _fecha = DateTime.now();
+    });
+    _cargarMetricas();
+  }
+
+  String _nombreMes(int mes) => const [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  ][mes - 1];
+
+  String _nombreCategoria(Map<String, dynamic> item) =>
+      (item['categoria'] ?? item['nombre'] ?? 'Sin categoría').toString();
+
+  IconData _iconoCategoria(String nombre) {
+    final n = nombre.toLowerCase();
+    if (n.contains('aliment') || n.contains('comida')) return Icons.restaurant;
+    if (n.contains('transporte')) return Icons.directions_bus;
+    if (n.contains('vivienda') || n.contains('hogar')) return Icons.home_outlined;
+    if (n.contains('ocio') || n.contains('entreten')) return Icons.local_activity_outlined;
+    if (n.contains('café') || n.contains('micro')) return Icons.coffee_outlined;
+    return Icons.category_outlined;
+  }
+
+  List<Map<String, dynamic>> get _categorias {
+    if (selectedTab != 1) return _lista(_metricas['categorias']);
+    final agrupadas = <String, double>{};
+    for (final t in _transacciones) {
+      if (t['tipo'] != 'gasto') continue;
+      final nombre = (t['categoria_nombre'] ?? t['categoria'] ?? 'Sin categoría').toString();
+      agrupadas[nombre] = (agrupadas[nombre] ?? 0) + _numero(t['monto']);
+    }
+    return agrupadas.entries.map((e) => {'categoria': e.key, 'total': e.value}).toList()
+      ..sort((a, b) => _numero(b['total']).compareTo(_numero(a['total'])));
+  }
+
+  List<Map<String, dynamic>> get _categoriasVisuales => _categorias.map((c) {
+    final total = _numero(c['total']);
+    final nombre = _nombreCategoria(c);
+    return <String, dynamic>{
+      'icon': _iconoCategoria(nombre),
+      'name': nombre,
+      'amount': _dinero(total),
+      'progress': _gastos > 0 ? (total / _gastos).clamp(0.0, 1.0) : 0.0,
+    };
+  }).toList();
+
+  double _gastoDia(DateTime fecha) {
+    if (selectedTab == 1) {
+      for (final dia in _lista(_metricas['dias'])) {
+        if (dia['fecha_local'] == _fechaApi(fecha)) return _numero(dia['gastos']);
+      }
+      return 0;
+    }
+    return _transacciones.where((t) => t['tipo'] == 'gasto' &&
+        (t['fecha_local'] ?? t['fecha'])?.toString().startsWith(_fechaApi(fecha)) == true)
+        .fold<double>(0, (s, t) => s + _numero(t['monto']));
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +234,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
+                            children: [
                               Icon(
                                 Icons.local_fire_department,
                                 color: Colors.orange,
@@ -187,9 +360,20 @@ class _MetricsScreenState extends State<MetricsScreen> {
                   children: [
                     _buildDateSelectorHeader(),
                     const SizedBox(height: 14),
-                    if (selectedTab == 0) _buildDailyView(),
-                    if (selectedTab == 1) _buildWeeklyView(),
-                    if (selectedTab == 2) _buildMonthlyView(),
+                    if (_cargando) const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(color: AppColors.wine),
+                    ) else if (_error != null) Column(children: [
+                      Text(_error!, textAlign: TextAlign.center),
+                      TextButton(onPressed: _cargarMetricas, child: const Text('Reintentar')),
+                    ]) else RefreshIndicator(
+                      onRefresh: _cargarMetricas,
+                      child: Column(children: [
+                        if (selectedTab == 0) _buildDailyView(),
+                        if (selectedTab == 1) _buildWeeklyView(),
+                        if (selectedTab == 2) _buildMonthlyView(),
+                      ]),
+                    ),
                   ],
                 ),
               ),
@@ -303,7 +487,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
 
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => selectedTab = index),
+        onTap: () => _cambiarTab(index),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
@@ -325,76 +509,44 @@ class _MetricsScreenState extends State<MetricsScreen> {
   }
 
   Widget _buildDateSelectorHeader() {
-    String label = 'Hoy, Jueves 24 Oct';
-
-    if (selectedTab == 1) {
-      label = 'Semana 43  •  21 - 27 Oct';
+    String label;
+    if (selectedTab == 0) {
+      label = '${_fecha.day} de ${_nombreMes(_fecha.month)} de ${_fecha.year}';
+    } else if (selectedTab == 1) {
+      final inicio = _inicioPeriodo;
+      label = '${inicio.day}/${inicio.month} - ${_fecha.day}/${_fecha.month}/${_fecha.year}';
+    } else {
+      label = '${_nombreMes(_fecha.month)} ${_fecha.year}';
     }
-
-    if (selectedTab == 2) {
-      label = 'Noviembre  •  Día 24 de 31';
-    }
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.cardCream,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.wine.withOpacity(0.2),
-        ),
+        border: Border.all(color: AppColors.wine.withOpacity(0.2)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.mutedPink.withOpacity(0.4),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.chevron_left,
-              color: AppColors.wine,
-              size: 18,
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.wine,
-              fontWeight: FontWeight.bold,
-              fontSize: 12.5,
-            ),
-          ),
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: AppColors.mutedPink.withOpacity(0.4),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.chevron_right,
-              color: AppColors.wine,
-              size: 18,
-            ),
-          ),
-        ],
-      ),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        IconButton(onPressed: () => _moverPeriodo(-1),
+            icon: const Icon(Icons.chevron_left, color: AppColors.wine)),
+        Flexible(child: Text(label, textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.wine, fontWeight: FontWeight.bold, fontSize: 12.5))),
+        IconButton(onPressed: _fechaApi(_fecha) == _fechaApi(DateTime.now()) ? null : () => _moverPeriodo(1),
+            icon: const Icon(Icons.chevron_right, color: AppColors.wine)),
+      ]),
     );
   }
+
+  Widget _flujoReal(String titulo) => _buildFlowCard(
+    income: _dinero(_ingresos, signo: true),
+    expense: _dinero(-_gastos),
+    net: _dinero(_balance, signo: true),
+    title: titulo,
+  );
 
   Widget _buildDailyView() {
     return Column(
       children: [
-        _buildFlowCard(
-          income: '+\$40.000',
-          expense: '-\$6.500',
-          net: '+\$33.500',
-          title: 'Flujo del Día',
-        ),
+        _flujoReal('Flujo del Día'),
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(16),
@@ -410,7 +562,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
+                children: [
                   Text(
                     'Distribución del Día',
                     style: TextStyle(
@@ -450,45 +602,30 @@ class _MetricsScreenState extends State<MetricsScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              _buildCategoryDetailRow(
-                Icons.restaurant,
-                'Almuerzo U.',
-                '77.8% (\$14k)',
-                AppColors.wine,
-              ),
-              const SizedBox(height: 8),
-              _buildCategoryDetailRow(
-                Icons.directions_bus,
-                'Transmilenio',
-                '77.8% (\$14k)',
-                AppColors.darkGreen,
-              ),
+              if (_categorias.isEmpty)
+                const Text('Sin gastos registrados para este día.'),
+              ..._categorias.map((c) {
+                final nombre = _nombreCategoria(c);
+                final monto = _numero(c['total']);
+                return Padding(padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildCategoryDetailRow(_iconoCategoria(nombre), nombre,
+                        '${_gastos > 0 ? (monto * 100 / _gastos).toStringAsFixed(1) : '0'}% (${_dinero(monto)})', AppColors.wine));
+              }),
               const SizedBox(height: 16),
-              const Text(
-                'DESGLOSE DE HOY',
-                style: TextStyle(
-                  color: AppColors.darkGreen,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                ),
-              ),
+              const Text('DESGLOSE DE HOY', style: TextStyle(color: AppColors.darkGreen,
+                  fontSize: 10, fontWeight: FontWeight.w900)),
               const SizedBox(height: 8),
-              _buildTransactionItem(
-                'Almuerzo universidad',
-                '1:15 PM • Cafetería Central',
-                '-\$14.000',
-                'Comida #1',
-                Icons.restaurant,
-              ),
-              const SizedBox(height: 8),
-              _buildTransactionItem(
-                'Pasaje Transmilenio',
-                '7:40 AM • Portal Norte',
-                '-\$4.000',
-                'Transporte #2',
-                Icons.directions_bus,
-              ),
+              if (_transacciones.isEmpty)
+                const Text('No hay movimientos confirmados.'),
+              ..._transacciones.take(10).map((t) {
+                final nombre = (t['concepto'] ?? t['descripcion'] ?? 'Movimiento').toString();
+                final categoria = (t['categoria_nombre'] ?? t['categoria'] ?? 'Sin categoría').toString();
+                return Padding(padding: const EdgeInsets.only(bottom: 8),
+                    child: _buildTransactionItem(nombre,
+                        (t['fecha_local'] ?? t['fecha'] ?? '').toString(),
+                        _dinero(_numero(t['monto']) * (t['tipo'] == 'gasto' ? -1 : 1), signo: true),
+                        categoria, _iconoCategoria(categoria)));
+              }),
             ],
           ),
         ),
@@ -501,12 +638,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
   Widget _buildWeeklyView() {
     return Column(
       children: [
-        _buildFlowCard(
-          income: '+\$150.000',
-          expense: '-\$85.000',
-          net: '+\$65.000',
-          title: 'Flujo Semanal',
-        ),
+        _flujoReal('Flujo Semanal'),
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(16),
@@ -544,7 +676,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
                       ),
                     ),
                     child: Row(
-                      children: const [
+                      children: [
                         Icon(
                           Icons.warning_amber_rounded,
                           color: AppColors.wine,
@@ -552,7 +684,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
                         ),
                         SizedBox(width: 4),
                         Text(
-                          'Tope: \$25k/día',
+                          'Gastos por día',
                           style: TextStyle(
                             color: AppColors.wine,
                             fontSize: 10,
@@ -568,44 +700,19 @@ class _MetricsScreenState extends State<MetricsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  _buildWeeklyBarColumn(
-                    'L', 0.25, '\$35k',
-                    isCream: true,
-                    showTopLabel: false,
-                  ),
-                  _buildWeeklyBarColumn(
-                    'M', 0.3, '\$35k',
-                    isCream: true,
-                    showTopLabel: false,
-                  ),
-                  _buildWeeklyBarColumn(
-                    'M', 0.2, '\$35k',
-                    isCream: true,
-                    showTopLabel: false,
-                  ),
-                  _buildWeeklyBarColumn(
-                    'J', 0.45, '\$35k',
-                    isPink: true,
-                    showTopLabel: true,
-                  ),
-                  _buildWeeklyBarColumn(
-                    'V', 0.85, '\$35k',
-                    isWine: true,
-                    showTopLabel: true,
-                    hasFlame: true,
-                  ),
-                  _buildWeeklyBarColumn(
-                    'S', 0.55, '\$35k',
-                    isPink: true,
-                    showTopLabel: true,
-                  ),
-                  _buildWeeklyBarColumn(
-                    'D', 0.38, '\$35k',
-                    isLime: true,
-                    showTopLabel: true,
-                  ),
-                ],
+                children: List.generate(7, (i) {
+                  final fecha = _inicioPeriodo.add(Duration(days: i));
+                  final monto = _gastoDia(fecha);
+                  final maximo = List.generate(7, (j) =>
+                      _gastoDia(_inicioPeriodo.add(Duration(days: j))))
+                      .fold<double>(0, (a, b) => a > b ? a : b);
+                  const nombres = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+                  return _buildWeeklyBarColumn(nombres[fecha.weekday - 1],
+                      maximo == 0 ? 0 : monto / maximo, _dinero(monto),
+                      isWine: monto > 0 && monto == maximo,
+                      isPink: monto > 0 && monto != maximo,
+                      showTopLabel: monto > 0);
+                }),
               ),
               const SizedBox(height: 20),
               Container(
@@ -618,7 +725,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
                   ),
                 ),
                 child: Row(
-                  children: const [
+                  children: [
                     Icon(
                       Icons.lightbulb_outline,
                       color: AppColors.wine,
@@ -627,7 +734,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Viernes y Sábado concentraron el 52% del gasto semanal.',
+                        _gastos == 0 ? 'Aún no hay gastos esta semana.' : 'Tu gasto semanal es ${_dinero(_gastos)}.',
                         style: TextStyle(
                           color: AppColors.wine,
                           fontSize: 11,
@@ -644,33 +751,8 @@ class _MetricsScreenState extends State<MetricsScreen> {
         ),
         const SizedBox(height: 14),
         _buildCategoriesBreakdownList(
-          total: '\$85.000 COP',
-          items: [
-            {
-              'icon': Icons.directions_bus,
-              'name': 'Transporte',
-              'amount': '\$35.000',
-              'progress': 0.6,
-            },
-            {
-              'icon': Icons.restaurant,
-              'name': 'Alimentación',
-              'amount': '\$30.000',
-              'progress': 0.5,
-            },
-            {
-              'icon': Icons.coffee_outlined,
-              'name': 'Micro Gastos',
-              'amount': '\$35.000',
-              'progress': 0.6,
-            },
-            {
-              'icon': Icons.local_activity_outlined,
-              'name': 'Ocio',
-              'amount': '\$35.000',
-              'progress': 0.6,
-            },
-          ],
+          total: _dinero(_gastos),
+          items: _categoriasVisuales,
         ),
         const SizedBox(height: 14),
         _buildCompactTipCard(),
@@ -681,12 +763,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
   Widget _buildMonthlyView() {
     return Column(
       children: [
-        _buildFlowCard(
-          income: '+\$680.000',
-          expense: '-\$498.000',
-          net: '+\$182.000',
-          title: 'Flujo Consolidado',
-        ),
+        _flujoReal('Flujo Consolidado'),
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(16),
@@ -705,7 +782,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
                         'Curva de Gasto Acumulado',
                         style: TextStyle(
@@ -733,8 +810,8 @@ class _MetricsScreenState extends State<MetricsScreen> {
                       color: AppColors.lime,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      '30 Días',
+                    child: Text(
+                      '${_fecha.day} días',
                       style: TextStyle(
                         color: AppColors.darkGreen,
                         fontSize: 10,
@@ -747,7 +824,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: const [
+                children: [
                   Icon(Icons.remove, color: AppColors.wine, size: 16),
                   Text(
                     ' Real  ',
@@ -759,7 +836,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
                   ),
                   Icon(Icons.remove, color: AppColors.darkGreen, size: 16),
                   Text(
-                    ' Presupuesto',
+                    ' Acumulado',
                     style: TextStyle(
                       color: AppColors.darkGreen,
                       fontSize: 10,
@@ -787,21 +864,28 @@ class _MetricsScreenState extends State<MetricsScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Expanded(
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: const [
-                          Icon(
-                            Icons.show_chart,
-                            color: AppColors.wine,
-                            size: 54,
-                          ),
-                        ],
-                      ),
+                      child: LayoutBuilder(builder: (context, constraints) {
+                        double acumulado = 0;
+                        final acumulados = List<double>.generate(_fecha.day, (i) {
+                          acumulado += _gastoDia(DateTime(_fecha.year, _fecha.month, i + 1));
+                          return acumulado;
+                        });
+                        final maximo = acumulados.isEmpty ? 0.0 : acumulados.last;
+                        return Row(crossAxisAlignment: CrossAxisAlignment.end,
+                            children: acumulados.map((v) => Expanded(child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 1),
+                              child: Container(
+                                height: maximo > 0 ? constraints.maxHeight * v / maximo : 2,
+                                decoration: BoxDecoration(color: AppColors.wine,
+                                    borderRadius: BorderRadius.circular(2)),
+                              ),
+                            ))).toList());
+                      }),
                     ),
                     const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
+                      children: [
                         Text(
                           'Día 1',
                           style: TextStyle(
@@ -858,7 +942,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
                   ),
                 ),
                 child: Row(
-                  children: const [
+                  children: [
                     Icon(
                       Icons.lightbulb_outline,
                       color: AppColors.wine,
@@ -867,7 +951,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Picos de aceleración identificados en fines de semana (Días 5, 12, 19). En días hábiles mantienes meseta controlada.',
+                        _gastos == 0 ? 'Aún no hay gastos registrados este mes.' : 'Has acumulado ${_dinero(_gastos)} en gastos este mes.',
                         style: TextStyle(
                           color: AppColors.wine,
                           fontSize: 11,
@@ -884,33 +968,8 @@ class _MetricsScreenState extends State<MetricsScreen> {
         ),
         const SizedBox(height: 14),
         _buildCategoriesBreakdownList(
-          total: '\$498.000',
-          items: [
-            {
-              'icon': Icons.directions_bus,
-              'name': 'Transporte',
-              'amount': '\$204.180',
-              'progress': 0.75,
-            },
-            {
-              'icon': Icons.restaurant,
-              'name': 'Alimentación',
-              'amount': '\$174.300',
-              'progress': 0.65,
-            },
-            {
-              'icon': Icons.coffee_outlined,
-              'name': 'Micro Gastos',
-              'amount': '\$69.720',
-              'progress': 0.3,
-            },
-            {
-              'icon': Icons.local_activity_outlined,
-              'name': 'Ocio',
-              'amount': '\$49.800',
-              'progress': 0.2,
-            },
-          ],
+          total: _dinero(_gastos),
+          items: _categoriasVisuales,
         ),
         const SizedBox(height: 14),
         _buildCompactTipCard(),
@@ -1092,7 +1151,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Row(
                       children: [
                         Icon(
@@ -1422,7 +1481,7 @@ class _MetricsScreenState extends State<MetricsScreen> {
         ),
       ),
       child: Row(
-        children: const [
+        children: [
           Icon(
             Icons.lightbulb_outline,
             color: AppColors.wine,

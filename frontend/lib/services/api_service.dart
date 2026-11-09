@@ -177,6 +177,60 @@ class ApiService {
   }
 
   // ==============================
+  // OBTENER MÉTRICAS SEMANALES
+  // ==============================
+
+  Future<Map<String, dynamic>> getWeeklyMetrics({
+    required String accessToken,
+    required String fecha,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/metrics/weekly',
+    ).replace(
+      queryParameters: {
+        'fecha': fecha,
+      },
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Accept': 'application/json',
+      },
+    );
+
+    return _handleResponse(response);
+  }
+
+  // ==============================
+  // OBTENER MÉTRICAS MENSUALES
+  // ==============================
+
+  Future<Map<String, dynamic>> getMonthlyMetrics({
+    required String accessToken,
+    required String fecha,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/metrics/monthly',
+    ).replace(
+      queryParameters: {
+        'fecha': fecha,
+      },
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Accept': 'application/json',
+      },
+    );
+
+    return _handleResponse(response);
+  }
+
+  // ==============================
   // REGISTRAR MOVIMIENTO
   // ==============================
 
