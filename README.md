@@ -1,4 +1,4 @@
-# FinaGotchi
+﻿# FinaGotchi
 
 Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32 o al simulador de escritorio, el backend transcribe el audio con IA, propone los movimientos y el usuario confirma antes de que se guarde.
 
@@ -7,9 +7,9 @@ Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32 o al s
 | Ruta | Qué es |
 |---|---|
 | `backend/` | API Flask + SQLite + IA. Endpoints, autenticación, reglas de negocio. |
-| `backend/ai.py` | Proveedores de transcripción (Gemini o faster-whisper local). |
+| `backend/ai.py` | Proveedores de transcripción (faster-whisper local). |
 | `backend/audio.py` | Validación del WAV que llega del dispositivo. |
-| `backend/nlp.py` | Interpretación con LLM (Ollama/Gemini) y reglas locales de respaldo. |
+| `backend/nlp.py` | Interpretación con LLM (Ollama/faster-whisper) y reglas locales de respaldo. |
 | `backend/finance_engine.py` | Ingreso, gasto, colchón y capacidad de ahorro on-the-fly. |
 | `backend/optimization.py` | Programación lineal del plan de metas y fallback greedy. |
 | `database/` | Esquema SQL, vistas, seeds e inicializador. |
@@ -29,19 +29,9 @@ py -3 -m pip install -r requirements.txt
 
 ### 2. Configurar la IA (opcional)
 
-El backend funciona **sin claves externas**: transcribe con faster-whisper local
-e interpreta con Ollama si está corriendo. Gemini es opcional y solo se usa si
-hay una clave válida.
-
-Si quieres usar Gemini, la API key **vive fuera del repositorio**, en
-`%USERPROFILE%\.finagotchi\gemini.env`. Así ningún `git clean -xdf`, borrado de
-carpeta o reinstalación del proyecto puede borrarla.
-
-```powershell
-py -3 tools/configurar_api_key.py
-```
-
-El asistente pide la clave (no se muestra mientras la escribes), la guarda en el archivo externo y la verifica contra la API real de Google. La clave se genera en <https://aistudio.google.com> → *Get API key*.
+El backend funciona **sin claves externas**: transcribe con faster-whisper
+local e interpreta con Ollama si está corriendo. Ningún proveedor necesita
+clave de API.
 
 Para revisar el estado sin cambiar nada:
 
@@ -49,12 +39,11 @@ Para revisar el estado sin cambiar nada:
 py -3 tools/verificar_entorno.py
 ```
 
-> **Nunca escribas la clave en `backend/.env.example`**: ese archivo sí está versionado en git y terminaría publicada en GitHub. `tests/test_seguridad.py` falla si detecta una clave real en cualquier archivo del repo.
->
-> Si prefieres una variable de entorno en vez del archivo externo, también funciona y tiene prioridad sobre todo lo demás:
+> El secreto de firma de tokens (`FINAGOTCHI_SECRET`) se configura solo via
+> `backend/.env` (ignorado por git); `tests/test_seguridad.py` impide secretos reales en el repo.
 >
 > ```powershell
-> [Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "tu_clave", "User")
+> [Environment]::SetEnvironmentVariable("FINAGOTCHI_SECRET", "un_secreto_largo", "User")
 > ```
 
 ### 3. Base de datos
@@ -79,6 +68,36 @@ py -3 simulator/main.py
 ```
 
 Ejecutar como administrador para que `keyboard` capture la tecla ESPACIO. Más detalles en `GUIA_SIMULADOR.md`.
+
+### 6. Endpoints de consultas (Guia 4)
+
+Capa de compatibilidad sobre Flask (sin cambiar el contrato `/api/v1`). Requiere `Authorization: Bearer <token>` (registrar primero como en §2). Devuelve JSON plano de Guia 4 (no el sobre `{ok,data}`).
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/health` | Salud del backend |
+| `POST` | `/api/telemetry` | Persiste telemetría `device_id, timestamp, sequence, measurements, message_id` → 201 |
+| `GET` | `/api/measurements` | Lista lecturas. Filtros: `device_id, limit (1-100), offset, from, to` (ISO8601 UTC) → 200 |
+| `GET` | `/api/devices` | Lista dispositivos con lecturas (`measurement_count, last_timestamp`) |
+| `GET` | `/api/devices/<device_id>` | Un dispositivo → 200; inexistente → 404 |
+| `GET` | `/docs` | OpenAPI mínimo con los 5 paths |
+
+Ejemplo mínimo:
+
+```powershell
+# tras registrar un usuario en /api/v1/auth/register y obtener access_token
+$token = "TU_TOKEN"
+curl.exe -H "Authorization: Bearer $token" -H "Content-Type: application/json" `
+  -d '{"device_id":"FINA-001","sequence":1,"measurements":{"temp":25.5},"message_id":"msg-001"}' `
+  http://localhost:5000/api/telemetry
+curl.exe -H "Authorization: Bearer $token" -H "Content-Type: application/json" http://localhost:5000/api/measurements
+```
+
+Documentación y decisiones: `docs/decisiones/api-rest.md` y `docs/evidencias/guia-4/README.md`. Pruebas rápidas:
+
+```powershell
+py -3 -m unittest tests.test_api_queries
+```
 
 ### Comandos que sí funcionan
 
@@ -127,12 +146,13 @@ py -3 tools/probar_flujo_voz.py ruta\al\audio.wav
 
 | Proveedor | Clave | Cuota | Latencia | Cuándo usarlo |
 |---|---|---|---|---|
-| `gemini` | sí | 3 peticiones/min en la capa gratuita | 3–5 s | Cuentas con una API key Standard (`AIza`). |
-| `local` | no | ninguna | ~1 s | Siempre disponible, funciona sin internet. |
+| `local` | no | ninguna | ~1 s | Único proveedor; siempre disponible, funciona sin internet. |
 
-`STT_PROVEEDOR=auto` (por defecto) intenta Gemini y, si la clave está rota, no hay cuota o el proveedor falla, cae al modelo local de `faster-whisper` corriendo en el PC del backend. La caída queda registrada en `interacciones_ia` y la respuesta indica qué proveedor se usó.
-
-El modelo local no necesita clave, ni cuota, ni conexión a internet: es la vía garantizada para una demo.
+La transcripción es siempre con `faster-whisper` corriendo en el PC del
+backend. El modelo elegido se configura con `STT_MODELO_LOCAL` (`tiny`,
+`base`, `small`, `medium`, `large-v3`; por defecto `base`). No necesita
+clave, ni cuota, ni conexión a internet: es la vía para demo y producción
+offline.
 
 ### Modelo de IA que interpreta la frase
 
@@ -141,7 +161,6 @@ La transcripción solo devuelve texto. Quien decide **qué tipo de movimiento es
 | Proveedor | Clave | Latencia | Notas |
 |---|---|---|---|
 | `ollama` | no | 2–8 s | Modelo local (qwen3:4b). Gratis, offline, sin cuota. |
-| `gemini` | sí | 1–3 s | Solo si la API key funciona. |
 
 Se instala con:
 
@@ -255,3 +274,4 @@ simulador (`GUIA_SIMULADOR.md`).
 - `docs/endpoints.md`: guía práctica para conectar la app Flutter con la API.
 - `docs/DISPOSITIVO.md`: hardware, pinout, audio y flujos de pantalla para el firmware.
 - `GUIA_SIMULADOR.md`: guía del simulador de escritorio.
+

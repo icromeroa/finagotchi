@@ -32,7 +32,7 @@ UMBRAL_INTENCION = 0.90
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluar el dataset de audio")
-    parser.add_argument("--modelo", default=None, help="Modelo de Gemini a probar")
+    parser.add_argument("--modelo", default=None, help="Modelo de faster-whisper a probar (alias de STT_MODELO_LOCAL)")
     parser.add_argument("--sin-wer", action="store_true", help="No calcular el WER")
     parser.add_argument(
         "--audio-dir",
@@ -90,8 +90,8 @@ def main():
     if not MANIFEST.exists():
         print("No existe el manifiesto:", MANIFEST)
         return 1
-    if not ai.esta_configurado():
-        print("Falta GEMINI_API_KEY en backend/.env")
+    if not ai.local_disponible():
+        print("faster-whisper no esta instalado (py -3 -m pip install faster-whisper)")
         return 1
 
     with MANIFEST.open(encoding="utf-8-sig", newline="") as fh:

@@ -1,4 +1,4 @@
-# FinaGotchi · Lógica de negocio implementada
+﻿# FinaGotchi · Lógica de negocio implementada
 
 Documento técnico de la lógica que **hoy ejecuta el código**, no de la que
 idealmente debería existir.
@@ -84,7 +84,7 @@ Consecuencias importantes de lo que hay hoy:
 | `backend/optimization.py` | Modelo LP, solver HiGHS, redondeo, fallback greedy y diagnóstico del plan. |
 | `backend/nlp.py` | Intención, tipo, monto, categoría, cuenta, palabra clave, metas y validación de la respuesta del LLM. |
 | `backend/conversation.py` | Agente conversacional: estado en memoria, confirmaciones naturales, consultas por voz y creación de metas por diálogo. |
-| `backend/ai.py` | Transcripción (Gemini o faster-whisper local) y extracción con LLM (Ollama o Gemini). |
+| `backend/ai.py` | Transcripción local (faster-whisper) y extracción con LLM (Ollama). |
 | `backend/audio.py` | Contrato y validación del WAV. |
 | `backend/auth.py` | Tokens de acceso, refresh, login y autenticación de dispositivo. |
 | `backend/db.py` | Conexión SQLite, UTC, hora de Bogotá, tokens y utilidades. |
@@ -122,8 +122,8 @@ en la rama `respaldo-frontend-conectado`.
 
 | Función | Proveedor | Dónde corre |
 |---|---|---|
-| Transcribir audio | Gemini (`google-genai`) o faster-whisper | PC/servidor |
-| Interpretar la conversación | Ollama con `qwen3:4b` o Gemini | PC/servidor |
+| Transcribir audio | faster-whisper (local) | PC/servidor |
+| Interpretar la conversación | Ollama con `qwen3:4b` | PC/servidor |
 | Clasificar por reglas | `backend/nlp.py` | PC/servidor |
 
 La interpretación por conversación tiene un contrato estricto: JSON con `intent`,
@@ -139,17 +139,11 @@ cumplir está en `docs/DISPOSITIVO.md`.
 
 Selección de proveedor:
 
-- `STT_PROVEEDOR=auto` (por defecto): usa Gemini si hay clave; si la clave falla
-  o el proveedor no responde, cae a faster-whisper local si está instalado.
-- `STT_PROVEEDOR=local`: solo faster-whisper.
-- `STT_PROVEEDOR=gemini`: solo Gemini.
-- `LLM_PROVEEDOR=auto` (por defecto): prefiere Ollama; si no está disponible,
-  usa Gemini si hay clave.
+- La transcripción es siempre `local` (faster-whisper). No hay paso por servicio externo.
+- `LLM_PROVEEDOR=ollama` (único valor): si Ollama no está, `proveedor_llm()` devuelve `None`.
 - `NLP_USAR_IA=off`: obliga a usar solo las reglas de `nlp.py`.
 
-La clave de Gemini se lee de `GEMINI_API_KEY` o de
-`%USERPROFILE%\.finagotchi\gemini.env`, fuera del repositorio. No debe
-versionarse.
+No se requiere clave de API para STT ni para LLM.
 
 ### 1.4 Contrato de audio
 
@@ -181,13 +175,9 @@ es la clave de idempotencia para no transcribir dos veces el mismo mensaje.
 | `FINAGOTCHI_CORS_ORIGIN` | Origen permitido | `*` |
 | `HOST` / `PORT` | Escucha del servidor | `0.0.0.0` / `5000` |
 | `FLASK_DEBUG` | Reinicio automático | `0` (apagado) |
-| `GEMINI_API_KEY` | Clave de Gemini | vacío |
-| `GEMINI_MODEL` | Modelo de transcripción | `gemini-3.8-flash` |
-| `STT_PROVEEDOR` | `auto`, `local` o `gemini` | `auto` |
 | `STT_MODELO_LOCAL` | Tamaño de Whisper | `base` |
 | `OLLAMA_URL` | Servidor de Ollama | `http://127.0.0.1:11434` |
 | `OLLAMA_MODEL` | Modelo de extracción | `qwen3:4b` |
-| `LLM_PROVEEDOR` | `auto`, `ollama` o `gemini` | `auto` |
 | `NLP_USAR_IA` | `off` desactiva el LLM | `auto` |
 
 ### 1.6 Lo que no existe en el código actual
@@ -2371,3 +2361,4 @@ para probar consultas, vistas y exportaciones con volúmenes realistas.
 | Dispositivo vinculado | Fila de `dispositivos` con `usuario_id` no nulo y token válido. |
 | Token de acceso | Credencial de 1 hora para la API de usuario. |
 | Token de dispositivo | Credencial persistente para las rutas `/device/*`. |
+

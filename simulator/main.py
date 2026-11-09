@@ -73,7 +73,7 @@ DEFAULT_CONFIG = {
     # La confirmacion es siempre humana: no hay guardado automatico.
     "sample_rate": 16000,
     "language": "es-CO",
-    "stt_provider": "gemini",
+    "stt_provider": "local",
     "input_device": None,
     "voice_output": True,
     "voice_scope": "resumen",
@@ -641,7 +641,7 @@ def main():
     client.ensure_device()
     print(f"  Dispositivo vinculado: {client.device_uid}")
     client.telemetry()
-    print(f"  Proveedor de transcripción: {CONFIG.get('stt_provider', 'gemini')}")
+    print(f"  Proveedor de transcripción: {CONFIG.get('stt_provider', 'local')}")
 
     simulador = Simulador(client)
     print(pantallas.d01_arranque())

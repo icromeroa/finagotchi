@@ -1,4 +1,4 @@
-# FinaGotchi · Endpoints de la API
+﻿# FinaGotchi · Endpoints de la API
 
 Guía práctica del backend para conectar la app Flutter. El detalle funcional
 completo está en `docs/ESPECIFICACIONES.md`, sección 11. Este archivo es el
@@ -535,3 +535,4 @@ curl.exe -s -X POST http://localhost:5000/api/v1/messages/1/confirm `
   sirve; en web conviene ofrecer la entrada por texto.
 - Los montos viajan como enteros. No usar decimales.
 - La confirmación humana es obligatoria: nunca confirmar automáticamente.
+

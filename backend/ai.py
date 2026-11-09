@@ -1,49 +1,28 @@
-"""Proveedor de transcripcion de audio.
+"""Proveedor de transcripcion de audio e interpretacion con LLM.
 
 Reglas del proyecto:
-- El backend es el unico que ve la API key.
-- La key vive FUERA del repositorio, en ``%USERPROFILE%/.finagotchi/gemini.env``.
-  Asi un ``git clean -xdf`` no puede borrarla.
+- No se usa ningun servicio externo para transcribir: el STT es
+  ``faster-whisper`` local en el PC del backend. No necesita clave,
+  cuota ni conexion a Internet.
 - El audio se procesa en memoria y nunca se guarda en disco ni en la base.
 - El proveedor solo transcribe. La interpretacion de montos, categorias y
-  cuentas sigue a cargo de ``backend/nlp.py`` por reglas.
-
-Proveedores:
-
-- ``gemini``: API de Google. Necesita ``GEMINI_API_KEY``.
-- ``local``: faster-whisper corriendo en el PC del backend. No necesita clave,
-  ni cuota, ni conexion a Internet.
-- ``auto`` (por defecto): usa Gemini si hay clave y responde; si la clave
-  esta rota, no hay cuota o el proveedor falla, cae al modelo local.
+  cuentas la hace un modelo de lenguaje via Ollama (si esta corriendo)
+  con respaldo en las reglas de ``backend/nlp.py``.
 """
 
-import base64
 import io
 import os
 import time
 import wave
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-CARPETA_PERSONAL = Path.home() / ".finagotchi"
-ARCHIVO_EXTERNO = CARPETA_PERSONAL / "gemini.env"
-MODELO_POR_DEFECTO = "gemini-3.8-flash"
-MODELOS_RESPALDO = ("gemini-3.5-flash", "gemini-3.5-flash-lite")
 IDIOMA_POR_DEFECTO = "es-CO"
-TIMEOUT_S = 60
-MAX_INTENTOS = 2
-PLAZO_TOTAL_S = 90
-ESPERA_INICIAL_S = 1.5
 MAX_TEXTO = 2000
 
-PROVEEDOR_GEMINI = "gemini"
 PROVEEDOR_LOCAL = "local"
-PROVEEDOR_AUTO = "auto"
 MODELOS_LOCALES = ("tiny", "base", "small", "medium", "large-v3")
 IDIOMA_WHISPER = {"es-CO": "es", "es": "es"}
 
 PROVEEDOR_LLM_OLLAMA = "ollama"
-PROVEEDOR_LLM_GEMINI = "gemini"
 OLLAMA_URL_POR_DEFECTO = "http://127.0.0.1:11434"
 MODELO_OLLAMA_POR_DEFECTO = "qwen3:4b"
 
@@ -82,41 +61,13 @@ class ErrorSTT(RuntimeError):
 
 
 class STTNoConfigurado(ErrorSTT):
-    """Falta la API key o el paquete de Google."""
+    """Falta el paquete requerido o no hay modelo disponible."""
 
     codigo = "STT_NO_CONFIGURADO"
     estado_http = 503
 
 
-class STTCuota(ErrorSTT):
-    """El proveedor rechazo la peticion por limite de cuota."""
-
-    codigo = "STT_CUOTA"
-    estado_http = 429
-
-
-class STTKeyInvalida(ErrorSTT):
-    """Google rechazo la credencial.
-
-    Desde el 28 de mayo de 2026 AI Studio emite "Auth keys" (``AQ.Ab...``) en
-    lugar de las estandar (``AIza...``). Hay un problema abierto de
-    compatibilidad: esas claves responden ``401 UNAUTHENTICATED`` con motivo
-    ``ACCESS_TOKEN_TYPE_UNSUPPORTED`` en ``generativelanguage.googleapis.com``.
-    """
-
-    codigo = "STT_KEY_INVALIDA"
-    estado_http = 502
-
-
-class STTSinPermisos(ErrorSTT):
-    """La credencial es valida pero no tiene acceso al modelo."""
-
-    codigo = "STT_SIN_PERMISOS"
-    estado_http = 502
-
-
 class STTNoDisponible(ErrorSTT):
-
     codigo = "STT_NO_DISPONIBLE"
     estado_http = 502
 
@@ -128,91 +79,14 @@ class STTSinTexto(ErrorSTT):
     estado_http = 422
 
 
-def rutas_env():
-    """Rutas donde puede estar la configuracion, en orden de prioridad.
-
-    1. ``backend/.env`` dentro del repo (ignorado por git, se puede borrar).
-    2. ``.env`` en la raiz del repo (ignorado por git, se puede borrar).
-    3. ``%USERPROFILE%/.finagotchi/gemini.env`` FUERA del repo (a salvo de
-       ``git clean`` y de reinstalar el proyecto).
-
-    La variable de entorno del sistema gana sobre todas: si ya esta definida,
-    no se toca.
-    """
-    return (
-        Path(__file__).resolve().parent / ".env",
-        ROOT / ".env",
-        ARCHIVO_EXTERNO,
-    )
-
-
-def _cargar_env():
-    """Carga los archivos .env disponibles sin sobrescribir variables ya fijadas."""
-    try:
-        from dotenv import load_dotenv
-    except ImportError:
-        return []
-    cargados = []
-    for candidate in rutas_env():
-        if candidate.exists():
-            try:
-                load_dotenv(candidate, override=False)
-            except Exception:  # noqa: BLE001 - un .env roto no debe tumbar el backend
-                continue
-            cargados.append(candidate)
-    return cargados
-
-
-_KEY_DEL_ENTORNO = bool(os.environ.get("GEMINI_API_KEY"))
-ARCHIVOS_CARGADOS = _cargar_env()
-
-
-def origen_de_la_key():
-    """De donde viene la API key: 'variable de entorno', la ruta del archivo o None."""
-    if _KEY_DEL_ENTORNO:
-        return "variable de entorno"
-    for candidate in rutas_env():
-        if candidate.exists():
-            try:
-                # utf-8-sig tolera el BOM que agregan algunos editores.
-                for linea in candidate.read_text(encoding="utf-8-sig").splitlines():
-                    if linea.strip().startswith("GEMINI_API_KEY="):
-                        if linea.split("=", 1)[1].strip():
-                            return str(candidate)
-            except OSError:
-                continue
-    return None
-
-
-def api_key():
-    return (os.environ.get("GEMINI_API_KEY") or "").strip()
+def proveedor_preferido():
+    """Proveedor de transcripcion (siempre local)."""
+    return PROVEEDOR_LOCAL
 
 
 def modelo():
-    return (os.environ.get("GEMINI_MODEL") or MODELO_POR_DEFECTO).strip()
-
-
-def timeout_s():
-    try:
-        return float(os.environ.get("GEMINI_TIMEOUT_S") or TIMEOUT_S)
-    except ValueError:
-        return TIMEOUT_S
-
-
-def plazo_total_s():
-    try:
-        return float(os.environ.get("GEMINI_PLAZO_S") or PLAZO_TOTAL_S)
-    except ValueError:
-        return PLAZO_TOTAL_S
-
-
-def esta_configurado():
-    return bool(api_key())
-
-
-def proveedor_preferido():
-    """Proveedor de transcripcion elegido por configuracion."""
-    return (os.environ.get("STT_PROVEEDOR") or PROVEEDOR_AUTO).strip().lower()
+    """Modelo de transcripcion en uso (para auditoria)."""
+    return f"whisper-{modelo_local()}"
 
 
 def modelo_local():
@@ -254,80 +128,10 @@ def ollama_disponible():
 
 
 def proveedor_llm():
-    """Devuelve el proveedor de LLM disponible: 'ollama', 'gemini' o None."""
-    preferido = (os.environ.get("LLM_PROVEEDOR") or "auto").strip().lower()
-    if preferido == PROVEEDOR_LLM_OLLAMA:
-        return PROVEEDOR_LLM_OLLAMA if ollama_disponible() else None
-    if preferido == PROVEEDOR_LLM_GEMINI:
-        return PROVEEDOR_LLM_GEMINI if esta_configurado() else None
-
+    """Devuelve 'ollama' si Ollama responde con el modelo, o None."""
     if ollama_disponible():
         return PROVEEDOR_LLM_OLLAMA
-    if esta_configurado():
-        return PROVEEDOR_LLM_GEMINI
     return None
-
-
-def _cliente():
-    try:
-        from google import genai
-    except ImportError as exc:  # pragma: no cover - depende del entorno
-        raise STTNoConfigurado(
-            "El paquete google-genai no esta instalado", detalles={"motivo": str(exc)}
-        ) from exc
-
-    return genai.Client(api_key=api_key())
-
-
-def cadena_modelos(model=None):
-    """Modelos a probar en orden: el configurado y sus respaldos."""
-    principal = (model or modelo()).strip()
-    cadena = [principal]
-    extras = os.environ.get("GEMINI_MODEL_FALLBACKS") or ""
-    for candidato in extras.split(","):
-        candidato = candidato.strip()
-        if candidato and candidato not in cadena:
-            cadena.append(candidato)
-    for defecto in MODELOS_RESPALDO:
-        if defecto not in cadena:
-            cadena.append(defecto)
-    return cadena
-
-
-def _es_error_transitorio(exc):
-    codigo = getattr(exc, "code", None)
-    if isinstance(codigo, int) and codigo in (500, 502, 503, 504):
-        return True
-    nombre = type(exc).__name__
-    if "ServerError" in nombre or "ServiceUnavailable" in nombre:
-        return True
-    if "Timeout" in nombre or "Connect" in nombre:
-        return True
-    texto = str(exc).upper()
-    return "UNAVAILABLE" in texto or "HIGH DEMAND" in texto
-
-
-def _es_modelo_no_disponible(exc):
-    codigo = getattr(exc, "code", None)
-    if codigo == 404:
-        return True
-    return "NO LONGER AVAILABLE" in str(exc).upper()
-
-
-def _es_error_de_argumento(exc):
-    codigo = getattr(exc, "code", None)
-    if codigo in (400, 422):
-        return True
-    nombre = type(exc).__name__
-    return "InvalidArgument" in nombre or "BadRequest" in nombre
-
-
-def _tokens(usage):
-    if usage is None:
-        return None, None
-    entrada = getattr(usage, "total_input_tokens", None)
-    salida = getattr(usage, "total_output_tokens", None)
-    return entrada, salida
 
 
 def _limpiar_texto(texto):
@@ -344,38 +148,6 @@ def _limpiar_texto(texto):
     return limpio[:MAX_TEXTO]
 
 
-def _llamar_gemini(cliente, audio_bytes, mime_type, language, model, con_transcription_config, initial_prompt=None):
-    payload = [
-        {"type": "text", "text": prompt_con_hotwords(initial_prompt)},
-        {
-            "type": "audio",
-            "data": base64.b64encode(audio_bytes).decode("ascii"),
-            "mime_type": mime_type,
-        },
-    ]
-    kwargs = {"model": model, "input": payload, "timeout": timeout_s()}
-    if con_transcription_config:
-        kwargs["generation_config"] = {
-            "transcription": {"language_codes": [language], "mode": "verbatim"}
-        }
-    return cliente.interactions.create(**kwargs)
-
-
-def _intentar_modelo(cliente, audio_bytes, mime_type, idioma, model, initial_prompt=None):
-    """Llama a Gemini con un modelo. Reintenta sin bloque de transcripcion
-    cuando el modelo no acepta ese parametro."""
-    try:
-        return _llamar_gemini(
-            cliente, audio_bytes, mime_type, idioma, model, True, initial_prompt
-        )
-    except Exception as exc:  # noqa: BLE001
-        if _es_error_de_argumento(exc):
-            return _llamar_gemini(
-                cliente, audio_bytes, mime_type, idioma, model, False, initial_prompt
-            )
-        raise
-
-
 def transcribe_audio(
     audio_bytes,
     mime_type="audio/wav",
@@ -383,55 +155,15 @@ def transcribe_audio(
     model=None,
     initial_prompt=None,
 ):
-    """Transcribe el audio y devuelve un diccionario con la trazabilidad.
-
-    Con ``STT_PROVEEDOR=auto`` usa Gemini cuando hay clave y, si la clave esta
-    rota o el proveedor no responde, cae al modelo local del PC.
+    """Transcribe el audio con faster-whisper local y devuelve trazabilidad.
 
     ``initial_prompt`` son las "hotwords" del usuario (cuentas y categorias):
     hacen que el modelo escriba bien las marcas y los nombres propios.
-
-    Lanza una subclase de ``ErrorSTT`` si ningun proveedor puede transcribir.
     """
     if not audio_bytes:
         raise STTNoConfigurado("No se recibio audio para transcribir")
-
-    proveedor = proveedor_preferido()
     idioma = (language or IDIOMA_POR_DEFECTO).strip()
-
-    if proveedor == PROVEEDOR_LOCAL:
-        return transcribe_local(audio_bytes, idioma, initial_prompt)
-    if proveedor == PROVEEDOR_GEMINI:
-        return transcribe_gemini(audio_bytes, mime_type, idioma, model, initial_prompt)
-
-    # Modo automatico.
-    if not esta_configurado():
-        if local_disponible():
-            return transcribe_local(audio_bytes, idioma, initial_prompt)
-        raise STTNoConfigurado(
-            "No hay API key de Gemini ni faster-whisper instalado. "
-            "Configura la clave con tools/configurar_api_key.py o instala "
-            "faster-whisper para usar el modelo local.",
-            detalles={"proveedor_local_disponible": False},
-        )
-
-    try:
-        return transcribe_gemini(
-            audio_bytes, mime_type, idioma, model, initial_prompt
-        )
-    except (
-        STTKeyInvalida,
-        STTSinPermisos,
-        STTNoConfigurado,
-        STTNoDisponible,
-        STTCuota,
-    ) as exc:
-        if not local_disponible():
-            raise
-        resultado = transcribe_local(audio_bytes, idioma, initial_prompt)
-        resultado["motivo_fallback"] = exc.mensaje
-        resultado["error_proveedor"] = exc.codigo
-        return resultado
+    return transcribe_local(audio_bytes, idioma, initial_prompt)
 
 
 PROMPT_EXTRACCION = """Eres un asistente que convierte frases de finanzas personales en datos estructurados.
@@ -501,10 +233,10 @@ def _json_de_texto(texto):
 
 
 def extraer_estructura(texto, categorias, cuentas, metas=None, modelo=None):
-    """Pide a un LLM que extraiga tipo, monto, categoria, cuenta y meta.
+    """Pide a Ollama que extraiga tipo, monto, categoria, cuenta y meta.
 
-    Devuelve un diccionario con los datos crudos del modelo, o None si no hay
-    ningun LLM disponible o si la respuesta no es utilizable.
+    Devuelve un diccionario con los datos crudos del modelo, o None si no
+    hay Ollama disponible o si la respuesta no es utilizable.
     """
     proveedor = proveedor_llm()
     if proveedor is None:
@@ -513,10 +245,7 @@ def extraer_estructura(texto, categorias, cuentas, metas=None, modelo=None):
     prompt = _armar_prompt_extraccion(texto, categorias, cuentas, metas)
     started = time.perf_counter()
 
-    if proveedor == PROVEEDOR_LLM_OLLAMA:
-        respuesta = _extraer_con_ollama(prompt, modelo)
-    else:
-        respuesta = _extraer_con_gemini(prompt)
+    respuesta = _extraer_con_ollama(prompt, modelo)
 
     if not respuesta:
         return None
@@ -654,10 +383,10 @@ def _armar_prompt_conversacion(texto, contexto=None):
 def interpretar_conversacion(texto, contexto=None, modelo=None):
     """Clasifica una frase conversacional y extrae sus entidades.
 
-    El LLM solo interpreta. La validacion, el calculo de fechas y la ejecucion
+    Ollama solo interpreta. La validacion, el calculo de fechas y la ejecucion
     quedan a cargo de ``backend/conversation.py``.
 
-    Devuelve ``None`` si no hay proveedor disponible o si la respuesta no es
+    Devuelve ``None`` si no hay Ollama disponible o si la respuesta no es
     un objeto JSON utilizable.
     """
     proveedor = proveedor_llm()
@@ -667,10 +396,7 @@ def interpretar_conversacion(texto, contexto=None, modelo=None):
     prompt = _armar_prompt_conversacion(texto, contexto)
     started = time.perf_counter()
     try:
-        if proveedor == PROVEEDOR_LLM_OLLAMA:
-            respuesta = _extraer_con_ollama(prompt, modelo)
-        else:
-            respuesta = _conversar_con_gemini(prompt)
+        respuesta = _extraer_con_ollama(prompt, modelo)
     except ErrorSTT:
         return None
 
@@ -691,37 +417,14 @@ def interpretar_conversacion(texto, contexto=None, modelo=None):
         "entidades": entidades,
         "confianza": max(0.0, min(1.0, confianza)) if confianza is not None else None,
         "proveedor": proveedor,
-        "modelo": modelo or (modelo_ollama() if proveedor == PROVEEDOR_LLM_OLLAMA else None),
+        "modelo": modelo or modelo_ollama(),
         "latencia_ms": int((time.perf_counter() - started) * 1000),
     }
 
 
-def _conversar_con_gemini(prompt):
-    if not api_key():
-        return None
-    try:
-        from google import genai
-        from google.genai import types
-
-        cliente = genai.Client(api_key=api_key())
-        respuesta = cliente.models.generate_content(
-            model=modelo(),
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0,
-            ),
-        )
-    except Exception as exc:  # noqa: BLE001
-        raise ErrorSTT(
-            "Gemini no pudo interpretar la conversacion",
-            detalles={"proveedor": PROVEEDOR_LLM_GEMINI, "motivo": str(exc)[:300]},
-        ) from exc
-    return _json_de_texto(getattr(respuesta, "text", None))
-
-
 def _extraer_con_ollama(prompt, modelo=None):
     import json
+    import urllib.error
     import urllib.request
 
     cuerpo = {
@@ -781,43 +484,6 @@ def _extraer_con_ollama(prompt, modelo=None):
     if not contenido and mensaje.get("thinking"):
         contenido = mensaje["thinking"]
     return _json_de_texto(contenido)
-
-
-def _extraer_con_gemini(prompt):
-    if not api_key():
-        return None
-    try:
-        from google import genai
-        from google.genai import types
-
-        cliente = genai.Client(api_key=api_key())
-        esquema = {
-            "type": "object",
-            "properties": {
-                "tipo": {"type": "string", "enum": ["gasto", "ingreso", "ahorro"]},
-                "monto": {"type": "integer", "nullable": True},
-                "categoria": {"type": "string", "nullable": True},
-                "cuenta": {"type": "string", "nullable": True},
-                "meta": {"type": "string", "nullable": True},
-                "concepto": {"type": "string"},
-            },
-            "required": ["tipo", "monto", "categoria", "cuenta", "meta", "concepto"],
-        }
-        respuesta = cliente.models.generate_content(
-            model=modelo or modelo(),
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=esquema,
-                temperature=0,
-            ),
-        )
-    except Exception as exc:  # noqa: BLE001
-        raise ErrorSTT(
-            "Gemini no pudo extraer la estructura",
-            detalles={"proveedor": PROVEEDOR_LLM_GEMINI, "motivo": str(exc)[:300]},
-        ) from exc
-    return _json_de_texto(getattr(respuesta, "text", None))
 
 
 def _wav_a_float32(audio_bytes):
@@ -906,117 +572,3 @@ def _modelo_whisper():
         tamano = modelo_local()
         _MODELO_WHISPER = WhisperModel(tamano, device="cpu", compute_type="int8")
     return _MODELO_WHISPER
-
-
-def transcribe_gemini(
-    audio_bytes,
-    mime_type="audio/wav",
-    language=IDIOMA_POR_DEFECTO,
-    model=None,
-    initial_prompt=None,
-):
-    """Transcribe el audio con Gemini Flash."""
-    if not api_key():
-        raise STTNoConfigurado(
-            "Falta configurar GEMINI_API_KEY en el backend",
-            detalles={"archivo": str(ARCHIVO_EXTERNO)},
-        )
-
-    cliente = _cliente()
-    cadena = cadena_modelos(model)
-
-    started = time.perf_counter()
-    ultimo_error = None
-    modelo_usado = cadena[0]
-    interaccion = None
-
-    for intento in range(1, MAX_INTENTOS + 1):
-        for candidato in cadena:
-            if time.perf_counter() - started > plazo_total_s():
-                raise STTNoDisponible(
-                    "El proveedor de transcripcion tardo demasiado en responder",
-                    detalles={"modelo": modelo_usado, "plazo_s": plazo_total_s()},
-                )
-            modelo_usado = candidato
-            try:
-                interaccion = _intentar_modelo(
-                    cliente, audio_bytes, mime_type, language, candidato, initial_prompt
-                )
-            except Exception as exc:  # noqa: BLE001 - se clasifica mas abajo
-                ultimo_error = exc
-                if _es_modelo_no_disponible(exc) or _es_error_transitorio(exc):
-                    continue
-                _convertir_error(exc, candidato)
-            else:
-                break
-        else:
-            if intento < MAX_INTENTOS:
-                _esperar(intento)
-                continue
-            _convertir_error(ultimo_error, modelo_usado)
-        break
-
-    latencia_ms = int((time.perf_counter() - started) * 1000)
-    texto = _limpiar_texto(getattr(interaccion, "output_text", None))
-    if not texto:
-        raise STTSinTexto(
-            "El modelo no devolvio texto para este audio",
-            detalles={"modelo": modelo_usado, "latencia_ms": latencia_ms},
-        )
-
-    tokens_entrada, tokens_salida = _tokens(getattr(interaccion, "usage", None))
-    return {
-        "texto": texto,
-        "modelo": modelo_usado,
-        "proveedor": PROVEEDOR_GEMINI,
-        "latencia_ms": latencia_ms,
-        "tokens_entrada": tokens_entrada,
-        "tokens_salida": tokens_salida,
-        "idioma": language,
-    }
-
-
-def _esperar(intento):
-    espera = ESPERA_INICIAL_S * (2 ** (intento - 1))
-    time.sleep(min(espera, 8))
-
-
-def _convertir_error(exc, modelo_usado):
-    codigo = getattr(exc, "code", None)
-    texto = str(exc).upper()
-    motivo = getattr(exc, "message", None) or str(exc)[:300]
-
-    if codigo == 401 or "UNAUTHENTICATED" in texto:
-        prefijo = api_key()[:4]
-        raise STTKeyInvalida(
-            "Google rechazo la API key (401). Las claves AQ.Ab que crea AI Studio "
-            "desde mayo de 2026 estan fallando con ACCESS_TOKEN_TYPE_UNSUPPORTED. "
-            "Opciones: usar una clave Standard (AIza) de otro proyecto, pedir "
-            "revision de la cuenta a Google, o activar el proveedor local.",
-            detalles={
-                "modelo": modelo_usado,
-                "motivo": str(motivo)[:300],
-                "prefijo_clave": prefijo,
-                "formato_clave": "AQ" if prefijo.startswith("AQ") else "AIza",
-            },
-        ) from exc
-    if codigo == 403 or "PERMISSION_DENIED" in texto:
-        raise STTSinPermisos(
-            "La API key no tiene permiso para usar el modelo. Revisa que la "
-            "Generative Language API este habilitada en el proyecto de Google.",
-            detalles={"modelo": modelo_usado, "motivo": str(motivo)[:300]},
-        ) from exc
-    if codigo == 429 or "RESOURCE_EXHAUSTED" in texto:
-        raise STTCuota(
-            "El proveedor alcanzo su limite de peticiones",
-            detalles={"modelo": modelo_usado},
-        ) from exc
-    if codigo in (500, 502, 503, 504) or "UNAVAILABLE" in texto:
-        raise STTNoDisponible(
-            "El proveedor de transcripcion no esta disponible",
-            detalles={"modelo": modelo_usado},
-        ) from exc
-    raise ErrorSTT(
-        "El proveedor de transcripcion fallo",
-        detalles={"modelo": modelo_usado, "motivo": str(motivo)[:300]},
-    ) from exc

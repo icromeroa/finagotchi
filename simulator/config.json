@@ -6,7 +6,7 @@
   "nombre": "Simulador",
   "sample_rate": 16000,
   "language": "es-CO",
-  "stt_provider": "gemini",
+  "stt_provider": "local",
   "input_device": null,
   "voice_output": true,
   "voice_scope": "resumen",

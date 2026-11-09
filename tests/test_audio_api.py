@@ -16,11 +16,11 @@ from test_audio import construir_wav  # noqa: E402
 def respuesta_falsa(texto="gasté 14000 en el almuerzo"):
     return {
         "texto": texto,
-        "modelo": "gemini-3.5-flash",
-        "proveedor": "google",
+        "modelo": "whisper-base",
+        "proveedor": "local",
         "latencia_ms": 1234,
-        "tokens_entrada": 100,
-        "tokens_salida": 10,
+        "tokens_entrada": None,
+        "tokens_salida": None,
         "idioma": "es-CO",
     }
 
@@ -153,8 +153,8 @@ class AudioApiTests(unittest.TestCase):
                 (self.user["id"],),
             ).fetchone()
             self.assertIsNotNone(row)
-            self.assertEqual(row["proveedor"], "google")
-            self.assertEqual(row["modelo"], "gemini-3.5-flash")
+            self.assertEqual(row["proveedor"], "local")
+            self.assertEqual(row["modelo"], "whisper-base")
             self.assertEqual(row["latencia_ms"], 1234)
             self.assertIsNotNone(row["mensaje_id"])
             # La auditoria solo guarda metadatos, nunca el audio.

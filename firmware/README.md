@@ -1,6 +1,6 @@
-# Firmware FinaGotchi (fuera de prototypes/xiaozhi/)
+# Firmware FinaGotchi
 
-> Carpeta `firmware/` del repo normal. No toca `backend/`, `simulator/`, `frontend/` ni `prototypes/xiaozhi/`.
+> Carpeta `firmware/` del repo normal. No toca `backend/`, `simulator/` ni `frontend/`.
 > Ver especificaciones de hardware y pines en `docs/FIRMWARE.md`.
 
 ## Estructura
