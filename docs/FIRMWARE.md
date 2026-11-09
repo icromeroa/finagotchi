@@ -1,6 +1,6 @@
 # Firmware FinaGotchi — plan de implementación
 
-> Carpeta: `firmware/` (repositorio normal, fuera de `prototypes/xiaozhi/`, `backend/`, `simulator/` y `frontend/`).
+> Carpeta: `firmware/` (repositorio normal, fuera de `backend/`, `simulator/` y `frontend/`).
 > Estado: **F1 — pantalla ILI9225 en prueba**. Decisión vigente: push-to-talk ahora; wake word en `docs/MEJORAS_FUTURAS.md`.
 
 ## 1. Hardware objetivo (verificado por fotos y plano)
@@ -74,7 +74,7 @@ Es el controlador. La ILI9225 necesita su propia secuencia de init (configuraci�
 
 ## 6. Código en VS Code: carpeta nueva `firmware/`
 
-- `firmware/` es un proyecto **PlatformIO** independiente en el repo normal; no está dentro de `prototypes/xiaozhi/` ni de `backend/` o `simulator/`.
+- `firmware/` es un proyecto **PlatformIO** independiente en el repo normal; no está dentro de `backend/` o `simulator/`.
 - Requiere la extensión **PlatformIO IDE** en VS Code y el board `esp32-s3`; compilar con Python 3.14 está permitido solo en el host (no en el firmware).
 - F1 solo hace `u8g2.begin()` + pintar + texto. Si no pinta, el problema es init o pines, no la lógica de negocio.
 

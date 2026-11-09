@@ -2,7 +2,6 @@
 
 > Este documento solo acumula ideas. Nada de aquí se implementa hasta que se priorice.
 > El plan de firmware actual es push-to-talk con botón; la wake word queda para después.
-> La documentación de Xiaozhi queda congelada en `prototypes/xiaozhi/` y no se toca desde aquí.
 
 ## Voz (wake word)
 
