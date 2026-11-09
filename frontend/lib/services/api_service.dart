@@ -110,6 +110,21 @@ class ApiService {
   }
 
   // ==============================
+  // OBTENER CUENTAS
+  // ==============================
+
+  Future<List<Map<String, dynamic>>> getAccounts({
+    required String accessToken,
+  }) async {
+    final data = await _get('/accounts', accessToken: accessToken);
+    final items = data['items'] ?? data['data'] ?? data;
+    if (items is List) {
+      return items.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
+
+  // ==============================
   // OBTENER CATEGORÍAS
   // ==============================
 
