@@ -816,12 +816,13 @@ def _rango_consulta(texto, interpretacion):
 
 def _periodo_legado(rango, hoy):
     """Alias para clientes y pruebas que todavía leen ``datos.periodo``."""
+    expresion = str(rango.get("expresion") or "").strip().lower()
+    if rango["alcance"] == "semana" and expresion.startswith("esta semana"):
+        return "semana"
+    if rango["alcance"] == "mes" and expresion == "este mes":
+        return "mes"
     if rango["desde"] == rango["hasta"] == hoy:
         return "hoy"
-    if rango["alcance"] == "semana" and rango["expresion"].startswith("esta semana"):
-        return "semana"
-    if rango["alcance"] == "mes" and rango["expresion"] == "este mes":
-        return "mes"
     return rango["alcance"]
 
 

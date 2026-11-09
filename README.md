@@ -1,6 +1,9 @@
 ﻿# FinaGotchi
 
-Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32 o al simulador de escritorio, el backend transcribe el audio con IA, propone los movimientos y el usuario confirma antes de que se guarde.
+Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32, al simulador de escritorio o a la app Flutter, el backend transcribe el audio con IA, propone los movimientos y el usuario confirma antes de que se guarde.
+
+**Integrantes:** Helen Andrea Lavao Benitez · Danna Michelle Guzman Angarita · Irene Charlotte Romero Avendaño
+**Asignatura:** Desarrollo de Aplicaciones AV - Universidad de San Buenaventura
 
 ## Componentes
 
@@ -17,7 +20,7 @@ Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32 o al s
 | `tests/` | Pruebas del esquema, la API y la optimización. |
 | `tools/` | Utilidades, incluida la prueba real del flujo de voz. |
 | `docs/` | Especificaciones, lógica de negocio, endpoints y detalle de la IO. |
-| `frontend/` | App Flutter (prototipo visual, pendiente de capa HTTP). |
+| `frontend/` | App Flutter conectada al backend; funciona en macOS y en iPhone. |
 
 ## Puesta en marcha
 
@@ -58,7 +61,7 @@ py -3 database/init_db.py
 py -3 backend/server.py
 ```
 
-Queda en `http://127.0.0.1:5000/api/v1`.
+Queda en `http://127.0.0.1:5001/api/v1`.
 
 ### 5. Simulador
 
@@ -89,8 +92,8 @@ Ejemplo mínimo:
 $token = "TU_TOKEN"
 curl.exe -H "Authorization: Bearer $token" -H "Content-Type: application/json" `
   -d '{"device_id":"FINA-001","sequence":1,"measurements":{"temp":25.5},"message_id":"msg-001"}' `
-  http://localhost:5000/api/telemetry
-curl.exe -H "Authorization: Bearer $token" -H "Content-Type: application/json" http://localhost:5000/api/measurements
+  http://localhost:5001/api/telemetry
+curl.exe -H "Authorization: Bearer $token" -H "Content-Type: application/json" http://localhost:5001/api/measurements
 ```
 
 Documentación y decisiones: `docs/decisiones/api-rest.md` y `docs/evidencias/guia-4/README.md`. Pruebas rápidas:
@@ -234,31 +237,46 @@ Cuentas demo: `simulador@finagotchi.local` / `simulador123` y `demo01@finagotchi
 
 ## App Flutter
 
-La app actual es un **prototipo visual**: no tiene capa HTTP y no llama al
-backend. `login_screen.dart` solo valida el formulario y muestra el mensaje
-“Inicio de sesión de demostración.”; `home_screen.dart` usa valores fijos
-(`dailyBudget = 10000`, `spent = 2500`). La lógica real vive en el backend y en
-el simulador de escritorio.
+La app está **conectada al backend**. La URL se elige automáticamente según la
+plataforma en `frontend/lib/services/api_config.dart`:
 
-La versión que sí estaba conectada al backend quedó guardada en la rama
-`respaldo-frontend-conectado`; no forma parte de la rama actual.
+- macOS: `http://127.0.0.1:5001/api/v1`.
+- Android/iOS: usa la IP del Mac en la red local. Se puede sobrescribir con
+  `--dart-define=API_BASE_URL=...`.
 
-```powershell
+En macOS:
+
+```bash
 cd frontend
 flutter pub get
-flutter run
+flutter run -d macos
+```
+
+En el iPhone físico (mismo Wi-Fi que el Mac y backend escuchando en `0.0.0.0`):
+
+```bash
+cd frontend
+flutter run -d <UDID_DEL_IPHONE> \
+  --dart-define=API_BASE_URL=http://192.168.1.22:5001/api/v1
+```
+
+Para instalar una versión que abra desde el icono (sin `flutter run`) hay que
+compilar en release:
+
+```bash
+flutter build ios --release \
+  --dart-define=API_BASE_URL=http://192.168.1.22:5001/api/v1
 ```
 
 Pruebas de la app (no necesitan backend):
 
-```powershell
+```bash
 cd frontend
 flutter test
 ```
 
-`frontend/test/widget_test.dart` comprueba que `LoginScreen` se monta y valida
-correo y contraseña. Para probar la lógica de negocio de verdad, usa el
-simulador (`GUIA_SIMULADOR.md`).
+`frontend/test/widget_test.dart` comprueba que el login se monta y valida
+correo y contraseña.
 
 ## Base de datos
 

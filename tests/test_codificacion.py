@@ -14,7 +14,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 EXTENSIONES = {".dart", ".md", ".py", ".json", ".yaml", ".csv", ".txt"}
-EXCLUIDOS = {".git", "node_modules", "build", "__pycache__", ".dart_tool", "backups"}
+EXCLUIDOS = {".git", "node_modules", "build", "__pycache__", ".dart_tool", "backups", ".venv"}
 TAMANO_MAXIMO = 400000
 
 

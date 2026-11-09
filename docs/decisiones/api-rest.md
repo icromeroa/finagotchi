@@ -4,6 +4,17 @@
 > **compat** expone sin prefijo v1 los tres recursos de la Guia 4 y responde
 > **JSON plano** de la guia (lista/dict), no el sobre `{ok,data}`.
 
+## Contrato de consulta del equipo (Actividad 1)
+
+| Pregunta | Respuesta del equipo |
+|---|---|
+| ¿Qué recursos expondrá la API? | `devices` (dispositivos detectados) y `measurements` (transacciones de voz registradas por el simulador). |
+| ¿Qué endpoint devuelve todos los dispositivos? | `GET /api/devices` |
+| ¿Qué endpoint devuelve un dispositivo específico? | `GET /api/devices/{device_id}` |
+| ¿Cómo se filtrarán mediciones por `device_id`? | Query parameter: `GET /api/measurements?device_id=FINAGOTCHI-PC-SIMULATOR-01` |
+| ¿Qué respuesta se espera si el dispositivo no existe? | `404 Not Found` en `/api/devices/{device_id}`; en `/api/measurements?device_id=...` un `200` con lista vacía `[]`. |
+| ¿Qué límite máximo de registros permitirá la API? | `limit` entre 1 y 100 (por defecto 20); `offset` >= 0. Fuera de rango responde `422`. |
+
 ## Recursos
 
 | Recurso | Endpoint |

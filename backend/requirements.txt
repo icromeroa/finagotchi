@@ -1,0 +1,8 @@
+flask
+requests
+pytest
+keyboard
+SpeechRecognition
+sounddevice
+scipy
+numpy

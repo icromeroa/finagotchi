@@ -194,7 +194,7 @@ Edita `simulator/config.json`:
 
 ```json
 {
-  "http_base_url": "http://127.0.0.1:5000/api/v1",
+  "http_base_url": "http://127.0.0.1:5001/api/v1",
   "device_uid": "FINAGOTCHI-PC-SIMULATOR-01",
   "email": "simulador@finagotchi.local",
   "password": "simulador123",
@@ -204,7 +204,7 @@ Edita `simulator/config.json`:
   "voice_scope": "resumen",
   "sample_rate": 16000,
   "language": "es-CO",
-  "stt_provider": "faster-whisper",
+  "stt_provider": "local",
   "request_timeout_s": 90
 }
 ```
@@ -402,7 +402,7 @@ El `message_id` se genera una vez por grabación, así que un reintento no dupli
 
 ## Problemas frecuentes
 
-- `ERROR DE CONEXIÓN`: verifica que el backend escuche en `http://127.0.0.1:5000`.
+- `ERROR DE CONEXIÓN`: verifica que el backend escuche en `http://127.0.0.1:5001`.
 - `401` o `403`: el dispositivo está vinculado a otra cuenta; usa otro `device_uid` o desvincula el dispositivo desde la app.
 - `keyboard` no detecta ESPACIO: ejecuta la terminal como administrador.
 - `503 STT_NO_CONFIGURADO`: falta la clave de faster-whisper (o usa `LLM_PROVEEDOR`/`STT_PROVEEDOR` locales que no la necesita).
