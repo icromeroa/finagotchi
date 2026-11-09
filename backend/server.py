@@ -1,398 +1,19 @@
-<<<<<<< HEAD
 import io
 import os
-<<<<<<< HEAD
-import re
-import sqlite3
-import sys
-from datetime import datetime, timezone
-from flask import Flask, jsonify, request
-
-sys.path.append(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-)
-from database.init_db import DB_PATH, init_sqlite
-
-app = Flask(__name__)
-
-
-def obtener_presupuestos_y_saldos(cursor):
-    """Calcula el estado actual de cada categoría y sus cupos restantes."""
-    cursor.execute("SELECT categoria, monto_limite FROM presupuestos_categoria")
-    presupuestos = dict(cursor.fetchall())
-
-    cursor.execute(
-        "SELECT category, SUM(amount) FROM transacciones WHERE transaction_type = 'expense' AND cerrado = 0 GROUP BY category"
-    )
-    gastos_por_cat = dict(cursor.fetchall())
-
-    desglose = {}
-    exceso_total_categorias = 0.0
-
-    for cat, limite in presupuestos.items():
-        gastado = gastos_por_cat.get(cat, 0.0)
-        restante = limite - gastado
-        desglose[cat] = {
-            "limite": limite,
-            "gastado": gastado,
-            "restante": restante,
-            "superado": gastado > limite,
-        }
-        if gastado > limite:
-            exceso_total_categorias += gastado - limite
-
-    return desglose, exceso_total_categorias
-
-
-def calcular_salud_y_animo(
-    salud_actual, total_ingresos, total_gastos, exceso_categorias
-):
-    """Calcula la salud considerando el balance neto y los excesos por categoría."""
-    neto = total_ingresos - total_gastos
-    nueva_salud = salud_actual
-
-    # Penalización si hay categorías excedidas
-    if exceso_categorias > 0:
-        penalizacion = int((exceso_categorias / 5000.0) * 8)
-        nueva_salud -= penalizacion
-
-    # Bonificación si el balance neto del día es altamente positivo
-    if neto > 0 and exceso_categorias == 0:
-        recuperacion = int((neto / 10000.0) * 5)
-        nueva_salud += recuperacion
-
-    nueva_salud = max(0, min(100, nueva_salud))
-
-    if nueva_salud <= 20:
-        animo = "ALERTA / CRÍTICO"
-    elif nueva_salud <= 50:
-        animo = "TRISTE"
-    elif nueva_salud <= 80:
-        animo = "PREOCUPADO"
-    else:
-        animo = "FELIZ"
-
-    return nueva_salud, animo, neto
-
-
-def procesar_nlp_backend(texto: str) -> dict:
-    texto_lower = texto.lower()
-
-    if any(
-        p in texto_lower
-        for p in [
-            "cómo me fue",
-            "como me fue",
-            "cerrar día",
-            "cerrar dia",
-            "terminar día",
-        ]
-    ):
-        return {
-            "transaction_type": "cierre_dia",
-            "amount": 0.0,
-            "category": "consultas",
-        }
-
-    if any(
-        p in texto_lower
-        for p in [
-            "cómo voy",
-            "como voy",
-            "cómo me está yendo",
-            "como me esta yendo",
-            "resumen",
-            "balance",
-        ]
-    ):
-        return {
-            "transaction_type": "consulta_estado",
-            "amount": 0.0,
-            "category": "consultas",
-        }
-
-    # Limpieza mejorada para captura de números simples o compuestos ("pagaron 50000", "50 000")
-    texto_limpio = re.sub(r"(\d+)\s+(\d+)", r"\1\2", texto_lower)
-    texto_limpio = (
-        texto_limpio.replace(".", "").replace(",", "").replace("$", "")
-    )
-
-    numeros = re.findall(r"\d+", texto_limpio)
-    monto = float(numeros[0]) if numeros else 10000.0
-
-    if monto < 1000 and any(kw in texto_lower for kw in ["mil", "k"]):
-        monto = monto * 1000.0
-
-    palabras_ingreso = [
-        "pagaron",
-        "ingresó",
-        "ingreso",
-        "recibí",
-        "recibi",
-        "gané",
-        "gane",
-        "cobré",
-        "sueldo",
-        "salario",
-        "pago",
-    ]
-    es_ingreso = any(p in texto_lower for p in palabras_ingreso)
-    tipo_transaccion = "income" if es_ingreso else "expense"
-
-    reglas_categoria = {
-        "food": [
-            "almuerzo",
-            "desayuno",
-            "cena",
-            "comida",
-            "restaurante",
-            "café",
-            "cafe",
-            "empanada",
-        ],
-        "transport": [
-            "transporte",
-            "pasaje",
-            "bus",
-            "transmilenio",
-            "uber",
-            "taxi",
-            "viaje",
-            "gasolina",
-        ],
-        "entertainment": [
-            "cine",
-            "fiesta",
-            "bar",
-            "cerveza",
-            "juego",
-            "salida",
-            "concierto",
-        ],
-        "health": ["farmacia", "drogueria", "medicina", "medico", "salud"],
-        "housing": [
-            "arriendo",
-            "alquiler",
-            "servicios",
-            "luz",
-            "agua",
-            "gas",
-            "internet",
-        ],
-        "salary": [
-            "sueldo",
-            "salario",
-            "trabajo",
-            "quincena",
-            "pagaron",
-            "pago",
-        ],
-    }
-
-    cat_detectada = None
-    for cat, palabras in reglas_categoria.items():
-        if any(w in texto_lower for w in palabras):
-            cat_detectada = cat
-            break
-
-    if not cat_detectada:
-        cat_detectada = "salary" if es_ingreso else "other"
-
-    return {
-        "transaction_type": tipo_transaccion,
-        "amount": monto,
-        "category": cat_detectada,
-    }
-
-
-@app.post("/api/v1/finagotchi/telemetry")
-def receive_telemetry():
-    data = request.get_json(silent=True)
-    if not data:
-        return (
-            jsonify({"status": "error", "message": "Payload JSON requerido"}),
-            400,
-        )
-
-    message_id = data.get("message_id")
-    device_id = data.get("device_id")
-    timestamp = data.get("timestamp")
-    raw_text = data.get("measurements", {}).get("raw_voice_text", "")
-
-    nlp = procesar_nlp_backend(raw_text)
-    tipo = nlp["transaction_type"]
-    monto = nlp["amount"]
-    categoria = nlp["category"]
-
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    # Obtener Salud actual acumulada
-    cursor.execute("SELECT salud FROM estado_mascota WHERE id = 1")
-    salud_actual = cursor.fetchone()[0]
-
-    # --- CASO A: CONSULTA DE ESTADO ("¿Cómo voy?") ---
-    if tipo == "consulta_estado":
-        cursor.execute(
-            "SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'income' AND cerrado = 0"
-        )
-        total_ingresos = cursor.fetchone()[0] or 0.0
-
-        cursor.execute(
-            "SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'expense' AND cerrado = 0"
-        )
-        total_gastos = cursor.fetchone()[0] or 0.0
-
-        desglose, exceso_total = obtener_presupuestos_y_saldos(cursor)
-        salud, animo, neto = calcular_salud_y_animo(
-            salud_actual, total_ingresos, total_gastos, exceso_total
-        )
-        conn.close()
-
-        return (
-            jsonify({
-                "status": "success",
-                "tipo": "consulta_estado",
-                "total_ingresos": total_ingresos,
-                "total_gastos": total_gastos,
-                "balance_neto": neto,
-                "salud": salud,
-                "animo": animo,
-                "categorias": desglose,
-            }),
-            200,
-        )
-
-    # --- CASO B: CIERRE DEL DÍA ("¿Cómo me fue el día de hoy?") ---
-    if tipo == "cierre_dia":
-        cursor.execute(
-            "SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'income' AND cerrado = 0"
-        )
-        total_ingresos = cursor.fetchone()[0] or 0.0
-
-        cursor.execute(
-            "SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'expense' AND cerrado = 0"
-        )
-        total_gastos = cursor.fetchone()[0] or 0.0
-
-        desglose, exceso_total = obtener_presupuestos_y_saldos(cursor)
-        salud_final, animo_final, neto = calcular_salud_y_animo(
-            salud_actual, total_ingresos, total_gastos, exceso_total
-        )
-
-        # Cierra las transacciones pero RETIENE la salud alcanzada para el día siguiente
-        cursor.execute("UPDATE transacciones SET cerrado = 1 WHERE cerrado = 0")
-        cursor.execute(
-            "UPDATE estado_mascota SET salud = ?, animo = ? WHERE id = 1",
-            (salud_final, animo_final),
-        )
-        conn.commit()
-        conn.close()
-
-        return (
-            jsonify({
-                "status": "success",
-                "tipo": "cierre_dia",
-                "total_ingresos": total_ingresos,
-                "total_gastos": total_gastos,
-                "balance_neto": neto,
-                "salud_heredada": salud_final,
-                "animo": animo_final,
-                "categorias": desglose,
-            }),
-            200,
-        )
-
-    # --- CASO C: NUEVA TRANSACCIÓN ---
-    try:
-        cursor.execute(
-            """
-            INSERT INTO transacciones (message_id, device_id, timestamp, transaction_type, amount, category, raw_text, cerrado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-            """,
-            (message_id, device_id, timestamp, tipo, monto, categoria, raw_text),
-        )
-        conn.commit()
-    except sqlite3.IntegrityError:
-        conn.close()
-        return (
-            jsonify({
-                "status": "error",
-                "message": "Conflict: message_id duplicado",
-            }),
-            409,
-        )
-
-    cursor.execute(
-        "SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'income' AND cerrado = 0"
-    )
-    total_ingresos = cursor.fetchone()[0] or 0.0
-
-    cursor.execute(
-        "SELECT SUM(amount) FROM transacciones WHERE transaction_type = 'expense' AND cerrado = 0"
-    )
-    total_gastos = cursor.fetchone()[0] or 0.0
-
-    desglose, exceso_total = obtener_presupuestos_y_saldos(cursor)
-    salud, animo, neto = calcular_salud_y_animo(
-        salud_actual, total_ingresos, total_gastos, exceso_total
-    )
-
-    cursor.execute(
-        "UPDATE estado_mascota SET salud = ?, animo = ? WHERE id = 1",
-        (salud, animo),
-    )
-    conn.commit()
-    conn.close()
-
-    return (
-        jsonify({
-            "status": "success",
-            "message_id": message_id,
-            "monto": monto,
-            "transaction_type": tipo,
-            "category": categoria,
-            "salud": salud,
-            "animo": animo,
-            "gastos_acumulados": total_gastos,
-            "ingresos_acumulados": total_ingresos,
-            "balance_neto": neto,
-            "categorias": desglose,
-        }),
-        201,
-    )
-
-
-if __name__ == "__main__":
-    init_sqlite()
-    app.run(debug=True, port=5000)
-=======
-=======
-import os
->>>>>>> helen
 import secrets
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-<<<<<<< HEAD
 from flask import Flask, g, request, send_file
-=======
-from flask import Flask, g, request
->>>>>>> helen
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-<<<<<<< HEAD
 from backend import ai, audio, conversation, nlp, services, tts  # noqa: E402
 from backend import finance_engine  # noqa: E402
 from backend.api_utils import body, datos_entrantes, error, ok, require_fields  # noqa: E402
-=======
-from backend import nlp, services  # noqa: E402
-from backend.api_utils import body, error, ok, require_fields  # noqa: E402
->>>>>>> helen
 from backend.auth import (  # noqa: E402
     auth_required,
     create_access_token,
@@ -422,7 +43,6 @@ def public_user(row):
     return user
 
 
-<<<<<<< HEAD
 MIME_AUDIO_ACEPTADOS = {
     "audio/wav",
     "audio/x-wav",
@@ -761,8 +381,6 @@ def procesar_mensaje_voz(
     return payload, 200 if payload.get("duplicado") else 201
 
 
-=======
->>>>>>> helen
 def create_app(database=None):
     app = Flask(__name__)
     database = database or os.environ.get("FINAGOTCHI_DB") or str(ROOT / "finagotchi.db")
@@ -771,10 +389,7 @@ def create_app(database=None):
         DATABASE=database,
         CORS_ORIGIN=os.environ.get("FINAGOTCHI_CORS_ORIGIN", "*"),
         JSON_SORT_KEYS=False,
-<<<<<<< HEAD
         MAX_CONTENT_LENGTH=audio.MAX_BYTES,
-=======
->>>>>>> helen
     )
 
     path = Path(app.config["DATABASE"])
@@ -795,21 +410,17 @@ def create_app(database=None):
             "Content-Type, Authorization, X-Device-Token"
         )
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
-<<<<<<< HEAD
         # Chrome (desde la version 115) exige este permiso cuando la app web
         # le pide al backend que esta en la red local. Sin esta linea el
         # navegador bloquea la peticion y ni siquiera llega al servidor.
         if request.headers.get("Access-Control-Request-Private-Network") == "true":
             response.headers["Access-Control-Allow-Private-Network"] = "true"
-=======
->>>>>>> helen
         return response
 
     @app.errorhandler(ValueError)
     def value_error(exc):
         return error("DATOS_INVALIDOS", str(exc), 400)
 
-<<<<<<< HEAD
     @app.errorhandler(413)
     def payload_too_large(exc):
         return error(
@@ -830,8 +441,6 @@ def create_app(database=None):
             {"tipo": type(exc).__name__},
         )
 
-=======
->>>>>>> helen
     @app.get("/api/v1/health")
     def health():
         conn = get_db()
@@ -1099,7 +708,6 @@ def create_app(database=None):
     @app.get("/api/v1/home")
     @auth_required
     def home():
-<<<<<<< HEAD
         incluir_plan = (request.args.get("incluir_plan") or "").strip().lower() in (
             "1",
             "true",
@@ -1109,23 +717,11 @@ def create_app(database=None):
         return ok(
             services.home_payload(get_db(), g.user_id, incluir_plan=incluir_plan)
         )
-=======
-        return ok(services.home_payload(get_db(), g.user_id))
->>>>>>> helen
 
     @app.get("/api/v1/accounts")
     @auth_required
     def list_accounts():
-<<<<<<< HEAD
         return ok(services.accounts_summary(get_db(), g.user_id))
-=======
-        conn = get_db()
-        rows = conn.execute(
-            "SELECT * FROM v_cuentas_resumen WHERE usuario_id = ? ORDER BY orden, cuenta_id",
-            (g.user_id,),
-        ).fetchall()
-        return ok(dict_rows(rows))
->>>>>>> helen
 
     @app.post("/api/v1/accounts")
     @auth_required
@@ -1440,7 +1036,6 @@ def create_app(database=None):
     @app.post("/api/v1/messages")
     @auth_required
     def post_message():
-<<<<<<< HEAD
         data = datos_entrantes()
         try:
             payload, status = procesar_mensaje_voz(
@@ -1456,25 +1051,6 @@ def create_app(database=None):
         except ErrorSolicitud as exc:
             return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
         return ok(payload, status)
-=======
-        data = body()
-        text = data.get("texto") or request.form.get("texto")
-        if not text:
-            return error("STT_NO_CONFIGURADO", "Envía texto o configura un proveedor de transcripción", 422)
-        duration = data.get("audio_duracion_s") or request.form.get("audio_duracion_s")
-        payload = services.create_message(
-            get_db(),
-            g.user_id,
-            text,
-            message_id=data.get("message_id") or request.form.get("message_id"),
-            device_id=data.get("device_id"),
-            origen=data.get("origen") or "app_voz",
-            audio_duration_s=duration,
-        )
-        payload.setdefault("duplicado", False)
-        payload.setdefault("puntos_otorgados", 0)
-        return ok(payload, 200 if payload["duplicado"] else 201)
->>>>>>> helen
 
     @app.get("/api/v1/messages/<int:message_id>")
     @auth_required
@@ -1490,10 +1066,7 @@ def create_app(database=None):
         payload = services.confirm_message(get_db(), g.user_id, message_id)
         if payload is None:
             return error("MENSAJE_NO_ENCONTRADO", "El mensaje no existe", 404)
-<<<<<<< HEAD
         conversation.invalidar_accion_pendiente(g.user_id, message_id)
-=======
->>>>>>> helen
         return ok(payload)
 
     @app.post("/api/v1/messages/<int:message_id>/discard")
@@ -1519,10 +1092,7 @@ def create_app(database=None):
             (g.user_id, message_id),
         )
         conn.commit()
-<<<<<<< HEAD
         conversation.invalidar_accion_pendiente(g.user_id, message_id)
-=======
->>>>>>> helen
         return ok({"descartado": True})
 
     @app.get("/api/v1/days/<date_value>")
@@ -1696,7 +1266,6 @@ def create_app(database=None):
         ).fetchall()
         return ok(dict_rows(rows))
 
-<<<<<<< HEAD
     @app.get("/api/v1/goals/plan")
     @auth_required
     def get_goal_plan():
@@ -1746,47 +1315,6 @@ def create_app(database=None):
         except services.ErrorMeta as exc:
             return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
         return ok(goal, 201)
-=======
-    @app.post("/api/v1/goals")
-    @auth_required
-    def create_goal():
-        data = body()
-        missing = require_fields(data, ("nombre", "monto_meta", "fecha_limite", "frecuencia_ahorro", "aporte_periodico"))
-        if missing:
-            return error("CAMPOS_REQUERIDOS", "Faltan campos obligatorios", 422, {"campos": missing})
-        if data["frecuencia_ahorro"] not in ("diaria", "semanal", "quincenal", "mensual"):
-            return error("FRECUENCIA_INVALIDA", "Frecuencia de ahorro inválida", 422)
-        amount = int(data["monto_meta"])
-        contribution = int(data["aporte_periodico"])
-        if amount <= 0 or contribution <= 0:
-            return error("MONTOS_INVALIDOS", "Los montos deben ser positivos", 422)
-        if services.parse_date(data["fecha_limite"]) is None:
-            return error("FECHA_INVALIDA", "La fecha límite no es válida", 422)
-        conn = get_db()
-        cursor = conn.execute(
-            """
-            INSERT INTO metas
-                (usuario_id, nombre, icono, monto_meta, fecha_limite,
-                 frecuencia_ahorro, aporte_periodico, dia_aporte, hora_recordatorio,
-                 prioridad)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                g.user_id,
-                str(data["nombre"])[:30],
-                data.get("icono"),
-                amount,
-                data["fecha_limite"],
-                data["frecuencia_ahorro"],
-                contribution,
-                data.get("dia_aporte"),
-                data.get("hora_recordatorio") or "08:00",
-                int(data.get("prioridad", 1)),
-            ),
-        )
-        conn.commit()
-        return ok(services.serialize_goal(conn, g.user_id, cursor.lastrowid), 201)
->>>>>>> helen
 
     @app.get("/api/v1/goals/<int:goal_id>")
     @auth_required
@@ -1822,7 +1350,6 @@ def create_app(database=None):
         ):
             if field in data:
                 allowed[field] = data[field]
-<<<<<<< HEAD
         if "prioridad" in allowed:
             prioridad = services.parse_priority(allowed["prioridad"])
             if prioridad is None:
@@ -1833,8 +1360,6 @@ def create_app(database=None):
                     {"campo": "prioridad"},
                 )
             allowed["prioridad"] = prioridad
-=======
->>>>>>> helen
         if not allowed:
             return ok(services.serialize_goal(conn, g.user_id, goal_id))
         assignments = ", ".join(f"{column} = ?" for column in allowed)
@@ -2195,7 +1720,6 @@ def create_app(database=None):
     def device_message():
         if not g.device["usuario_id"]:
             return error("DISPOSITIVO_NO_VINCULADO", "El dispositivo no está vinculado", 403)
-<<<<<<< HEAD
         data = datos_entrantes()
         try:
             payload, status = procesar_mensaje_voz(
@@ -2224,25 +1748,6 @@ def create_app(database=None):
         if not g.device["usuario_id"]:
             return error("DISPOSITIVO_NO_VINCULADO", "El dispositivo no está vinculado", 403)
         return _sintetizar_voz(body())
-=======
-        data = body()
-        text = data.get("texto") or request.form.get("texto")
-        if not text:
-            return error("STT_NO_CONFIGURADO", "El dispositivo debe enviar texto transcrito o audio", 422)
-        payload = services.create_message(
-            get_db(),
-            g.device["usuario_id"],
-            text,
-            message_id=data.get("message_id"),
-            device_id=g.device["id"],
-            device_uid=g.device["device_uid"],
-            origen="dispositivo",
-            audio_duration_s=data.get("audio_duracion_s"),
-        )
-        payload.setdefault("duplicado", False)
-        payload.setdefault("puntos_otorgados", 0)
-        return ok(payload, 200 if payload["duplicado"] else 201)
->>>>>>> helen
 
     @app.post("/api/v1/device/messages/<int:message_id>/confirm")
     @device_required
@@ -2252,10 +1757,7 @@ def create_app(database=None):
         payload = services.confirm_message(get_db(), g.device["usuario_id"], message_id)
         if payload is None:
             return error("MENSAJE_NO_ENCONTRADO", "El mensaje no existe", 404)
-<<<<<<< HEAD
         conversation.invalidar_accion_pendiente(g.device["usuario_id"], message_id)
-=======
->>>>>>> helen
         return ok(payload)
 
     @app.post("/api/v1/device/close-day")
@@ -2311,11 +1813,6 @@ app = create_app()
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-<<<<<<< HEAD
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
->>>>>>> michelle
-=======
     # El reinicio automatico de Flask (debug) corta las peticiones en vuelo
     # cuando se cambia un archivo: durante una demo eso parte el audio a
     # medio enviar. Se deja desactivado por defecto y se puede activar con
@@ -2323,11 +1820,7 @@ if __name__ == "__main__":
     depurar = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(
         host=os.environ.get("HOST", "0.0.0.0"),
-        port=int(os.environ.get("PORT", 5000)),
+        port=int(os.environ.get("PORT", 5001)),
         debug=depurar,
         use_reloader=depurar,
     )
->>>>>>> michelle
-=======
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
->>>>>>> helen

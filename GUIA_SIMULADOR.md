@@ -83,11 +83,16 @@ py -3 -m pip install -r requirements.txt
 py -3 -m pip install -r requirements-simulator.txt
 ```
 
+mac:
+python3 -m pip install -r requirements.txt
+
 El backend necesita la clave de Gemini. La clave se guarda **fuera del repositorio**, en `%USERPROFILE%\.finagotchi\gemini.env`:
 
 ```powershell
 py -3 tools/configurar_api_key.py
 ```
+mac:
+python3 tools/configurar_api_key.py
 
 El asistente pide la clave, la guarda en ese archivo y la verifica contra la API. Para ver el estado:
 

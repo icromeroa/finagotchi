@@ -46,9 +46,26 @@ except Exception:  # noqa: BLE001 - falta PortAudio o no hay microfono
     sd = None
     MICROFONO_DISPONIBLE = False
 
+
+def _teclado_utilizable():
+    """El hook de ESPACIO solo funciona de verdad si el sistema lo permite.
+
+    En macOS la libreria ``keyboard`` importa bien pero su hilo interno falla
+    con ``OSError: Error 13 - Must be run as administrator``. Como el import no
+    lo delata, hay que comprobarlo por plataforma y permisos.
+    """
+    if not TECLADO_DISPONIBLE:
+        return False
+    if sys.platform == "darwin" and os.geteuid() != 0:
+        return False
+    return True
+
+
+TECLADO_UTILIZABLE = _teclado_utilizable()
+
 CONFIG_PATH = Path(__file__).with_name("config.json")
 DEFAULT_CONFIG = {
-    "http_base_url": "http://127.0.0.1:5000/api/v1",
+    "http_base_url": "http://127.0.0.1:5001/api/v1",
     "device_uid": "FINAGOTCHI-PC-SIMULATOR-01",
     "email": "simulador@finagotchi.local",
     "password": "simulador123",
@@ -364,22 +381,30 @@ def capture_voice(duracion_maxima=40):
         return b"", 0.0, {"pico": 0, "rms": 0.0, "muestras": 0}
 
     indice, nombre = _entrada_elegida()
-    usar_teclado = TECLADO_DISPONIBLE
+    usar_teclado = TECLADO_UTILIZABLE
     if usar_teclado:
         print(f"\n  Microfono: {nombre}")
         print("  Mantén presionada la tecla [ESPACIO] y habla.")
         print("  Suelta para enviar. [Atrás para cancelar]")
     else:
-        print("\n  El hook de teclado no esta disponible (se necesita ejecutar")
-        print("  como administrador). Se graba con la tecla ENTER:")
-        print("  una pulsacion empieza a grabar y la siguiente la detiene.")
+        print(f"\n  Microfono: {nombre}")
+        if sys.platform == "darwin" and TECLADO_DISPONIBLE:
+            print("  En macOS la tecla ESPACIO requiere ejecutar con sudo.")
+        else:
+            print("  El hook de teclado no esta disponible (se necesita ejecutar")
+            print("  como administrador).")
+        print("  Se graba con la tecla ENTER: una pulsacion empieza y otra detiene.")
 
     if usar_teclado:
         while not keyboard.is_pressed("space"):
             time.sleep(0.05)
+    else:
+        try:
+            input("  [ENTER] para empezar a grabar... ")
+        except (EOFError, KeyboardInterrupt):
+            return b"", 0.0, {"pico": 0, "rms": 0.0, "muestras": 0}
 
     bloques = []
-    inicio = time.time()
     detener = False
 
     def callback(indata, frames, time_info, status):
@@ -393,6 +418,7 @@ def capture_voice(duracion_maxima=40):
         device=indice,
         callback=callback,
     ):
+        inicio = time.time()
         if usar_teclado:
             while keyboard.is_pressed("space"):
                 time.sleep(0.05)
@@ -400,14 +426,10 @@ def capture_voice(duracion_maxima=40):
                     print(f"  Tiempo máximo alcanzado ({duracion_maxima}s).")
                     break
         else:
-            input("  [ENTER] para empezar a grabar... ")
-            while True:
-                time.sleep(0.05)
-                if time.time() - inicio > duracion_maxima:
-                    print(f"  Tiempo máximo alcanzado ({duracion_maxima}s).")
-                    break
-                if not input("  [ENTER] para detener la grabación: ").strip():
-                    break
+            try:
+                input("  Grabando... pulsa [ENTER] para detener la grabación: ")
+            except (EOFError, KeyboardInterrupt):
+                print()
 
     detener = True
     duracion = round(time.time() - inicio, 1)
@@ -603,8 +625,11 @@ def main():
     print("     SIMULADOR FINAGOTCHI (dispositivo virtual)")
     print("  ==============================================")
     print(f"  Backend: {BASE_URL}")
-    if not TECLADO_DISPONIBLE:
-        print("  Teclado: sin hook (usa ENTER para grabar). Ejecuta como administrador para la ESPACIO.")
+    if not TECLADO_UTILIZABLE:
+        if sys.platform == "darwin" and TECLADO_DISPONIBLE:
+            print("  Teclado: en macOS la ESPACIO requiere sudo; se usará ENTER para grabar.")
+        else:
+            print("  Teclado: sin hook (usa ENTER para grabar). Ejecuta como administrador para la ESPACIO.")
     if not MICROFONO_DISPONIBLE:
         print("  Microfono: NO disponible. Instala requirements-simulator.txt")
     if not verificar_backend():
