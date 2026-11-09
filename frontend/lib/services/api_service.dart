@@ -79,6 +79,25 @@ class ApiService {
       accessToken: accessToken,
     );
   }
+  // ==============================
+  // VINCULAR SIMULADOR CON PIN
+  // ==============================
+
+  Future<Map<String, dynamic>> pairDevice({
+    required String accessToken,
+    required String deviceUid,
+    required String pin,
+  }) async {
+    return _post(
+      '/device/pair',
+      {
+        'device_uid': deviceUid,
+        'pin': pin,
+      },
+      accessToken: accessToken,
+    );
+  }
+
 
   // ==============================
   // OBTENER USUARIO
