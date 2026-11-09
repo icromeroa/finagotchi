@@ -311,7 +311,9 @@ class App(ctk.CTk):
         try:
             while True:
                 accion, payload = self.cola.get_nowait()
-                if accion == "balance":
+                if accion == "cierre":
+                    self._vista_cierre(payload)
+                elif accion == "balance":
                     hoy = (payload or {}).get("hoy", {})
                     mascota = (payload or {}).get("mascota", {})
                     movimientos = (payload or {}).get("movimientos") or []
@@ -787,6 +789,44 @@ class App(ctk.CTk):
                     tema.TERTIARY if tipo == "ingreso" else tema.SECONDARY,
                 )
 
+    def _vista_cierre(self, cierre):
+        cierre = cierre if isinstance(cierre, dict) else {}
+        self._limpiar()
+        balance = int(cierre.get("balance_neto") or 0)
+        delta = int(cierre.get("delta_salud") or 0)
+        salud_fin = cierre.get("salud_fin")
+        self._tarjeta(
+            "Cierre del día",
+            f"{cierre.get('fecha_local') or ''} · "
+            f"{cierre.get('calificacion') or cierre.get('animo') or ''}",
+            tema.PRIMARY,
+        )
+        self._tarjeta(
+            "Balance",
+            f"{pantallas._dinero(balance)} · "
+            f"{cierre.get('num_registros') or 0} registros · "
+            f"uso {cierre.get('porcentaje_usado') or 0}%",
+            tema.TERTIARY if balance >= 0 else tema.SECONDARY,
+        )
+        linea_salud = f"{delta:+} de salud" if delta else "sin cambio de salud"
+        if salud_fin is not None:
+            linea_salud += f" · salud final {salud_fin}%"
+        self._tarjeta("Salud", linea_salud, tema.SECONDARY)
+        reglas = cierre.get("reglas") or []
+        if reglas:
+            lineas = []
+            for regla in reglas[:5]:
+                if not isinstance(regla, dict):
+                    continue
+                detalle = regla.get("detalle") or {}
+                motivo = regla.get("motivo") or regla.get("codigo") or ""
+                dias = detalle.get("dias") if isinstance(detalle, dict) else None
+                extra = f" ({dias} días)" if dias else ""
+                lineas.append(f"{regla.get('codigo', '')}{extra}: {motivo}")
+            if lineas:
+                self._tarjeta("Reglas aplicadas", "\n".join(lineas), tema.NEUTRAL)
+        self._tarjeta("Nancy", "Nancy duerme tranquila.", tema.SECONDARY)
+
     def _vista_resumen(self, datos):
         resumen = datos.get("resumen") or {}
         movimientos = datos.get("movimientos") or []
@@ -997,7 +1037,7 @@ class App(ctk.CTk):
         def trabajo():
             try:
                 cierre = self.client.close_day()
-                self.cola.put(("texto", ("Cierre del día", str(cierre))))
+                self.cola.put(("cierre", cierre))
                 self.cola.put(("sprite", "dormida"))
             except ApiError as exc:
                 self.cola.put(("texto", ("No se pudo cerrar", str(exc))))

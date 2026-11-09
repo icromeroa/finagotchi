@@ -282,6 +282,49 @@ class NavegacionTests(unittest.TestCase):
         finally:
             app.destroy()
 
+    def test_cierre_no_muestra_dict_crudo(self):
+        from simulator.gui.app import App
+
+        try:
+            app = App(arranque=False)
+        except Exception as exc:  # noqa: BLE001
+            self.skipTest(f"Sin pantalla: {exc}")
+        try:
+            app._vista_cierre(
+                {
+                    "fecha_local": "2026-11-09",
+                    "calificacion": "bien",
+                    "balance_neto": 0,
+                    "num_registros": 0,
+                    "porcentaje_usado": 0,
+                    "delta_salud": -5,
+                    "salud_fin": 84,
+                    "reglas": [
+                        {"codigo": "INACTIVIDAD", "motivo": "inactividad",
+                         "delta_solicitado": -5, "detalle": {"dias": 1}}
+                    ],
+                }
+            )
+            textos = []
+
+            def recolectar(widget):
+                try:
+                    texto = widget.cget("text")
+                except Exception:  # noqa: BLE001
+                    texto = ""
+                if texto:
+                    textos.append(str(texto))
+                for hijo in widget.winfo_children():
+                    recolectar(hijo)
+
+            recolectar(app.contenido)
+            unidos = " ".join(textos)
+            self.assertNotIn("{", unidos)
+            self.assertNotIn("delta_salud", unidos)
+            self.assertIn("Balance", unidos)
+        finally:
+            app.destroy()
+
     def test_la_ventana_se_construye_y_pinta_reposo(self):
         from simulator.gui.app import App
 
