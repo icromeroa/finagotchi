@@ -77,6 +77,29 @@ class SpritesTests(unittest.TestCase):
                 sprites.GIFS = gifs_original
         self.assertEqual(len(frames), 1)
 
+    def test_fondo_negro_se_vuelve_transparente(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as carpeta:
+            original, gifs_original = self._con_carpetas(carpeta)
+            ruta = sprites.SPRITES / "nancy_feliz.png"
+            imagen = Image.new("RGB", (40, 40), (0, 0, 0))
+            for x in range(10, 30):
+                for y in range(10, 30):
+                    imagen.putpixel((x, y), (240, 175, 197))
+            imagen.save(ruta)
+            try:
+                frames, _duracion = sprites.cargar_frames("feliz", tamano=40)
+            finally:
+                sprites.SPRITES = original
+                sprites.GIFS = gifs_original
+        # La esquina era fondo negro: ahora es la tarjeta rosa.
+        self.assertEqual(frames[0].getpixel((0, 0)), (240, 175, 197))
+
+    def test_ventana_es_compacta(self):
+        self.assertLessEqual(tema.TAMANO_VENTANA[0], 400)
+        self.assertLessEqual(tema.TAMANO_VENTANA[1], 650)
+
     def test_gif_se_descompone_en_frames(self):
         from PIL import Image
 
@@ -113,7 +136,9 @@ class NavegacionTests(unittest.TestCase):
                 }
             )
             self.assertTrue(app.contenido.winfo_children())
+            self.assertEqual(app.etiqueta_animo.cget("text"), "Nancy · Feliz")
             app.update()
+            self.assertEqual(app.geometry().split("+")[0], "380x620")
         finally:
             app.destroy()
 

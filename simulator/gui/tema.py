@@ -23,7 +23,7 @@ NEUTRAL = "#F6E5D1"
 BORDE = "#0B5D3B"
 TEXTO = "#2B1A22"
 
-TAMANO_VENTANA = (480, 760)
+TAMANO_VENTANA = (380, 620)
 
 
 def _registrar_fuentes_windows():

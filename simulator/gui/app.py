@@ -63,39 +63,47 @@ class App(ctk.CTk):
 
     # --- Construcción ---------------------------------------------------
     def _construir_ui(self):
-        self.cabecera = ctk.CTkFrame(self, fg_color=tema.PRIMARY, corner_radius=0)
+        self.marco = ctk.CTkFrame(
+            self, fg_color=tema.BORDE, corner_radius=28,
+            border_width=6, border_color=tema.BORDE,
+        )
+        self.marco.pack(fill="both", expand=True, padx=6, pady=6)
+        interior = ctk.CTkFrame(self.marco, fg_color=tema.NEUTRAL, corner_radius=20)
+        interior.pack(fill="both", expand=True, padx=2, pady=2)
+        self.cabecera = ctk.CTkFrame(interior, fg_color=tema.PRIMARY, corner_radius=14)
         self.cabecera.pack(fill="x", side="top", padx=8, pady=(8, 0))
         ctk.CTkLabel(
-            self.cabecera, text="FINAGOTCHI", font=tema.headline(22),
+            self.cabecera, text="FinaGotchi", font=tema.headline(20),
             text_color="white",
-        ).pack(side="left", padx=12, pady=8)
+        ).pack(side="left", padx=12, pady=6)
         self.etiqueta_fecha = ctk.CTkLabel(
-            self.cabecera, text="", font=tema.cuerpo(13), text_color="white"
+            self.cabecera, text="", font=tema.cuerpo(12), text_color="white"
         )
         self.etiqueta_fecha.pack(side="right", padx=12)
 
-        self.sprite = ctk.CTkLabel(self, text="", fg_color=tema.SECONDARY,
-                                   corner_radius=18, width=180, height=180)
-        self.sprite.pack(pady=(10, 0), padx=10, anchor="center")
+        self.sprite = ctk.CTkLabel(interior, text="", fg_color=tema.SECONDARY,
+                                   corner_radius=18, width=160, height=160)
+        self.sprite.pack(pady=(8, 0), padx=10, anchor="center")
         self.etiqueta_animo = ctk.CTkLabel(
-            self, text="NANCY", font=tema.headline(18), text_color=tema.PRIMARY
+            interior, text="Nancy · Feliz", font=tema.headline(16), text_color=tema.PRIMARY
         )
         self.etiqueta_animo.pack()
 
         self.contenido = ctk.CTkScrollableFrame(
-            self, fg_color=tema.NEUTRAL, corner_radius=0
+            interior, fg_color=tema.NEUTRAL, corner_radius=10
         )
-        self.contenido.pack(fill="both", expand=True, padx=12, pady=8)
+        self.contenido.pack(fill="both", expand=True, padx=10, pady=6)
 
         self.entrada = ctk.CTkEntry(
-            self, placeholder_text="Escribe lo que quieres decir…",
-            font=tema.cuerpo(14), fg_color="white", border_color=tema.BORDE,
+            interior, placeholder_text="Escribe lo que quieres decir…",
+            font=tema.cuerpo(13), fg_color="white", border_color=tema.BORDE,
+            corner_radius=12, height=32,
         )
-        self.entrada.pack(fill="x", padx=12, pady=(0, 6))
+        self.entrada.pack(fill="x", padx=10, pady=(0, 6))
         self.entrada.bind("<Return>", lambda _e: self.enviar_entrada())
 
-        botones = ctk.CTkFrame(self, fg_color=tema.NEUTRAL)
-        botones.pack(fill="x", padx=12, pady=(0, 12))
+        botones = ctk.CTkFrame(interior, fg_color=tema.NEUTRAL)
+        botones.pack(fill="x", padx=10, pady=(0, 10))
         definiciones = [
             ("🎙 Hablar", self.hablar, tema.TERTIARY),
             ("Enviar", self.enviar_entrada, tema.SECONDARY),
@@ -109,10 +117,10 @@ class App(ctk.CTk):
         ]
         for indice, (texto, accion, color) in enumerate(definiciones):
             ctk.CTkButton(
-                botones, text=texto, command=accion, font=tema.cuerpo(13),
+                botones, text=texto, command=accion, font=tema.cuerpo(12),
                 fg_color=color, text_color=tema.TEXTO if color != tema.PRIMARY else "white",
-                corner_radius=12, width=130,
-            ).grid(row=indice // 3, column=indice % 3, padx=4, pady=4)
+                corner_radius=12, width=100, height=30,
+            ).grid(row=indice // 3, column=indice % 3, padx=3, pady=3)
 
     # --- Utilidades ------------------------------------------------------
     def _actualizar_fecha(self):
@@ -149,15 +157,16 @@ class App(ctk.CTk):
 
     def _tarjeta(self, titulo, cuerpo, color=None):
         tarjeta = ctk.CTkFrame(
-            self.contenido, fg_color=color or tema.SECONDARY, corner_radius=16
+            self.contenido, fg_color=color or tema.SECONDARY, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
         )
         ctk.CTkLabel(
             tarjeta, text=str(titulo), font=tema.headline(15),
-            text_color=tema.PRIMARY, wraplength=380, justify="left",
+            text_color=tema.PRIMARY, wraplength=300, justify="left",
         ).pack(anchor="w", padx=12, pady=(10, 0))
         ctk.CTkLabel(
-            tarjeta, text=str(cuerpo), font=tema.cuerpo(14),
-            text_color=tema.TEXTO, wraplength=380, justify="left",
+            tarjeta, text=str(cuerpo), font=tema.cuerpo(13),
+            text_color=tema.TEXTO, wraplength=300, justify="left",
         ).pack(anchor="w", padx=12, pady=(0, 10))
         tarjeta.pack(fill="x", pady=4, padx=4)
 
@@ -206,7 +215,7 @@ class App(ctk.CTk):
         hoy = (home or {}).get("hoy", {})
         mascota = (home or {}).get("mascota", {})
         animo = str(mascota.get("animo") or "FELIZ")
-        self.etiqueta_animo.configure(text=f"NANCY · {animo}")
+        self.etiqueta_animo.configure(text=f"Nancy · {animo.capitalize()}")
         self._poner_sprite(ESTADO_ANIMO.get(animo, "feliz"))
         self._tarjeta(
             "Cupo del día",
@@ -245,14 +254,14 @@ class App(ctk.CTk):
         transaccion = datos.get("transaccion")
         if transaccion:
             self._tarjeta(
-                str(transaccion.get("tipo", "")).upper(),
+                str(transaccion.get("tipo", "")).capitalize(),
                 f"{pantallas._dinero(transaccion.get('monto', 0))} "
                 f"· {transaccion.get('categoria') or ''} "
                 f"· {transaccion.get('cuenta') or ''}".strip(),
                 tema.TERTIARY,
             )
         self._tarjeta(
-            "NANCY dice", respuesta.get("mensaje_nancy") or "No obtuve respuesta."
+            "Nancy dice", respuesta.get("mensaje_nancy") or "No obtuve respuesta."
         )
         for clave in ("cuentas", "categorias", "pendientes", "movimientos"):
             lista = datos.get(clave)

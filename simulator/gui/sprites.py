@@ -53,9 +53,30 @@ def _candidatos(estado):
     return rutas
 
 
+def _sin_negro(imagen):
+    """Hace transparente el fondo negro (chroma-key) y recorta al contenido.
+
+    Los PNG de Nancy vienen sobre negro sólido; sin esto la GUI muestra una
+    banda negra. Los píxeles casi negros se vuelven transparentes y luego
+    se recorta a la caja del arte.
+    """
+    rgba = imagen.convert("RGBA")
+    try:
+        import numpy as np
+
+        arreglo = np.array(rgba)
+        negro = (arreglo[..., 0] < 48) & (arreglo[..., 1] < 48) & (arreglo[..., 2] < 48)
+        arreglo[..., 3] = np.where(negro, 0, arreglo[..., 3])
+        rgba = Image.fromarray(arreglo, "RGBA")
+    except Exception:  # noqa: BLE001 - sin numpy, recorte sin chroma-key
+        pass
+    caja = rgba.getbbox()
+    return rgba.crop(caja) if caja else rgba
+
+
 def _ajustar(imagen, tamano):
-    copia = imagen.convert("RGBA").copy()
-    copia.thumbnail((tamano, tamano), Image.LANCZOS)
+    copia = _sin_negro(imagen)
+    copia.thumbnail((tamano, tamano), Image.NEAREST)
     lienzo = Image.new("RGBA", (tamano, tamano), "#F0AFC5")
     lienzo.alpha_composite(copia, ((tamano - copia.width) // 2, (tamano - copia.height) // 2))
     return lienzo.convert("RGB")
