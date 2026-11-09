@@ -1837,6 +1837,28 @@ def create_app(database=None):
         ).fetchall()
         return ok(dict_rows(rows))
 
+    @app.post("/api/v1/device/unlink-self")
+    @device_required
+    def unlink_self_device():
+        """Permite a un dispositivo desvinculase de su dueño con su propio token.
+
+        Sin pedir la contraseña del usuario. Limpia usuario_id y token_hash
+        para que el simulador/firmware pueda generar un PIN nuevo.
+        """
+        conn = get_db()
+        conn.execute(
+            """
+            UPDATE dispositivos
+            SET usuario_id = NULL, token_hash = NULL, token_actualizado_en = NULL,
+                metodo_vinculacion = NULL, vinculado_en = NULL,
+                estado_conexion = 'desconectado', actualizado_en = ?
+            WHERE id = ?
+            """,
+            (iso_utc(), g.device["id"]),
+        )
+        conn.commit()
+        return ok({"desvinculado": True, "device_uid": g.device["device_uid"]})
+
     @app.post("/api/v1/device/unlink")
     @auth_required
     def unlink_device():

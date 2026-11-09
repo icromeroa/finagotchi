@@ -188,6 +188,7 @@ class FinaGotchiClient:
             json={"device_uid": self.device_uid, "pin": str(pin)},
         )
         self.device_token = claimed["device_token"]
+        self.guardar_token_local()
         return self.device_token
 
     def ensure_device(self):
@@ -223,6 +224,50 @@ class FinaGotchiClient:
 
     def device_headers(self):
         return {"X-Device-Token": self.device_token}
+
+    def unlink_self(self):
+        """Desvincula este dispositivo con su propio token (sin password del usuario)."""
+        result = self.request(
+            "POST",
+            "/device/unlink-self",
+            headers=self.device_headers(),
+        )
+        self.device_token = None
+        self._borrar_token_guardado()
+        return result
+
+    def _ruta_token_local(self):
+        from pathlib import Path
+        return Path(__file__).resolve().parent / "device_token.local.json"
+
+    def guardar_token_local(self):
+        if not self.device_token:
+            return
+        try:
+            import json
+            self._ruta_token_local().write_text(
+                json.dumps({"device_uid": self.device_uid, "device_token": self.device_token}),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
+
+    def cargar_token_local(self):
+        try:
+            import json
+            data = json.loads(self._ruta_token_local().read_text(encoding="utf-8"))
+            if data.get("device_uid") == self.device_uid and data.get("device_token"):
+                self.device_token = data["device_token"]
+                return self.device_token
+        except Exception:
+            pass
+        return None
+
+    def _borrar_token_guardado(self):
+        try:
+            self._ruta_token_local().unlink(missing_ok=True)
+        except Exception:
+            pass
 
     def telemetry(self):
         return self.request(

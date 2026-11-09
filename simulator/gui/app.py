@@ -368,6 +368,16 @@ class App(ctk.CTk):
             return
         client = FinaGotchiClient(self.config)
         try:
+            # ¿Tienes token guardado de una sesión anterior? Úsalo (seguir usando).
+            if client.cargar_token_local():
+                try:
+                    client.home()  # valida que el token sigue vivo
+                    client.telemetry()
+                    self.client = client
+                    self.cola.put(("reposo", self._home_seguro()))
+                    return
+                except Exception:
+                    pass  # token vencido o desvinculado: sigue al flujo PIN
             client.login_or_register()
             try:
                 registration = client.generar_pin()
@@ -444,17 +454,77 @@ class App(ctk.CTk):
         ).pack(padx=12, pady=(0, 12))
         tarjeta.pack(fill="x", pady=4, padx=4)
 
-        def reintentar():
-            self._hilo(lambda: self._arranque_hilo())
+        def desvincular_y_reintentar():
+            def trabajo():
+                try:
+                    if self.client and getattr(self.client, "device_token", None):
+                        self.client.unlink_self()
+                    elif self.client:
+                        # Intenta via cuenta dueña del simulador si ya la tiene
+                        try:
+                            devices = self.client.request(
+                                "GET", "/device",
+                                headers=self.client.user_headers(),
+                            )
+                            if any((d.get("device_uid") == self.client.device_uid) for d in devices):
+                                self.client.request(
+                                    "POST", "/device/unlink",
+                                    headers=self.client.user_headers(),
+                                    json={"device_uid": self.client.device_uid},
+                                )
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+                self._arranque_hilo()
+
+            self._hilo(trabajo)
+
+        ctk.CTkButton(
+            self.contenido,
+            text="Cerrar sesión / Desvincular",
+            font=tema.headline(13),
+            fg_color=tema.SECONDARY,
+            text_color=tema.TEXTO,
+            command=desvincular_y_reintentar,
+        ).pack(pady=4)
+
+        def seguir_usando():
+            def trabajo():
+                ok = False
+                try:
+                    # Si hay token guardado y sigue vivo, úsalo de una vez
+                    if self.client and self.client.cargar_token_local():
+                        self.client.home()
+                        ok = True
+                except Exception:
+                    ok = False
+                if ok:
+                    self.client.telemetry()
+                    self.client = self.client
+                    self.cola.put(("reposo", self._home_seguro()))
+                else:
+                    self.cola.put(("texto", ("Sin token válido", "No pudimos seguir usando este vínculo. Debes desvincularlo y generar un PIN nuevo.")))
+
+            self._hilo(trabajo)
+
+        ctk.CTkButton(
+            self.contenido,
+            text="Seguir usando (ya vinculado)",
+            font=tema.headline(13),
+            fg_color=tema.TERTIARY,
+            text_color=tema.TEXTO,
+            command=seguir_usando,
+        ).pack(pady=4)
 
         ctk.CTkButton(
             self.contenido,
             text="Ya lo desvinculé, reintentar",
-            font=tema.headline(14),
-            fg_color=tema.TERTIARY,
+            font=tema.headline(13),
+            fg_color=tema.SECONDARY,
             text_color=tema.TEXTO,
-            command=reintentar,
-        ).pack(pady=8)
+            command=lambda: self._hilo(lambda: self._arranque_hilo()),
+        ).pack(pady=4)
 
     def mostrar_vinculacion(self, vinculacion):
         """D02 Sin vincular: muestra PIN grande esperando el ingreso en Flutter."""

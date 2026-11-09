@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 backend/.env
+simulator/device_token.local.json
 
 # Base de datos local
 *.db
