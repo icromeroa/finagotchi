@@ -23,6 +23,7 @@ class AccountsOverviewScreen extends StatefulWidget {
 class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
   bool _isCuentasSelected = true;
   List<Map<String, dynamic>> _cuentas = [];
+  List<Map<String, dynamic>> _metas = [];
   bool _cargando = true;
   String? _error;
 
@@ -45,9 +46,11 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
     }
     try {
       final cuentas = await ApiService().getAccounts(accessToken: token);
+      final metas = await ApiService().getGoals(accessToken: token);
       if (!mounted) return;
       setState(() {
         _cuentas = cuentas;
+        _metas = metas;
         _cargando = false;
         _error = null;
       });
@@ -514,7 +517,21 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
   }
 
   // VISTA DE METAS DE AHORRO
+  IconData _icono_meta(String nombre) {
+    final n = nombre.toLowerCase();
+    if (n.contains('telé') || n.contains('tele') || n.contains('audi')) return Icons.headphones;
+    if (n.contains('viaje') || n.contains('cartagena')) return Icons.flight_takeoff;
+    if (n.contains('moto')) return Icons.motorcycle;
+    if (n.contains('casa')) return Icons.home;
+    if (n.contains('carro')) return Icons.directions_car;
+    return Icons.savings;
+  }
+
   Widget _buildMetasAhorroView() {
+    final metas = _metas.where((m) => (m['estado'] ?? 'activa').toString() == 'activa' || m['estado'] == null).toList();
+    final totalAhorrado = metas.fold<int>(0, (a, m) => a + ((m['ahorrado'] as num?)?.toInt() ?? 0));
+    final totalMeta = metas.fold<int>(0, (a, m) => a + ((m['monto_meta'] as num?)?.toInt() ?? 0));
+    final progresoGlobal = totalMeta > 0 ? totalAhorrado / totalMeta : 0.0;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Column(
@@ -552,9 +569,9 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
                         color: AppColors.mutedPink,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        '2 metas activas',
-                        style: TextStyle(
+                      child: Text(
+                        '${metas.length} metas activas',
+                        style: const TextStyle(
                           color: AppColors.wine,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -567,17 +584,17 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
-                  children: const [
+                  children: [
                     Text(
-                      '\$650.000',
-                      style: TextStyle(
+                      _dinero(totalAhorrado),
+                      style: const TextStyle(
                         color: AppColors.darkGreen,
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    SizedBox(width: 4),
-                    Text(
+                    const SizedBox(width: 4),
+                    const Text(
                       'COP',
                       style: TextStyle(
                         color: AppColors.darkGreen,
@@ -590,8 +607,8 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
                 const SizedBox(height: 12),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: const LinearProgressIndicator(
-                    value: 0.325,
+                  child: LinearProgressIndicator(
+                    value: progresoGlobal,
                     backgroundColor: AppColors.mutedPink,
                     color: AppColors.lime,
                     minHeight: 8,
@@ -600,18 +617,18 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
-                      '\$650.000 de \$2.000.000 meta acumulada',
-                      style: TextStyle(
+                      '${_dinero(totalAhorrado)} de ${_dinero(totalMeta)} meta acumulada',
+                      style: const TextStyle(
                         color: AppColors.darkGreen,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      '32.5%',
-                      style: TextStyle(
+                      '${(progresoGlobal * 100).toStringAsFixed(1)}%',
+                      style: const TextStyle(
                         color: AppColors.darkGreen,
                         fontSize: 11,
                         fontWeight: FontWeight.w900,
@@ -647,37 +664,51 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
           ),
           const SizedBox(height: 10),
 
-          _buildProjectCard(
-            title: 'Teléfono nuevo',
-            subtitle: 'Tecnología & Estudio',
-            statusText: 'Vas bien',
-            statusColor: AppColors.lime,
-            statusTextColor: AppColors.darkGreen,
-            currentAmount: '\$450.000',
-            targetAmount: '\$1.200.000',
-            progress: 0.38,
-            progressColor: AppColors.lime,
-            percentage: '38%',
-            footerInfo: 'Meta: 15 dic 2026 • Ahorra \$20.000/sem',
-            icon: Icons.phone_android,
-          ),
-          const SizedBox(height: 12),
-
-          _buildProjectCard(
-            title: 'Viaje a Cartagena',
-            subtitle: 'Vacaciones soñadas',
-            statusText: 'Atrasada',
-            statusColor: const Color(0xFFFFD56B),
-            statusTextColor: AppColors.wine,
-            currentAmount: '\$200.000',
-            targetAmount: '\$800.000',
-            progress: 0.25,
-            progressColor: Colors.orange,
-            percentage: '25%',
-            footerInfo: 'Meta: 20 mar 2027 • Ahorra \$35.000/sem',
-            icon: Icons.flight_takeoff,
-          ),
-          const SizedBox(height: 12),
+          if (_cargando)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.mutedPink.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                _error!,
+                style: const TextStyle(color: AppColors.wine, fontSize: 12),
+              ),
+            )
+          else if (metas.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Todavía no tienes metas de ahorro. Crea tu primera meta.',
+                style: TextStyle(color: AppColors.wine, fontSize: 12),
+              ),
+            )
+          else
+            for (final meta in metas)
+              Column(children: [
+                _buildProjectCard(
+                  title: (meta['nombre'] ?? 'Meta').toString(),
+                  subtitle: (meta['icono'] ?? meta['frecuencia_ahorro'] ?? 'Ahorro').toString(),
+                  statusText: ((meta['estado_plan'] ?? meta['estado'] ?? 'activa') as String),
+                  statusColor: AppColors.lime,
+                  statusTextColor: AppColors.darkGreen,
+                  currentAmount: _dinero((meta['ahorrado'] as num?) ?? 0),
+                  targetAmount: _dinero((meta['monto_meta'] as num?) ?? 0),
+                  progress: (((meta['porcentaje'] as num?) ?? 0) / 100.0).clamp(0.0, 1.0),
+                  progressColor: AppColors.lime,
+                  percentage: '${(meta['porcentaje'] as num?)?.toInt() ?? 0}%',
+                  footerInfo: 'Meta: ${(meta['fecha_limite'] ?? '').toString().substring(0, (meta['fecha_limite'] ?? '').toString().length >= 10 ? 10 : (meta['fecha_limite'] ?? '').toString().length)} • Ahorra ${_dinero((meta['aporte_periodico'] as num?) ?? 0)}/periodo',
+                  icon: _icono_meta((meta['nombre'] ?? '').toString()),
+                ),
+                const SizedBox(height: 12),
+              ]),
+          const SizedBox(height: 2),
 
           Container(
             padding: const EdgeInsets.all(12),
@@ -707,8 +738,8 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
+                    children: [
+                      const Text(
                         'Racha Imparable',
                         style: TextStyle(
                           color: AppColors.wine,
@@ -716,10 +747,10 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
                           fontSize: 12,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'Completaste 4 aportes seguidos esta quincena.',
-                        style: TextStyle(
+                        'Sin racha aún. Registra hoy para empezar.',
+                        style: const TextStyle(
                           color: AppColors.wine,
                           fontSize: 10.5,
                         ),

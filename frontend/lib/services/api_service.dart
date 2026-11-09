@@ -141,13 +141,18 @@ class ApiService {
   // OBTENER METAS
   // ==============================
 
-  Future<Map<String, dynamic>> getGoals({
+  Future<List<Map<String, dynamic>>> getGoals({
     required String accessToken,
   }) async {
-    return _get(
+    final data = await _get(
       '/goals',
       accessToken: accessToken,
     );
+    final items = data['items'] ?? data['data'] ?? data;
+    if (items is List) {
+      return items.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
   }
 
   // ==============================
