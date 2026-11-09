@@ -17,7 +17,8 @@ Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32 o al s
 | `tests/` | Pruebas del esquema, la API y la optimización. |
 | `tools/` | Utilidades, incluida la prueba real del flujo de voz. |
 | `docs/` | Especificaciones, lógica de negocio, endpoints y detalle de la IO. |
-| `frontend/` | App Flutter (prototipo visual, pendiente de capa HTTP). |
+| `frontend/` | App Flutter (en `michelle` es prototipo visual; la conexión al backend vive en la rama `integracion/helen-frontend`). |
+| `simulator/gui/` | Ventana gráfica moderna del simulador (CustomTkinter, estilo del mockup). |
 
 ## Puesta en marcha
 
@@ -64,10 +65,46 @@ Queda en `http://127.0.0.1:5000/api/v1`.
 
 ```powershell
 py -3 -m pip install -r requirements-simulator.txt
+py -3 -m simulator.gui.app
+```
+
+La GUI es la forma principal: respeta las pantallas del dispositivo (reposo
+con fecha/hora, conversación con tarjetas Sí/No, cuentas, categorías con
+conteo y metas con progreso). Si prefieres consola:
+
+```powershell
 py -3 simulator/main.py
 ```
 
 Ejecutar como administrador para que `keyboard` capture la tecla ESPACIO. Más detalles en `GUIA_SIMULADOR.md`.
+
+### 6. App Flutter
+
+La app conectada al backend (trabajo de Helen) está en la rama
+`integracion/helen-frontend`; en `michelle` la app sigue siendo prototipo
+visual. Para probar la conexión:
+
+```powershell
+git checkout integracion/helen-frontend
+cd frontend
+flutter pub get
+flutter run -d chrome
+```
+
+En el login usa **el mismo correo** que vas a usar en el simulador: simulador,
+backend y app comparten la misma base (`finagotchi.db`) y el mismo usuario,
+así que lo confirmado en uno aparece en los demás.
+
+- En Windows nativo (`flutter run`) el plugin `jni` puede fallar con
+  `ERROR_INVALID_FUNCTION` si el proyecto está en Google Drive (`G:`) y el
+  SDK en `C:` (symlink entre discos). Con `-d chrome` se evita; para Windows
+  nativo, copia el proyecto a `C:`.
+- Para volver a tu trabajo: `cd ..` y `git checkout michelle` (sin push
+  hasta probarlo).
+
+Las **cuentas demo** de la base son `simulador@finagotchi.local / simulador123`
+y `demo01@… / Demo1234` en adelante; cada usuario demo trae su dispositivo
+`FG-0001`, `FG-0002`, etc. Ver detalle en “Dataset de la base de datos”.
 
 ### 6. Endpoints de consultas (Guia 4)
 
@@ -234,20 +271,25 @@ Cuentas demo: `simulador@finagotchi.local` / `simulador123` y `demo01@finagotchi
 
 ## App Flutter
 
-La app actual es un **prototipo visual**: no tiene capa HTTP y no llama al
-backend. `login_screen.dart` solo valida el formulario y muestra el mensaje
-“Inicio de sesión de demostración.”; `home_screen.dart` usa valores fijos
-(`dailyBudget = 10000`, `spent = 2500`). La lógica real vive en el backend y en
-el simulador de escritorio.
+En `michelle` la app es un **prototipo visual**: no tiene capa HTTP y no
+llama al backend. `login_screen.dart` solo valida el formulario y muestra el
+mensaje “Inicio de sesión de demostración.”; `home_screen.dart` usa valores
+fijos (`dailyBudget = 10000`, `spent = 2500`). La lógica real vive en el
+backend y en el simulador de escritorio.
 
-La versión que sí estaba conectada al backend quedó guardada en la rama
-`respaldo-frontend-conectado`; no forma parte de la rama actual.
+La versión **conectada** al backend (login real y pantallas contra la API)
+es el trabajo de Helen y vive en la rama `integracion/helen-frontend`
+(commit `b2d274a`, 65 archivos de `frontend/`). Para usarla:
 
 ```powershell
+git checkout integracion/helen-frontend
 cd frontend
 flutter pub get
-flutter run
+flutter run -d chrome
 ```
+
+Ver la inicialización completa en “Puesta en marcha §6”. La app y el
+simulador deben usar el **mismo usuario** para ver los mismos datos.
 
 Pruebas de la app (no necesitan backend):
 
