@@ -2,12 +2,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from backend import conversation  # noqa: E402
 from backend.db import local_date
 from backend.server import create_app
 
 
 class ApiTestCase(unittest.TestCase):
     def setUp(self):
+        conversation.limpiar_sesiones()
         self.temp = tempfile.TemporaryDirectory()
         self.db_path = Path(self.temp.name) / "test.db"
         self.app = create_app(str(self.db_path))
@@ -16,6 +18,7 @@ class ApiTestCase(unittest.TestCase):
         self.user = self.register("ana@example.com", "secreto123")
 
     def tearDown(self):
+        conversation.limpiar_sesiones()
         self.temp.cleanup()
 
     def register(self, email, password="secreto123", name="Ana"):

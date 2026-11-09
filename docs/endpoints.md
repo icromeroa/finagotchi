@@ -280,6 +280,10 @@ movimiento y la respuesta trae `"duplicado": true`.
 }
 ```
 
+El contrato conserva estos campos y agrega `mensaje_nancy`, `tipo_respuesta`,
+`estado_conversacion`, `datos` y `requiere_confirmacion`. El dispositivo solo
+pinta `mensaje_nancy` y el estado; toda la lógica del diálogo vive en el backend.
+
 Una sola frase puede producir **varias transacciones**. `requiere_confirmacion`
 indica si hay que mostrar la pantalla de confirmación.
 
@@ -291,7 +295,45 @@ indica si hay que mostrar la pantalla de confirmación.
 | `POST` | `/api/v1/messages/{id}/discard` | Se descartan las pendientes |
 | `GET` | `/api/v1/messages/{id}` | Consultar el mensaje y sus transacciones |
 
+La confirmación también se responde por voz o texto: "sí", "ok", "correcto",
+"está bien" o "confirmo" confirman; "no" o "cancela" descartan. Los endpoints
+anteriores llaman a `conversation.invalidar_accion_pendiente` para limpiar el
+estado conversacional pendiente del usuario; la siguiente frase vuelve a
+empezar su propio turno en vez de tomarse como respuesta a una acción ya
+resuelta.
+
 **Regla de negocio: nada afecta el dinero hasta que el usuario confirma.**
+
+### Sintetizar la respuesta en voz
+
+| Método | Ruta | Efecto |
+|---|---|---|
+| `POST` | `/api/v1/voice/synthesize` | La app recibe la WAV generada en memoria |
+| `POST` | `/api/v1/device/voice/synthesize` | El dispositivo recibe la WAV generada en memoria |
+
+La petición lleva:
+
+```json
+{ "texto": "Entendí un gasto de veinte mil. ¿Está correcto?" }
+```
+
+La respuesta es `Content-Type: audio/wav` con los bytes de la locución. El
+backend no guarda el audio en disco ni en la base de datos. Si Piper o el
+modelo no están disponibles, responde `503 TTS_NO_DISPONIBLE`. Los textos de
+más de 400 caracteres se rechazan con `422 TTS_TEXTO_LARGO`.
+
+Cuando el backend tiene Piper disponible, los mensajes incluyen:
+
+```json
+{ "voz": {
+  "modo": "online",
+  "endpoint": "/api/v1/device/voice/synthesize",
+  "idioma": "es_MX"
+} }
+```
+
+Sin conexión, el dispositivo o simulador puede reproducir un banco pequeño de
+frases pregrabadas; no puede sintetizar frases naturales nuevas.
 
 ### Transacciones manuales
 
@@ -423,6 +465,7 @@ Todas usan `X-Device-Token`.
 |---|---|---|
 | `POST` | `/api/v1/device/messages` | Enviar audio o texto |
 | `POST` | `/api/v1/device/messages/{id}/confirm` | Confirmar |
+| `POST` | `/api/v1/device/voice/synthesize` | Sintetizar el texto de respuesta en WAV |
 | `POST` | `/api/v1/device/close-day` | Cerrar el día |
 | `POST` | `/api/v1/device/telemetry` | Batería, botones, estado |
 | `POST` | `/api/v1/finagotchi/telemetry` | Alias antiguo de la telemetría |

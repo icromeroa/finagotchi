@@ -7,7 +7,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from backend import ai  # noqa: E402
+from backend import ai, conversation  # noqa: E402
 from backend.db import get_db  # noqa: E402
 from backend.server import create_app  # noqa: E402
 from test_audio import construir_wav  # noqa: E402
@@ -27,6 +27,8 @@ def respuesta_falsa(texto="gasté 14000 en el almuerzo"):
 
 class AudioApiTests(unittest.TestCase):
     def setUp(self):
+        # El estado conversacional vive en memoria: se limpia entre pruebas.
+        conversation.limpiar_sesiones()
         self.temp = tempfile.TemporaryDirectory()
         self.db_path = Path(self.temp.name) / "test.db"
         self.app = create_app(str(self.db_path))
@@ -35,6 +37,7 @@ class AudioApiTests(unittest.TestCase):
         self.user = self.register("carla@example.com", "secreto123")
 
     def tearDown(self):
+        conversation.limpiar_sesiones()
         self.temp.cleanup()
 
     def register(self, email, password="secreto123", name="Carla"):

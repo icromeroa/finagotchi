@@ -21,3 +21,6 @@ streamlit>=1.35
 pyarrow>=17
 streamlit
 joblib
+# Sintesis local de voz para Nancy (Piper). El modelo no se versiona:
+# lo descarga e instala tools/configurar_voz.py fuera del repositorio.
+piper-tts>=1.8.0

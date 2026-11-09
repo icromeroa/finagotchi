@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
-import '../login_screen.dart';
 import 'habits_screen.dart'; // <--- Importamos la pantalla de hábitos
 
 class WelcomeScreen extends StatefulWidget {

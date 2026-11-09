@@ -1,3 +1,4 @@
+import io
 import os
 <<<<<<< HEAD
 import re
@@ -370,13 +371,13 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from flask import Flask, g, request
+from flask import Flask, g, request, send_file
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend import ai, audio, nlp, services  # noqa: E402
+from backend import ai, audio, conversation, nlp, services, tts  # noqa: E402
 from backend import finance_engine  # noqa: E402
 from backend.api_utils import body, datos_entrantes, error, ok, require_fields  # noqa: E402
 from backend.auth import (  # noqa: E402
@@ -415,6 +416,40 @@ MIME_AUDIO_ACEPTADOS = {
     "audio/vnd.wave",
     "application/octet-stream",
 }
+
+
+def _voz_endpoint():
+    """Anuncia al cliente que puede sintetizar la respuesta con Piper."""
+    if not tts.disponible():
+        return None
+    return {
+        "modo": "online",
+        "endpoint": "/api/v1/device/voice/synthesize",
+        "idioma": "es_MX",
+        "max_caracteres": tts.MAX_CARACTERES,
+    }
+
+
+def _sintetizar_voz(data):
+    texto = data.get("texto")
+    if not texto or not str(texto).strip():
+        return error("CAMPOS_REQUERIDOS", "El campo texto es obligatorio", 422)
+    if len(str(texto)) > tts.MAX_CARACTERES:
+        return error(
+            "TTS_TEXTO_LARGO",
+            "El texto es demasiado largo para sintetizarlo",
+            422,
+            {"maximo_caracteres": tts.MAX_CARACTERES},
+        )
+    audio_bytes = tts.sintetizar_wav(texto)
+    if audio_bytes is None:
+        return error("TTS_NO_DISPONIBLE", "El sintetizador no esta configurado", 503)
+    return send_file(
+        io.BytesIO(audio_bytes),
+        mimetype="audio/wav",
+        as_attachment=False,
+        download_name="nancy.wav",
+    )
 
 
 class ErrorSolicitud(Exception):
@@ -648,13 +683,13 @@ def procesar_mensaje_voz(
             )
             raise ErrorSolicitud(exc.codigo, exc.mensaje, exc.estado_http, exc.detalles) from exc
 
-        payload = services.create_message(
+        payload = conversation.procesar_turno(
             conn,
             user_id,
             resultado["texto"],
             message_id=message_id,
             device_id=device_id,
-            device_uid=device_uid,
+            dispositivo_uid=device_uid,
             origen=origen,
             audio_duration_s=info.duracion_s,
         )
@@ -679,6 +714,9 @@ def procesar_mensaje_voz(
         payload.setdefault("puntos_otorgados", 0)
         payload["proveedor_stt"] = resultado.get("proveedor")
         payload["modelo_stt"] = resultado.get("modelo")
+        voz = _voz_endpoint()
+        if voz:
+            payload["voz"] = voz
         if resultado.get("motivo_fallback"):
             payload["stt_caida"] = resultado["motivo_fallback"]
         return payload, 201
@@ -692,17 +730,20 @@ def procesar_mensaje_voz(
             {"campos": ["audio", "texto"]},
         )
 
-    payload = services.create_message(
+    payload = conversation.procesar_turno(
         conn,
         user_id,
         texto,
         message_id=message_id,
         device_id=device_id,
-        device_uid=device_uid,
+        dispositivo_uid=device_uid,
         origen=origen,
     )
     payload.setdefault("duplicado", False)
     payload.setdefault("puntos_otorgados", 0)
+    voz = _voz_endpoint()
+    if voz:
+        payload["voz"] = voz
     return payload, 200 if payload.get("duplicado") else 201
 
 
@@ -1046,12 +1087,7 @@ def create_app(database=None):
     @app.get("/api/v1/accounts")
     @auth_required
     def list_accounts():
-        conn = get_db()
-        rows = conn.execute(
-            "SELECT * FROM v_cuentas_resumen WHERE usuario_id = ? ORDER BY orden, cuenta_id",
-            (g.user_id,),
-        ).fetchall()
-        return ok(dict_rows(rows))
+        return ok(services.accounts_summary(get_db(), g.user_id))
 
     @app.post("/api/v1/accounts")
     @auth_required
@@ -1396,6 +1432,7 @@ def create_app(database=None):
         payload = services.confirm_message(get_db(), g.user_id, message_id)
         if payload is None:
             return error("MENSAJE_NO_ENCONTRADO", "El mensaje no existe", 404)
+        conversation.invalidar_accion_pendiente(g.user_id, message_id)
         return ok(payload)
 
     @app.post("/api/v1/messages/<int:message_id>/discard")
@@ -1421,6 +1458,7 @@ def create_app(database=None):
             (g.user_id, message_id),
         )
         conn.commit()
+        conversation.invalidar_accion_pendiente(g.user_id, message_id)
         return ok({"descartado": True})
 
     @app.get("/api/v1/days/<date_value>")
@@ -1638,50 +1676,11 @@ def create_app(database=None):
     @app.post("/api/v1/goals")
     @auth_required
     def create_goal():
-        data = body()
-        missing = require_fields(data, ("nombre", "monto_meta", "fecha_limite", "frecuencia_ahorro", "aporte_periodico"))
-        if missing:
-            return error("CAMPOS_REQUERIDOS", "Faltan campos obligatorios", 422, {"campos": missing})
-        if data["frecuencia_ahorro"] not in ("diaria", "semanal", "quincenal", "mensual"):
-            return error("FRECUENCIA_INVALIDA", "Frecuencia de ahorro inválida", 422)
-        amount = int(data["monto_meta"])
-        contribution = int(data["aporte_periodico"])
-        if amount <= 0 or contribution <= 0:
-            return error("MONTOS_INVALIDOS", "Los montos deben ser positivos", 422)
-        if services.parse_date(data["fecha_limite"]) is None:
-            return error("FECHA_INVALIDA", "La fecha límite no es válida", 422)
-        prioridad = services.parse_priority(data.get("prioridad", 1))
-        if prioridad is None:
-            return error(
-                "PRIORIDAD_INVALIDA",
-                "La prioridad debe estar entre 1 y 5",
-                422,
-                {"campo": "prioridad"},
-            )
-        conn = get_db()
-        cursor = conn.execute(
-            """
-            INSERT INTO metas
-                (usuario_id, nombre, icono, monto_meta, fecha_limite,
-                 frecuencia_ahorro, aporte_periodico, dia_aporte, hora_recordatorio,
-                 prioridad)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                g.user_id,
-                str(data["nombre"])[:30],
-                data.get("icono"),
-                amount,
-                data["fecha_limite"],
-                data["frecuencia_ahorro"],
-                contribution,
-                data.get("dia_aporte"),
-                data.get("hora_recordatorio") or "08:00",
-                prioridad,
-            ),
-        )
-        conn.commit()
-        return ok(services.serialize_goal(conn, g.user_id, cursor.lastrowid), 201)
+        try:
+            goal = services.create_goal(get_db(), g.user_id, body())
+        except services.ErrorMeta as exc:
+            return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
+        return ok(goal, 201)
 
     @app.get("/api/v1/goals/<int:goal_id>")
     @auth_required
@@ -2104,6 +2103,18 @@ def create_app(database=None):
             return error(exc.codigo, exc.mensaje, exc.estado, exc.detalles)
         return ok(payload, status)
 
+    @app.post("/api/v1/voice/synthesize")
+    @auth_required
+    def app_synthesize_voice():
+        return _sintetizar_voz(body())
+
+    @app.post("/api/v1/device/voice/synthesize")
+    @device_required
+    def device_synthesize_voice():
+        if not g.device["usuario_id"]:
+            return error("DISPOSITIVO_NO_VINCULADO", "El dispositivo no está vinculado", 403)
+        return _sintetizar_voz(body())
+
     @app.post("/api/v1/device/messages/<int:message_id>/confirm")
     @device_required
     def device_confirm_message(message_id):
@@ -2112,6 +2123,7 @@ def create_app(database=None):
         payload = services.confirm_message(get_db(), g.device["usuario_id"], message_id)
         if payload is None:
             return error("MENSAJE_NO_ENCONTRADO", "El mensaje no existe", 404)
+        conversation.invalidar_accion_pendiente(g.device["usuario_id"], message_id)
         return ok(payload)
 
     @app.post("/api/v1/device/close-day")

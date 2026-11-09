@@ -1,10 +1,15 @@
 # FinaGotchi · Brief de diseño del dispositivo
 
-Versión: 1.0  
+Versión: 1.1  
 Estado: **EN STAND-BY hasta recibir el diseño de la diseñadora**  
 Documento base: `docs/ESPECIFICACIONES.md`  
 Aplicación de referencia: Figma de FinaGotchi  
 Hardware objetivo: ESP32-S3 SuperMini, pantalla TFT 240x320 de 7 pines sin BLK, 3 botones, micrófono I2S, amplificador I2S y batería 18650
+
+Cambios de la v1.1: la voz es la entrada principal del dispositivo; la
+confirmación se responde con frases naturales; el simulador implementa y
+documenta D14-D17 (plan de ahorro y respuesta de Nancy, error y prueba de
+micrófono).
 
 ---
 
@@ -13,13 +18,15 @@ Hardware objetivo: ESP32-S3 SuperMini, pantalla TFT 240x320 de 7 pines sin BLK, 
 FinaGotchi debe funcionar como un compañero físico de la aplicación, no como una copia completa de ella. El dispositivo sirve para:
 
 1. Registrar ingresos, gastos y ahorros por voz.
-2. Confirmar o cancelar lo que Nancy entendió.
+2. Confirmar o cancelar lo que Nancy entendió, hablando.
 3. Mostrar el estado emocional de Nancy y el avance del día.
-4. Consultar un resumen breve.
+4. Consultar un resumen breve, por voz o texto.
 5. Guardar mensajes cuando no haya conexión.
 6. Avisar sobre batería baja, errores y dispositivos sin vincular.
 
-La edición detallada, las metas, las cuentas, las categorías, el perfil y las métricas completas se quedan en la aplicación web. El dispositivo debe ser rápido, claro y usable con tres botones.
+**La voz es la entrada principal.** El menú del simulador es informativo e informa a la persona de qué puede decir; no es el camino normal de uso. Quien no pueda hablar dispone de `[T] Escribir`: el texto sigue exactamente el mismo flujo conversacional que la voz. El simulador también ofrece `[A] Probar micrófono`, que reporta el pico y el RMS de la señal para explicar si el problema es del dispositivo o del entorno.
+
+La edición detallada, las metas, las cuentas, las categorías, el perfil y las métricas completas se quedan en la aplicación web. Las operaciones habituales que el dispositivo ya ejecuta por voz confirmando con el usuario son: registrar y corregir movimientos; eliminar movimientos; crear o eliminar metas; crear cuentas y categorías; ajustar el presupuesto diario y el ingreso mensual declarado. El dispositivo debe ser rápido, claro y usable con tres botones.
 
 ---
 
@@ -56,6 +63,10 @@ El dispositivo debe usar el mismo lenguaje visual y verbal de la app. No se debe
 | D10 Sin conexión | V03.4 Conexión perdida, V08.1 Movimientos |
 | D11 No entendí | V07.4 No entendí |
 | D12 Bloqueado | V18 Eliminar perfil, desvinculación |
+| D14 Plan de ahorro | V16.1 Plan de metas |
+| D15 Respuesta de Nancy | V07.2 Confirmar o editar datos |
+| D16 Error explicado | V07.4 No entendí |
+| D17 Prueba de micrófono | V07.1 Voz |
 
 ---
 
@@ -380,6 +391,7 @@ Todas las pantallas deben respetar esta estructura, salvo splash y pairing:
 **Contenido:**
 - Nancy según el ánimo actual.
 - Nombre: “Nancy”.
+- Fecha y hora del día (p. ej. `sáb 7 nov · 22:55`).
 - Ánimo oficial: `FELIZ`, `PREOCUPADO`, `TRISTE` o `CRITICO`.
 - Barra o indicador de salud de 0 a 100.
 - Cupo del día: “Te quedan $X de $Y”.
@@ -460,11 +472,11 @@ Todas las pantallas deben respetar esta estructura, salvo splash y pairing:
   - Concepto corto.
 - Si hay más de tres ítems, mostrar paginación “1 de 2”.
 - Si algún dato falta, indicar “Falta un dato”.
-- Texto de ayuda: “OK para confirmar”.
+- Texto de ayuda: “Di sí, está bien, ok o confirmo”.
 
 **Botones:**
 - `Atrás`: cancelar y volver.
-- `OK`: confirmar todas.
+- `OK`: confirmar todas. Solo es la ruta del botón físico; la ruta principal es responder por voz.
 - `Hablar`: deshabilitado.
 
 **Estados:**
@@ -474,7 +486,9 @@ Todas las pantallas deben respetar esta estructura, salvo splash y pairing:
 - Error al confirmar.
 - Confirmación exitosa.
 
-**Nota de decisión:** se mantiene la confirmación humana. La IA no guarda automáticamente; D06 se conserva y D07 muestra “Registro guardado” solo cuando el backend confirma la persistencia.
+**Nota de decisión:** se mantiene la confirmación humana. La IA no guarda automáticamente; D06 se conserva y D07 muestra “Registro guardado” solo cuando el backend confirma la persistencia. La confirmación se acepta con frases naturales: “sí”, “ok”, “correcto”, “está bien”, “confirmo”, “dale”. Para descartar se usa “no”, “cancela”, “olvídalo” o “descarta”. Para corregir, basta con decir el dato nuevo ("cambia el monto a 25 mil") y Nancy muestra la propuesta corregida antes de guardar.
+
+Una frase larga solo confirma si empieza por una palabra afirmativa corta; “gasté 20 mil” nunca se toma como confirmación aunque haya una acción pendiente.
 
 ---
 
@@ -620,6 +634,84 @@ Deben desaparecer solas o con `OK`.
 
 ---
 
+### D14 · Plan de ahorro
+
+**Objetivo:** mostrar el plan de metas calculado con programación lineal, sin escribir nada.
+
+**Contenido:**
+- Título: “Plan de ahorro”.
+- Capacidad mensual del primer mes.
+- Número de metas y cumplimiento ponderado.
+- Hasta 4 metas con porcentaje de cumplimiento y aporte mensual recomendado.
+- Diagnóstico cuando la capacidad no alcanza: a qué meta asigna primero y cuánto falta.
+- Si no hay metas: “Aún no tienes metas.” y el mensaje de cómo crear una por voz.
+
+**Botones:**
+- `Atrás`: volver al reposo.
+- `OK`: actualizar el plan.
+- `Hablar`: mantener para preguntar por el plan.
+
+**Nota:** el plan solo propone. La persona confirma cualquier cambio por voz; el dispositivo nunca mueve dinero.
+
+---
+
+### D15 · Respuesta de Nancy
+
+**Objetivo:** mostrar lo que Nancy dijo, tanto para voz como para texto.
+
+**Contenido:**
+- Tira superior: “NANCY dice:”.
+- El `texto_voz` corto se reproduce por el altavoz; el `mensaje_nancy` completo se muestra en la pantalla.
+- El mensaje de Nancy en máximo 7 líneas, con salto automático de línea.
+- Si la respuesta describe un movimiento pendiente o una meta candidata, muestra el monto y el estado conversacional (`confirmando_movimiento`, `recopilando_meta`, `confirmando_meta`, `confirmando_accion`, `inactiva`).
+- Si la confirmación incluye una fecha, se muestra y se dice ("con fecha de ayer").
+- Si la respuesta pide confirmación, muestra “Di sí, está bien, ok o no”.
+- Si la respuesta es una consulta por día o rango, muestra la etiqueta del rango (por ejemplo, “Rango: ayer” o “del 3 al 5 de mayo”), el resumen de totales y la lista de movimientos; la voz solo resume y no lee la lista entera.
+- Si la respuesta ejecuta una acción, muestra “Estado: inactiva”.
+
+**Botones:**
+- `Atrás`: volver al reposo.
+- `OK`: repetir o volver al reposo.
+- `Hablar`: mantener para seguir hablando.
+
+**Nota:** D15 es la pantalla de información principal del dispositivo voz-primero.
+
+---
+
+### D16 · Error explicado
+
+**Objetivo:** cuando algo falla, explicar el motivo en una frase corta y proponer la alternativa.
+
+**Contenido:**
+- Título con el código breve del error (`STT_SIN_TEXTO`, `STT_NO_DISPONIBLE`, “No escuché tu voz”).
+- Mensaje explicado (`pico 1`, “El micrófono casi no recibió señal”).
+- Detalle técnico opcional, máximo 3 líneas.
+- Pie: “[T] Escribir o [H] Hablar”.
+
+**Botones:**
+- `Atrás`: volver al reposo.
+- `OK`: reintentar.
+- `Hablar`: grabar de nuevo.
+
+---
+
+### D17 · Prueba de micrófono
+
+**Objetivo:** comprobar si el micrófono llega señal antes de culpar al STT.
+
+**Contenido:**
+- Título: “Prueba de micrófono”.
+- Dispositivo elegido, pico y RMS medidos.
+- “Señal detectada.” o “Casi no hay señal.”.
+- Si no hay señal: revisar la entrada de sonido en Windows, subir el volumen y cambiar el índice en `input_device` de `simulator/config.json`.
+
+**Botones:**
+- `Atrás`: volver al reposo.
+- `OK`: repetir la prueba.
+- `Hablar`: grabar una frase de prueba.
+
+---
+
 ## 8. Matriz de botones
 
 | Pantalla | Atrás | OK | Hablar |
@@ -636,6 +728,10 @@ Deben desaparecer solas o con `OK`.
 | D10 Sin conexión | Volver | Reintentar | Grabar y encolar |
 | D11 No entendí | Cancelar | Reintentar | Grabar |
 | D12 Bloqueado | Volver | Reintentar | Deshabilitado |
+| D14 Plan de ahorro | Volver | Actualizar plan | Preguntar por el plan |
+| D15 Respuesta de Nancy | Volver | Repetir | Seguir hablando |
+| D16 Error explicado | Volver | Reintentar | Grabar de nuevo |
+| D17 Prueba de micrófono | Volver | Repetir prueba | Frase de prueba |
 
 Reglas:
 
@@ -678,6 +774,8 @@ Máximo 2 segundos por frase. Deben existir al menos:
 - “Conecta el cargador”.
 - “Dispositivo desvinculado”.
 
+En la versión sin conexión, el dispositivo usa un banco pequeño de WAV limitado a respuestas predecibles. No puede generar oraciones nuevas. En la versión conectada, el dispositivo reproduce la WAV que el backend sintetiza bajo demanda; ninguna frase de montos o nombres se pregraba.
+
 ### 9.3 Transcripción y notificación
 
 La transcripción y la categoría las procesa la IA del backend. La pantalla no muestra el texto completo, solo el estado:
@@ -689,6 +787,26 @@ La transcripción y la categoría las procesa la IA del backend. La pantalla no 
 - “¿Confirmas?”.
 
 El dispositivo no transcribe localmente. Envía el audio, espera la respuesta y muestra la notificación final. La confirmación humana es obligatoria. Las notificaciones de guardado se consultan por polling HTTP cada 3–5 segundos y se acusan con `POST /device/notifications/{id}/ack`.
+
+### 9.4 Voz de Nancy
+
+Hay dos modos de respuesta hablada:
+
+| Modo | Qué hace | Adecuado para |
+|---|---|---|
+| Sin conexión | Reproduce frases pregrabadas en LittleFS | respuestas estándar y fallback |
+| Conectado | El backend sintetiza la frase en memoria y el dispositivo reproduce la WAV por I2S | oraciones naturales con nombres, montos y fechas |
+
+La voz del backend corre en el PC o servidor, nunca en la ESP32. El dispositivo solo:
+
+1. Envía el audio o texto al backend.
+2. Recibe el estado y la respuesta.
+3. Pide `POST /device/voice/synthesize` con el `texto_voz` de la respuesta (resumen hablado).
+4. Reproduce la WAV en el MAX98357A/altavoz.
+
+El dispositivo usa `voice_scope: "resumen"`: pronuncia confirmaciones, resultados, consultas, aclaraciones y errores con la frase corta, mientras el detalle de movimientos y rangos permanece en la pantalla. El audio sintetizado se reproduce y se descarta; nunca se guarda en LittleFS ni en la base.
+
+Sin conexión, el firmware usa frases pregrabadas como “Te escucho”, “Listo” y “No entendí”; no intenta improvisar números o nombres. La pantalla siempre muestra el texto aunque falle el audio.
 
 ---
 
@@ -787,9 +905,16 @@ El dispositivo no transcribe localmente. Envía el audio, espera la respuesta y 
 - “Te escucho”.
 - “Entendiendo tu mensaje”.
 - “¿Registro esto?”.
+- “Di sí, está bien, ok o confirmo”.
 - “Listo”.
 - “No entendí”.
 - “Intenta decir el monto y el tipo de movimiento”.
+- “¿Registro un gasto de $20.000 en Alimentación? Puedes decir sí, ok o corregirlo.”
+- “¿Cómo me fue hoy?” / “Balance de esta semana” / “¿Cuánto gasté ayer?” / “¿Cómo van mis metas?”
+- “Quiero crear una meta para comprar unos audífonos.”
+- “Lista para crear la meta. Di sí, está bien u ok.”
+- “Di no, cancela o olvídalo para descartar.”
+- “El micrófono casi no recibió señal; revisa la entrada de sonido.”
 - “Sin conexión”.
 - “Guardé tu mensaje”.
 - “Mensajes pendientes”.
@@ -820,7 +945,7 @@ El dispositivo no transcribe localmente. Envía el audio, espera la respuesta y 
 
 La diseñadora debe entregar:
 
-1. Mockups finales de D01 a D13 en 240 x 320 px.
+1. Mockups finales de D01 a D17 en 240 x 320 px.
 2. Prototipo navegable de los flujos principales.
 3. Assets de Nancy e iconos.
 4. Tabla de colores, tipografías, tamaños y márgenes.
@@ -843,7 +968,7 @@ El diseño se considera listo cuando:
 5. El usuario entiende qué hacer sin leer un manual.
 6. Los estados de error, vacío, cargando y sin conexión están diseñados.
 7. El flujo de voz se entiende con solo tres botones.
-8. La pantalla de confirmación soporta una o varias transacciones.
+8. La pantalla de confirmación soporta una o varias transacciones. La confirmación se responde con frases naturales ("sí", "ok", "correcto", "está bien", "confirmo"). Una acción pendiente se resuelve por voz, texto o endpoint de confirmación; en los tres casos el estado conversacional se invalida.
 9. La pantalla de batería baja no bloquea la operación normal.
 10. La pantalla de dispositivo bloqueado no muestra datos financieros.
 11. Los textos están en español y usan el formato de dinero colombiano.
@@ -861,6 +986,9 @@ Decisiones cerradas:
 - La confirmación humana es obligatoria; la IA no guarda automáticamente.
 - La notificación al dispositivo se entrega por polling HTTP con `after_id` y acuse explícito.
 - Se usa la tabla `dispositivos_notificaciones` con estados `pendiente`, `entregada` y `leida`.
+- La voz es la entrada principal; el menú informa y el texto `[T]` es alternativa equivalente.
+- La confirmación por voz acepta frases naturales; ninguna respuesta larga se toma como confirmación.
+- Una acción pendiente confirmada fuera del agente (por endpoint) invalida el estado conversacional.
 
 Pendientes:
 

@@ -28,6 +28,17 @@ PRIORIDAD_MIN = 1
 PRIORIDAD_MAX = 5
 
 
+class ErrorMeta(ValueError):
+    """Error de validacion de una meta con codigo estable para la API."""
+
+    def __init__(self, codigo, mensaje, estado=422, detalles=None):
+        super().__init__(mensaje)
+        self.codigo = codigo
+        self.mensaje = mensaje
+        self.estado = estado
+        self.detalles = detalles or {}
+
+
 def parse_priority(value):
     """Normaliza la prioridad de una meta; devuelve None si es invalida."""
     try:
@@ -82,10 +93,11 @@ def message_payload(conn, user_id, message_id):
         return None
     transactions = conn.execute(
         """
-        SELECT t.*, c.nombre AS categoria, cu.nombre AS cuenta
+        SELECT t.*, c.nombre AS categoria, cu.nombre AS cuenta, m.nombre AS meta
         FROM transacciones t
         LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
         LEFT JOIN cuentas cu ON cu.usuario_id = t.usuario_id AND cu.id = t.cuenta_id
+        LEFT JOIN metas m ON m.usuario_id = t.usuario_id AND m.id = t.meta_id
         WHERE t.usuario_id = ? AND t.mensaje_id = ?
         ORDER BY t.secuencia, t.id
         """,
@@ -110,6 +122,7 @@ def create_message(
     origen="app_voz",
     audio_duration_s=None,
     local_date_value=None,
+    interpretacion=None,
 ):
     if message_id:
         existing = conn.execute(
@@ -134,12 +147,33 @@ def create_message(
     message_id = message_id or str(uuid.uuid4())
     received_at = now_utc()
     text = (text or "").strip()
-    result = nlp.interpret(conn, user_id, text) if text else {
-        "intent": "requiere_aclaracion",
-        "texto": "",
-        "error": "No se recibió texto",
-        "transacciones": [],
-    }
+    result = interpretacion or (
+        nlp.interpret(conn, user_id, text)
+        if text
+        else {
+            "intent": "requiere_aclaracion",
+            "texto": "",
+            "error": "No se recibió texto",
+            "transacciones": [],
+        }
+    )
+    # La base exige monto > 0. Ninguna propuesta puede insertarse sin monto:
+    # si el LLM o las reglas no lo encontraron, se degrada a aclaracion en
+    # lugar de romper la peticion con un 500.
+    propuestas = result.get("transacciones", [])
+    validas = []
+    for proposal in propuestas:
+        try:
+            monto = int(proposal.get("monto"))
+        except (TypeError, ValueError):
+            monto = None
+        if monto and monto > 0:
+            validas.append({**proposal, "monto": monto})
+    if result.get("intent") == "registrar" and len(validas) != len(propuestas):
+        result = {**result, "transacciones": validas}
+        if not validas:
+            result["intent"] = "requiere_aclaracion"
+            result["error"] = "No se identificó un monto"
     if audio_duration_s is not None:
         try:
             audio_duration_s = float(audio_duration_s)
@@ -414,6 +448,30 @@ def ack_device_notifications(conn, user_id, device_id, notification_ids, estado=
     return updated
 
 
+def discard_message(conn, user_id, message_id):
+    """Descarta un mensaje y sus movimientos pendientes sin borrar historia."""
+    message = conn.execute(
+        "SELECT * FROM mensajes_dispositivo WHERE usuario_id = ? AND id = ?",
+        (user_id, message_id),
+    ).fetchone()
+    if message is None:
+        return None
+    conn.execute(
+        """
+        UPDATE transacciones
+        SET is_deleted = 1, deleted_at = ?, eliminado_via = 'voz', actualizado_en = ?
+        WHERE usuario_id = ? AND mensaje_id = ? AND estado = 'pendiente' AND is_deleted = 0
+        """,
+        (iso_utc(), iso_utc(), user_id, message_id),
+    )
+    conn.execute(
+        "UPDATE mensajes_dispositivo SET estado = 'descartado' WHERE usuario_id = ? AND id = ?",
+        (user_id, message_id),
+    )
+    conn.commit()
+    return message_payload(conn, user_id, message_id)
+
+
 def confirm_message(conn, user_id, message_id):
     message = conn.execute(
         "SELECT * FROM mensajes_dispositivo WHERE usuario_id = ? AND id = ?",
@@ -481,6 +539,67 @@ def confirm_message(conn, user_id, message_id):
             "duplicado": notification["duplicado"],
         }
     return payload
+
+
+def create_goal(conn, user_id, data):
+    """Crea una meta validada. La usan la API y el agente conversacional."""
+    missing = [
+        field
+        for field in (
+            "nombre",
+            "monto_meta",
+            "fecha_limite",
+            "frecuencia_ahorro",
+            "aporte_periodico",
+        )
+        if not data.get(field)
+    ]
+    if missing:
+        raise ErrorMeta(
+            "CAMPOS_REQUERIDOS", "Faltan campos obligatorios", 422, {"campos": missing}
+        )
+    if data["frecuencia_ahorro"] not in ("diaria", "semanal", "quincenal", "mensual"):
+        raise ErrorMeta("FRECUENCIA_INVALIDA", "Frecuencia de ahorro inválida", 422)
+    try:
+        amount = int(data["monto_meta"])
+        contribution = int(data["aporte_periodico"])
+    except (TypeError, ValueError):
+        raise ErrorMeta("MONTOS_INVALIDOS", "Los montos deben ser enteros", 422)
+    if amount <= 0 or contribution <= 0:
+        raise ErrorMeta("MONTOS_INVALIDOS", "Los montos deben ser positivos", 422)
+    if parse_date(data["fecha_limite"]) is None:
+        raise ErrorMeta("FECHA_INVALIDA", "La fecha límite no es válida", 422)
+    prioridad = parse_priority(data.get("prioridad", 1))
+    if prioridad is None:
+        raise ErrorMeta(
+            "PRIORIDAD_INVALIDA",
+            "La prioridad debe estar entre 1 y 5",
+            422,
+            {"campo": "prioridad"},
+        )
+    cursor = conn.execute(
+        """
+        INSERT INTO metas
+            (usuario_id, nombre, icono, monto_meta, fecha_limite,
+             frecuencia_ahorro, aporte_periodico, dia_aporte, hora_recordatorio,
+             prioridad)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            str(data["nombre"])[:30],
+            data.get("icono"),
+            amount,
+            data["fecha_limite"],
+            data["frecuencia_ahorro"],
+            contribution,
+            data.get("dia_aporte"),
+            data.get("hora_recordatorio") or "08:00",
+            prioridad,
+        ),
+    )
+    conn.commit()
+    return serialize_goal(conn, user_id, cursor.lastrowid)
 
 
 def create_transaction(conn, user_id, data):
@@ -597,6 +716,11 @@ def update_transaction(conn, user_id, transaction_id, data):
         return None
 
     allowed = {}
+    if "tipo" in data:
+        nuevo_tipo = str(data.get("tipo") or "").strip().lower()
+        if nuevo_tipo not in ALLOWED_TRANSACTION_TYPES:
+            raise ValueError("Tipo de movimiento inválido")
+        allowed["tipo"] = nuevo_tipo
     if "monto" in data:
         try:
             amount = int(data["monto"])
@@ -607,6 +731,11 @@ def update_transaction(conn, user_id, transaction_id, data):
         allowed["monto"] = amount
     if "concepto" in data:
         allowed["concepto"] = (data.get("concepto") or "")[:255] or None
+    if "fecha_local" in data:
+        fecha = parse_date(data.get("fecha_local"))
+        if fecha is None:
+            raise ValueError("La fecha no es válida")
+        allowed["fecha_local"] = fecha.isoformat()
     if "categoria_id" in data:
         allowed["categoria_id"] = data.get("categoria_id")
     if "cuenta_id" in data:
@@ -630,6 +759,7 @@ def update_transaction(conn, user_id, transaction_id, data):
     if not allowed:
         return dict(current)
 
+    tipo_final = allowed.get("tipo", current["tipo"])
     if "categoria_id" in allowed and allowed["categoria_id"] is not None:
         category = conn.execute(
             """
@@ -640,9 +770,45 @@ def update_transaction(conn, user_id, transaction_id, data):
         ).fetchone()
         if category is None:
             raise ValueError("La categoría no existe o no está activa")
-        if category["tipo"] != current["tipo"]:
+        # Un ahorro no lleva categoría; un gasto/ingreso la exige.
+        if category["tipo"] != tipo_final:
             raise ValueError("La categoría no corresponde al tipo de movimiento")
         allowed["categoria_id"] = category["id"]
+    # Si cambia el tipo, la fila debe seguir cumpliendo el CHECK del esquema:
+    # ahorro sin categoría y gasto/ingreso con categoría y sin meta.
+    if "tipo" in allowed:
+        if tipo_final == "ahorro":
+            allowed.setdefault("categoria_id", None)
+        elif "categoria_id" not in allowed:
+            actual = None
+            if current["categoria_id"] is not None:
+                actual = conn.execute(
+                    "SELECT tipo FROM categorias WHERE usuario_id = ? AND id = ?",
+                    (user_id, current["categoria_id"]),
+                ).fetchone()
+            if actual is None or actual["tipo"] != tipo_final:
+                nombre = "Otros ingresos" if tipo_final == "ingreso" else "Otros"
+                fallback = conn.execute(
+                    """
+                    SELECT id FROM categorias
+                    WHERE usuario_id = ? AND tipo = ? AND nombre = ? AND activa = 1
+                    """,
+                    (user_id, tipo_final, nombre),
+                ).fetchone()
+                if fallback is None:
+                    fallback = conn.execute(
+                        """
+                        SELECT id FROM categorias
+                        WHERE usuario_id = ? AND tipo = ? AND activa = 1
+                        ORDER BY id LIMIT 1
+                        """,
+                        (user_id, tipo_final),
+                    ).fetchone()
+                if fallback is None:
+                    raise ValueError("No hay una categoría disponible para el tipo")
+                allowed["categoria_id"] = fallback["id"]
+        if tipo_final != "ahorro":
+            allowed.setdefault("meta_id", None)
 
     assignments = ", ".join(f"{column} = ?" for column in allowed)
     conn.execute(
@@ -1198,6 +1364,7 @@ def goal_plan(
     incluir_metas=None,
     simulacion=False,
     overrides=None,
+    metas_extra=None,
 ):
     """Calcula el plan de metas sin escribir en la base.
 
@@ -1224,8 +1391,11 @@ def goal_plan(
         (user_id,),
     ).fetchall()
 
+    metas = [dict(row) for row in rows]
+    if metas_extra:
+        metas.extend(dict(meta) for meta in metas_extra)
     plan = optimization.plan_goals(
-        [dict(row) for row in rows],
+        metas,
         capacity["capacidad_mensual"],
         as_of,
         horizon=meses,
@@ -1237,6 +1407,322 @@ def goal_plan(
     if simulacion:
         plan["overrides"] = overrides or {}
     return plan
+
+
+def simulate_goal_draft(conn, user_id, draft, as_of=None, meses=12):
+    """Evalua una meta candidata con el LP sin insertarla en la base.
+
+    La meta virtual usa un id negativo para no confundirse con metas reales.
+    Devuelve el plan completo y el detalle de esa meta.
+    """
+    as_of = as_of or local_date()
+    virtual = {
+        "meta_id": -1,
+        "nombre": draft.get("nombre") or "Meta nueva",
+        "monto_meta": int(draft.get("monto_meta") or 0),
+        "ahorrado": 0,
+        "fecha_limite": draft.get("fecha_limite") or as_of,
+        "prioridad": int(draft.get("prioridad") or 3),
+    }
+    plan = goal_plan(
+        conn,
+        user_id,
+        as_of=as_of,
+        meses=meses,
+        simulacion=True,
+        metas_extra=[virtual],
+        overrides={"meta_virtual": virtual},
+    )
+    detalle = next(
+        (meta for meta in plan.get("metas", []) if meta.get("meta_id") == -1), None
+    )
+    capacidad = plan.get("capacidad_mensual") or []
+    return {
+        "meta": detalle,
+        "plan": plan,
+        "capacidad_mes_actual": capacidad[0]["capacidad"] if capacidad else 0,
+        "factible": plan.get("factible"),
+        "diagnostico": plan.get("diagnostico"),
+        "resumen": plan.get("resumen"),
+    }
+
+
+def period_totals(conn, user_id, start_date, end_date):
+    row = conn.execute(
+        """
+        SELECT
+          COALESCE(SUM(CASE WHEN tipo = 'ingreso' THEN monto ELSE 0 END), 0) AS ingresos,
+          COALESCE(SUM(CASE WHEN tipo = 'gasto' THEN monto ELSE 0 END), 0) AS gastos,
+          COALESCE(SUM(CASE WHEN tipo = 'ahorro' THEN monto ELSE 0 END), 0) AS ahorro,
+          COUNT(*) AS num_registros
+        FROM transacciones
+        WHERE usuario_id = ? AND fecha_local BETWEEN ? AND ?
+          AND estado = 'confirmado' AND is_deleted = 0
+        """,
+        (user_id, start_date, end_date),
+    ).fetchone()
+    totals = dict(row)
+    totals["balance_neto"] = totals["ingresos"] - totals["gastos"]
+    totals["capacidad_libre_ahorro"] = (
+        totals["ingresos"] - totals["gastos"] - totals["ahorro"]
+    )
+    return totals
+
+
+def recent_transactions(conn, user_id, limit=10):
+    rows = conn.execute(
+        """
+        SELECT t.id, t.tipo, t.monto, t.fecha_local, t.concepto, t.estado,
+               c.nombre AS categoria, cu.nombre AS cuenta, m.nombre AS meta
+        FROM transacciones t
+        LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
+        LEFT JOIN cuentas cu ON cu.usuario_id = t.usuario_id AND cu.id = t.cuenta_id
+        LEFT JOIN metas m ON m.usuario_id = t.usuario_id AND m.id = t.meta_id
+        WHERE t.usuario_id = ? AND t.is_deleted = 0
+        ORDER BY t.fecha_hora DESC, t.id DESC
+        LIMIT ?
+        """,
+        (user_id, int(limit)),
+    ).fetchall()
+    return dict_rows(rows)
+
+
+def pending_transactions(conn, user_id, limit=20):
+    """Movimientos pendientes de confirmación humana, más recientes primero."""
+    rows = conn.execute(
+        """
+        SELECT t.id, t.mensaje_id, t.tipo, t.monto, t.fecha_local, t.concepto, t.estado,
+               c.nombre AS categoria, cu.nombre AS cuenta, m.nombre AS meta
+        FROM transacciones t
+        LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
+        LEFT JOIN cuentas cu ON cu.usuario_id = t.usuario_id AND cu.id = t.cuenta_id
+        LEFT JOIN metas m ON m.usuario_id = t.usuario_id AND m.id = t.meta_id
+        WHERE t.usuario_id = ? AND t.estado = 'pendiente' AND t.is_deleted = 0
+        ORDER BY t.fecha_hora DESC, t.id DESC
+        LIMIT ?
+        """,
+        (user_id, int(limit)),
+    ).fetchall()
+    return dict_rows(rows)
+
+
+def transactions_between(conn, user_id, start_date, end_date, limit=None):
+    """Movimientos confirmados dentro de un rango de fechas locales."""
+    sql = """
+        SELECT t.id, t.tipo, t.monto, t.fecha_local, t.concepto, t.estado,
+               c.nombre AS categoria, cu.nombre AS cuenta, m.nombre AS meta
+        FROM transacciones t
+        LEFT JOIN categorias c ON c.usuario_id = t.usuario_id AND c.id = t.categoria_id
+        LEFT JOIN cuentas cu ON cu.usuario_id = t.usuario_id AND cu.id = t.cuenta_id
+        LEFT JOIN metas m ON m.usuario_id = t.usuario_id AND m.id = t.meta_id
+        WHERE t.usuario_id = ? AND t.fecha_local BETWEEN ? AND ?
+          AND t.estado = 'confirmado' AND t.is_deleted = 0
+        ORDER BY t.fecha_local DESC, t.fecha_hora DESC, t.id DESC
+    """
+    params = [user_id, start_date, end_date]
+    if limit is not None:
+        sql += " LIMIT ?"
+        params.append(int(limit))
+    return dict_rows(conn.execute(sql, params).fetchall())
+
+
+def accounts_summary(conn, user_id):
+    """Cuentas visibles del usuario, con la marca de cuenta base.
+
+    Las cuentas ocultas no se muestran. La vista no trae ``es_sistema``,
+    así que se obtiene con JOIN sin cambiar el esquema.
+    """
+    rows = conn.execute(
+        """
+        SELECT v.*, c.es_sistema
+        FROM v_cuentas_resumen v
+        JOIN cuentas c
+          ON c.usuario_id = v.usuario_id AND c.id = v.cuenta_id
+        WHERE v.usuario_id = ? AND v.oculta = 0
+        ORDER BY v.orden, v.cuenta_id
+        """,
+        (user_id,),
+    ).fetchall()
+    return dict_rows(rows)
+
+
+def categories_summary(conn, user_id):
+    """Categorías con el número de registros y el total confirmado."""
+    rows = conn.execute(
+        """
+        SELECT c.id, c.nombre, c.tipo, c.icono, c.activa, c.es_sistema,
+               COUNT(t.id) AS num_registros,
+               COALESCE(SUM(t.monto), 0) AS total
+        FROM categorias c
+        LEFT JOIN transacciones t
+          ON t.usuario_id = c.usuario_id
+         AND t.categoria_id = c.id
+         AND t.estado = 'confirmado'
+         AND t.is_deleted = 0
+        WHERE c.usuario_id = ? AND c.activa = 1
+        GROUP BY c.id
+        ORDER BY c.tipo, c.nombre
+        """,
+        (user_id,),
+    ).fetchall()
+    return dict_rows(rows)
+
+
+def create_account(conn, user_id, data):
+    """Crea una cuenta desde la API o desde el agente."""
+    nombre = str(data.get("nombre") or "").strip()
+    tipo_cuenta = data.get("tipo_cuenta") or "efectivo"
+    if not nombre:
+        raise ValueError("El nombre de la cuenta es obligatorio")
+    if tipo_cuenta not in (
+        "efectivo",
+        "billetera_digital",
+        "tarjeta",
+        "cuenta_ahorros",
+        "inversion",
+    ):
+        raise ValueError("Tipo de cuenta inválido")
+    try:
+        saldo_inicial = int(data.get("saldo_inicial") or 0)
+    except (TypeError, ValueError):
+        raise ValueError("El saldo inicial debe ser un entero")
+    if tipo_cuenta == "tarjeta" and saldo_inicial != 0:
+        raise ValueError("Una tarjeta no puede tener saldo inicial")
+    order = conn.execute(
+        "SELECT COALESCE(MAX(orden), 0) + 1 FROM cuentas WHERE usuario_id = ?",
+        (user_id,),
+    ).fetchone()[0]
+    cursor = conn.execute(
+        """
+        INSERT INTO cuentas
+            (usuario_id, nombre, tipo_cuenta, icono, ultimos_4, saldo_inicial,
+             es_sistema, es_por_defecto, oculta, orden)
+        VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?)
+        """,
+        (
+            user_id,
+            nombre[:24],
+            tipo_cuenta,
+            data.get("icono"),
+            data.get("ultimos_4"),
+            saldo_inicial,
+            order,
+        ),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT * FROM v_cuentas_resumen WHERE usuario_id = ? AND cuenta_id = ?",
+        (user_id, cursor.lastrowid),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def create_category(conn, user_id, data):
+    """Crea una categoria de gasto o ingreso desde la API o el agente."""
+    nombre = str(data.get("nombre") or "").strip()
+    tipo = data.get("tipo") or "gasto"
+    if not nombre:
+        raise ValueError("El nombre de la categoría es obligatorio")
+    if tipo not in ("gasto", "ingreso"):
+        raise ValueError("El tipo de categoría es inválido")
+    order = conn.execute(
+        "SELECT COALESCE(MAX(orden), 0) + 1 FROM categorias WHERE usuario_id = ?",
+        (user_id,),
+    ).fetchone()[0]
+    cursor = conn.execute(
+        """
+        INSERT INTO categorias
+            (usuario_id, nombre, tipo, icono, es_sistema, es_fija, activa, orden)
+        VALUES (?, ?, ?, ?, 0, 0, 1, ?)
+        """,
+        (user_id, nombre[:24], tipo, data.get("icono") or "🏷️", order),
+    )
+    # La palabra clave hace que la próxima frase «en <nueva categoría>»
+    # ya caiga aquí sin intervención del LLM.
+    conn.execute(
+        "INSERT OR IGNORE INTO categoria_palabras (usuario_id, categoria_id, palabra) "
+        "VALUES (?, ?, ?)",
+        (user_id, cursor.lastrowid, nombre[:40].lower()),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT id, nombre, tipo, icono, activa FROM categorias WHERE usuario_id = ? AND id = ?",
+        (user_id, cursor.lastrowid),
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def set_daily_budget(conn, user_id, amount):
+    """Ajusta el presupuesto diario y deja registro en el historial."""
+    try:
+        valor = int(amount)
+    except (TypeError, ValueError):
+        raise ValueError("El presupuesto debe ser un entero")
+    if valor < 0:
+        raise ValueError("El presupuesto no puede ser negativo")
+    today = local_date()
+    conn.execute(
+        "UPDATE usuarios SET presupuesto_diario = ?, actualizado_en = ? WHERE id = ?",
+        (valor, iso_utc(), user_id),
+    )
+    conn.execute(
+        """
+        INSERT INTO presupuesto_diario_historial
+            (usuario_id, fecha_local, monto, motivo, actualizado_en)
+        VALUES (?, ?, ?, 'ajuste', ?)
+        ON CONFLICT (usuario_id, fecha_local)
+        DO UPDATE SET monto = excluded.monto, motivo = 'ajuste',
+                      actualizado_en = excluded.actualizado_en
+        """,
+        (user_id, today, valor, iso_utc()),
+    )
+    conn.commit()
+    return {"presupuesto_diario": valor, "fecha_local": today}
+
+
+def set_profile_income(conn, user_id, amount):
+    """Actualiza el ingreso mensual declarado en el perfil financiero."""
+    try:
+        valor = int(amount)
+    except (TypeError, ValueError):
+        raise ValueError("El ingreso debe ser un entero")
+    if valor < 0:
+        raise ValueError("El ingreso no puede ser negativo")
+    conn.execute(
+        "UPDATE perfil_financiero SET ingreso_trabajo_mensual = ? WHERE usuario_id = ?",
+        (valor, user_id),
+    )
+    conn.execute(
+        "UPDATE usuarios SET actualizado_en = ? WHERE id = ?", (iso_utc(), user_id)
+    )
+    conn.commit()
+    return {"ingreso_trabajo_mensual": valor}
+
+
+def delete_goal(conn, user_id, goal_id):
+    result = conn.execute(
+        """
+        UPDATE metas SET is_deleted = 1, deleted_at = ?, actualizado_en = ?
+        WHERE usuario_id = ? AND id = ? AND is_deleted = 0
+        """,
+        (iso_utc(), iso_utc(), user_id, goal_id),
+    )
+    conn.commit()
+    return result.rowcount > 0
+
+
+def profile_summary(conn, user_id):
+    user = conn.execute(
+        "SELECT nombre, correo, presupuesto_diario, zona_horaria FROM usuarios WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+    profile = conn.execute(
+        "SELECT * FROM perfil_financiero WHERE usuario_id = ?", (user_id,)
+    ).fetchone()
+    return {
+        "usuario": dict(user) if user else {},
+        "perfil": dict(profile) if profile else {},
+    }
 
 
 def plan_resumen(conn, user_id, as_of=None):
