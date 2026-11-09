@@ -1,20 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
-import 'perfil.dart'; // <--- ÚNICO AGREGADO: Importación de tu pantalla de perfil
+import 'nancy_intro_screen.dart'; // Importante para conectar con la pantalla de Nancy
 
-class StagesOverviewScreen extends StatefulWidget {
+// =====================================================================
+// 1. PANTALLA DE RESUMEN DE ETAPAS (StagesOverviewScreen)
+// =====================================================================
+class StagesOverviewScreen extends StatelessWidget {
   const StagesOverviewScreen({super.key});
-
-  @override
-  State<StagesOverviewScreen> createState() => _StagesOverviewScreenState();
-}
-
-class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
-  // 0: V04.1 Ruta general de las 3 etapas
-  // 1: Etapa 1 de 3 (Primero, te conocemos)
-  // 2: Etapa 2 de 3 (Después, armamos tu plan)
-  // 3: Etapa 3 de 3 (Y luego, cuidas tu presupuesto)
-  int currentStep = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -23,284 +15,185 @@ class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: currentStep > 0
-            ? IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.darkGreen),
-          onPressed: () => setState(() => currentStep--),
-        )
-            : null,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.wine),
+          onPressed: () => Navigator.maybePop(context),
+        ),
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: _buildBody(),
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 10),
+              const Text(
+                'Tu ruta con',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 31,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.wine,
+                  height: 1.3,
                 ),
               ),
-            );
-          },
+              const SizedBox(height: 4),
+              Image.asset(
+                'assets/images/logo.png',
+                height: 34,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Text(
+                    'finag·🐽·tchi',
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.wine,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Son 3 etapas. Nancy te acompaña en cada una.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.darkGreen,
+                  fontSize: 16,
+                  height: 1.4,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 25),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildStageItem(
+                      stepNumber: '1',
+                      title: 'Diagnóstico',
+                      subtitle: '28 días registrando',
+                      isCompleted: true,
+                      isLocked: false,
+                      showTopLine: false,
+                      showBottomLine: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildStageItem(
+                      stepNumber: '2',
+                      title: 'Transición',
+                      subtitle: 'Metas y presupuesto',
+                      isCompleted: false,
+                      isLocked: false,
+                      showTopLine: true,
+                      showBottomLine: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildStageItem(
+                      stepNumber: '3',
+                      title: 'Seguimiento',
+                      subtitle: 'Próximamente',
+                      isCompleted: false,
+                      isLocked: true,
+                      showTopLine: true,
+                      showBottomLine: false,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              const StageIndicator(activeIndex: 0),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: 'Continuar',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StageDetailScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBody() {
-    switch (currentStep) {
-      case 0:
-        return _buildRouteOverview();
-      case 1:
-        return _buildStageDetail(
-          key: const ValueKey('stage_1'),
-          badgeText: 'Etapa 1 de 3',
-          badgeColor: AppColors.mutedPink.withOpacity(0.3),
-          title: 'Primero, te conocemos',
-          subtitle: 'Dos cosas para empezar con el pie derecho.',
-          cardColor: AppColors.mutedPink.withOpacity(0.35),
-          cardBorderColor: AppColors.wine,
-          items: const [
-            _DetailItem(
-              icon: Icons.alt_route_rounded,
-              text: 'Un test corto sobre tus ingresos y gastos',
-            ),
-            _DetailItem(
-              icon: Icons.mic_none_outlined,
-              text: '30 días registrando por voz con tu FinaGotchi',
-            ),
-            _DetailItem(
-              icon: Icons.star_border_rounded,
-              text: 'Ganas 1 punto por cada registro',
-            ),
-          ],
-          indicatorIndex: 0,
-          buttonText: 'Siguiente →',
-          onTapNext: () => setState(() => currentStep = 2),
-        );
-      case 2:
-        return _buildStageDetail(
-          key: const ValueKey('stage_2'),
-          badgeText: 'Etapa 2 de 3',
-          badgeColor: AppColors.lime.withOpacity(0.4),
-          title: 'Después, armamos tu plan',
-          subtitle: 'Con lo que registraste, Nancy te ayuda a decidir.',
-          cardColor: AppColors.lime.withOpacity(0.35),
-          cardBorderColor: AppColors.darkGreen,
-          items: const [
-            _DetailItem(
-              icon: Icons.bar_chart_rounded,
-              text: 'Nancy te cuenta en qué se fue tu dinero',
-            ),
-            _DetailItem(
-              icon: Icons.flag_outlined,
-              text: 'Defines tus metas con una fecha',
-            ),
-            _DetailItem(
-              icon: Icons.account_balance_wallet_outlined,
-              text: 'Creamos tu presupuesto por categoría para 2 o 3 meses',
-            ),
-          ],
-          indicatorIndex: 1,
-          buttonText: 'Siguiente →',
-          onTapNext: () => setState(() => currentStep = 3),
-        );
-      case 3:
-        return _buildStageDetail(
-          key: const ValueKey('stage_3'),
-          badgeText: 'Etapa 3 de 3',
-          badgeColor: AppColors.mutedPink.withOpacity(0.3),
-          title: 'Y luego, cuidas tu presupuesto',
-          subtitle: 'Esta etapa se desbloquea cuando termines las anteriores.',
-          cardColor: AppColors.mutedPink.withOpacity(0.35),
-          cardBorderColor: AppColors.darkGreen,
-          items: const [
-            _DetailItem(
-              icon: Icons.favorite_border_rounded,
-              text: 'La salud de Nancy depende de cómo cumplas tu presupuesto',
-            ),
-            _DetailItem(
-              icon: Icons.notifications_none_outlined,
-              text: 'Te avisamos si te pasas en una categoría',
-            ),
-          ],
-          indicatorIndex: 2,
-          buttonText: 'Hacer test →',
-          onTapNext: () {
-            // <--- CONEXIÓN EXACTA A TU PANTALLA PERFIL (WelcomeScreen) --->
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const WelcomeScreen(),
-              ),
-            );
-          },
-        );
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  // ==========================================
-  // V04.1 RUTA DE LAS 3 ETAPAS
-  // ==========================================
-  Widget _buildRouteOverview() {
-    return Column(
-      key: const ValueKey('overview'),
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const SizedBox(height: 10),
-        const Text(
-          'Tu ruta con',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: AppColors.wine,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Image.asset(
-          'assets/images/logo.png',
-          height: 26,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.none,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Son 3 etapas. Nancy te acompaña\nen cada una.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: AppColors.darkGreen,
-            fontSize: 13,
-            height: 1.3,
-          ),
-        ),
-        const SizedBox(height: 32),
-
-        // Lista de las 3 etapas verticales conectadas
-        _buildStageTile(
-          number: '1',
-          title: 'Diagnóstico',
-          subtitle: '30 días registrando',
-          isCompleted: false,
-          isCurrent: true,
-        ),
-        _buildLineConnector(),
-        _buildStageTile(
-          number: '2',
-          title: 'Transición',
-          subtitle: 'Metas y presupuesto',
-          isCompleted: false,
-          isCurrent: false,
-        ),
-        _buildLineConnector(),
-        _buildStageTile(
-          number: '3🔒',
-          title: 'Seguimiento',
-          subtitle: 'Próximamente',
-          isCompleted: false,
-          isCurrent: false,
-          isLocked: true,
-        ),
-
-        const SizedBox(height: 24),
-        _buildDotsIndicator(0),
-        const SizedBox(height: 32),
-
-        // Botón Continuar con borde inferior
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            border: const Border(
-              bottom: BorderSide(color: AppColors.darkGreen, width: 3),
-            ),
-          ),
-          child: SizedBox(
-            width: 140,
-            height: 44,
-            child: ElevatedButton(
-              onPressed: () => setState(() => currentStep = 1),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.lime,
-                foregroundColor: AppColors.darkGreen,
-                elevation: 0,
-                shape: const StadiumBorder(),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Text('Continuar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  SizedBox(width: 6),
-                  Icon(Icons.arrow_forward, size: 16),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget _buildStageTile({
-    required String number,
+  Widget _buildStageItem({
+    required String stepNumber,
     required String title,
     required String subtitle,
     required bool isCompleted,
-    required bool isCurrent,
-    bool isLocked = false,
+    required bool isLocked,
+    required bool showTopLine,
+    required bool showBottomLine,
   }) {
     return Row(
       children: [
-        // Círculo del número
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isCurrent ? AppColors.wine : AppColors.cardCream,
-            border: Border.all(
-              color: isCurrent ? AppColors.wine : AppColors.wine.withOpacity(0.4),
-              width: 1.5,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              number,
-              style: TextStyle(
-                color: isCurrent ? AppColors.cream : AppColors.wine,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
+        SizedBox(
+          width: 44,
+          height: 72,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              if (showTopLine)
+                Positioned(
+                  top: 0,
+                  bottom: 36,
+                  child: Container(width: 3.0, color: AppColors.wine),
+                ),
+              if (showBottomLine)
+                Positioned(
+                  top: 36,
+                  bottom: 0,
+                  child: Container(width: 3.0, color: AppColors.wine),
+                ),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isCompleted ? AppColors.wine : AppColors.cardCream,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.wine, width: 2.0),
+                ),
+                child: Center(
+                  child: isLocked
+                      ? const Icon(Icons.lock_rounded, size: 14, color: AppColors.wine)
+                      : Text(
+                    stepNumber,
+                    style: TextStyle(
+                      color: isCompleted ? AppColors.cardCream : AppColors.wine,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
-        const SizedBox(width: 14),
-        // Tarjeta informativa con borde inferior
+        const SizedBox(width: 12),
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: AppColors.cardCream,
               borderRadius: BorderRadius.circular(16),
-              border: const Border(
-                bottom: BorderSide(color: AppColors.wine, width: 3),
-              ),
+              border: Border.all(color: AppColors.wine.withOpacity(0.25), width: 1.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   title,
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
                     color: AppColors.wine,
                   ),
                 ),
@@ -308,7 +201,8 @@ class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.darkGreen,
                   ),
                 ),
@@ -319,181 +213,547 @@ class _StagesOverviewScreenState extends State<StagesOverviewScreen> {
       ],
     );
   }
+}
 
-  Widget _buildLineConnector() {
-    return Container(
-      margin: const EdgeInsets.only(left: 17),
-      height: 18,
-      width: 2,
-      color: AppColors.wine.withOpacity(0.4),
+// =====================================================================
+// 2. PANTALLA DE DETALLE ETAPA 1 (StageDetailScreen)
+// =====================================================================
+class StageDetailScreen extends StatelessWidget {
+  const StageDetailScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.wine),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                height: 130,
+                child: Image.asset(
+                  'assets/images/nancy_libreta.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.mutedPink,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'Etapa 1 de 3',
+                  style: TextStyle(
+                    color: AppColors.wine,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Primero, te conocemos',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.wine,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Dos cosas para empezar con el pie derecho.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.darkGreen,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Center(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: AppColors.mutedPink.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.wine.withOpacity(0.2), width: 1.5),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildFeatureRow(
+                          icon: Icons.checklist_rounded,
+                          text: 'Un test corto sobre tus ingresos y gastos',
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(height: 1, thickness: 1, color: Color(0xFFE8C8C0)),
+                        ),
+                        _buildFeatureRow(
+                          icon: Icons.mic_rounded,
+                          text: '28 días registrando por voz con tu FinaGotchi',
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(height: 1, thickness: 1, color: Color(0xFFE8C8C0)),
+                        ),
+                        _buildFeatureRow(
+                          icon: Icons.star_rounded,
+                          text: 'Ganas 1 punto por cada registro',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const StageIndicator(activeIndex: 1),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: 'Siguiente',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StageDetailSecondScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  // ==========================================
-  // V04.2 PANTALLAS DE DETALLE DE ETAPA (1, 2 Y 3)
-  // ==========================================
-  Widget _buildStageDetail({
-    required Key key,
-    required String badgeText,
-    required Color badgeColor,
-    required String title,
-    required String subtitle,
-    required Color cardColor,
-    required Color cardBorderColor,
-    required List<_DetailItem> items,
-    required int indicatorIndex,
-    required String buttonText,
-    required VoidCallback onTapNext,
-  }) {
-    return Column(
-      key: key,
-      mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildFeatureRow({required IconData icon, required String text}) {
+    return Row(
       children: [
-        const SizedBox(height: 10),
-        // Badge superior cápsula
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: badgeColor,
-            borderRadius: BorderRadius.circular(20),
+          padding: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(
+            color: AppColors.cardCream,
+            shape: BoxShape.circle,
           ),
+          child: Icon(icon, color: AppColors.darkGreen, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
           child: Text(
-            badgeText,
+            text,
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: AppColors.wine,
+              color: AppColors.darkGreen,
+              height: 1.25,
             ),
           ),
         ),
-        const SizedBox(height: 12),
-
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: AppColors.wine,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.darkGreen,
-            fontSize: 13,
-            height: 1.3,
-          ),
-        ),
-        const SizedBox(height: 28),
-
-        // Tarjeta principal de la etapa con borde inferior grueso
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border(
-              bottom: BorderSide(color: cardBorderColor, width: 3),
-            ),
-          ),
-          child: Column(
-            children: items.map((item) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 14.0),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: AppColors.cardCream,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(item.icon, size: 18, color: AppColors.darkGreen),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        item.text,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.darkGreen,
-                          fontWeight: FontWeight.w600,
-                          height: 1.25,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-
-        const SizedBox(height: 28),
-        _buildDotsIndicator(indicatorIndex),
-        const SizedBox(height: 32),
-
-        // Botón con borde inferior
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            border: const Border(
-              bottom: BorderSide(color: AppColors.darkGreen, width: 3),
-            ),
-          ),
-          child: SizedBox(
-            width: 140,
-            height: 44,
-            child: ElevatedButton(
-              onPressed: onTapNext,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.lime,
-                foregroundColor: AppColors.darkGreen,
-                elevation: 0,
-                shape: const StadiumBorder(),
-              ),
-              child: Text(
-                buttonText,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
       ],
     );
   }
+}
 
-  // Indicador de 3 puntos (cápsula activa)
-  Widget _buildDotsIndicator(int activeIndex) {
+// =====================================================================
+// 3. PANTALLA DE DETALLE ETAPA 2 (StageDetailSecondScreen)
+// =====================================================================
+class StageDetailSecondScreen extends StatelessWidget {
+  const StageDetailSecondScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color cardGreenBg = const Color(0xFFD4E2C4);
+    final Color cardGreenBorder = const Color(0xFF6B8E4E);
+
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.wine),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                height: 130,
+                child: Image.asset(
+                  'assets/images/nancy_libreta 1.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.mutedPink,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'Etapa 2 de 3',
+                  style: TextStyle(
+                    color: AppColors.wine,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Después, armamos tu plan',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.wine,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Con lo que registraste, Nancy te ayuda a decidir.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.darkGreen,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Center(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: cardGreenBg,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: cardGreenBorder.withOpacity(0.4), width: 1.5),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildFeatureRow(
+                          icon: Icons.bar_chart_rounded,
+                          text: 'Nancy te cuenta en qué se fue tu dinero',
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(height: 1, thickness: 1, color: Color(0xFFC2D2B0)),
+                        ),
+                        _buildFeatureRow(
+                          icon: Icons.flag_rounded,
+                          text: 'Defines tus metas con una fecha',
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(height: 1, thickness: 1, color: Color(0xFFC2D2B0)),
+                        ),
+                        _buildFeatureRow(
+                          icon: Icons.account_balance_wallet_rounded,
+                          text: 'Creamos tu presupuesto por categoría para 2 o 3 meses',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const StageIndicator(activeIndex: 2),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: 'Siguiente',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const StageDetailThirdScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow({required IconData icon, required String text}) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(
+            color: AppColors.cardCream,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: AppColors.darkGreen, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppColors.darkGreen,
+              height: 1.25,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// =====================================================================
+// 4. PANTALLA DE DETALLE ETAPA 3 (StageDetailThirdScreen)
+// =====================================================================
+class StageDetailThirdScreen extends StatelessWidget {
+  const StageDetailThirdScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.cream,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.wine),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                height: 130,
+                child: Image.asset(
+                  'assets/images/nancy_dolar.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.mutedPink,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'Etapa 3 de 3',
+                  style: TextStyle(
+                    color: AppColors.wine,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Y luego, cuidas tu presupuesto',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.wine,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Esta etapa se desbloquea cuando termines las anteriores.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.darkGreen,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Center(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: AppColors.mutedPink.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.darkGreen, width: 1.5),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildFeatureRow(
+                          icon: Icons.favorite_rounded,
+                          text: 'La salud de Nancy depende de cómo cumplas tu presupuesto',
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(height: 1, thickness: 1, color: Color(0xFFE8C8C0)),
+                        ),
+                        _buildFeatureRow(
+                          icon: Icons.notifications_rounded,
+                          text: 'Te avisamos si te pasas en una categoría',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const StageIndicator(activeIndex: 3),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: 'Hacer test',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const NancyIntroScreen(userName: 'Helen'),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow({required IconData icon, required String text}) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(
+            color: AppColors.cardCream,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: AppColors.darkGreen, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: AppColors.darkGreen,
+              height: 1.25,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// =====================================================================
+// WIDGETS GLOBALES UNIFICADOS
+// =====================================================================
+class PrimaryButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onPressed;
+
+  const PrimaryButton({super.key, required this.text, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.lime,
+        borderRadius: BorderRadius.circular(24),
+        border: const Border(
+          bottom: BorderSide(color: AppColors.darkGreen, width: 3.5),
+        ),
+      ),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(24),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              text,
+              style: const TextStyle(
+                color: AppColors.darkGreen,
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.arrow_forward, color: AppColors.darkGreen, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class StageIndicator extends StatelessWidget {
+  final int activeIndex;
+
+  const StageIndicator({super.key, required this.activeIndex});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(3, (index) {
-        final isActive = index == activeIndex;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: isActive ? 16 : 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: isActive ? AppColors.lime : AppColors.mutedPink.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(10),
-            border: isActive
-                ? Border.all(color: AppColors.darkGreen, width: 1)
-                : null,
+      children: List.generate(4, (index) {
+        bool isActive = index == activeIndex;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3.0),
+          child: Container(
+            width: isActive ? 16 : 5,
+            height: 5,
+            decoration: BoxDecoration(
+              color: isActive ? AppColors.darkGreen : AppColors.mutedPink,
+              borderRadius: BorderRadius.circular(3),
+            ),
           ),
         );
       }),
     );
   }
-}
-
-class _DetailItem {
-  final IconData icon;
-  final String text;
-
-  const _DetailItem({required this.icon, required this.text});
 }

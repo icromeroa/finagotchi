@@ -4,6 +4,7 @@ import '../../widgets/main_button.dart';
 import '../../widgets/onboarding_header.dart';
 import '../../widgets/option_card.dart';
 import 'challenge_one_screen.dart';
+import 'nancy_intro_screen.dart';
 
 class HabitsScreen extends StatefulWidget {
   final String name;
@@ -26,10 +27,15 @@ class _HabitsScreenState extends State<HabitsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.cream,
       body: SafeArea(
         child: Column(
           children: [
-            OnboardingHeader(step: 3, onBack: () => Navigator.pop(context), onSkip: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChallengeOneScreen(name: widget.name)))),
+            OnboardingHeader(
+              step: 3,
+              onBack: () => Navigator.pop(context),
+              onSkip: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChallengeOneScreen(name: widget.name))),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
@@ -38,15 +44,26 @@ class _HabitsScreenState extends State<HabitsScreen> {
                   children: [
                     const Text('Hablemos de tus hábitos 💸', style: TextStyle(color: AppColors.wine, fontSize: 20, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 24),
-                    const Row(
+                    Row(
                       children: [
-                        Expanded(child: Icon(Icons.pets, size: 78, color: AppColors.mutedPink)),
-                        Expanded(child: _SpeechBubble(text: '¿Cómo te llevas con tus finanzas en la vida real? ¡Cero juzgar, promesa de cerdita!')),
+                        Expanded(
+                          child: SizedBox(
+                            height: 97,
+                            child: Image.asset(
+                              'assets/images/nancy_lupa.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.pets, size: 78, color: AppColors.mutedPink);
+                              },
+                            ),
+                          ),
+                        ),
+                        const Expanded(child: _SpeechBubble(text: '¿Cómo te llevas con tus finanzas en la vida real? ¡Cero juzgar, promesa de cerdita!')),
                       ],
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 40),
                     const Text('¿En tu día a día, cómo llevas el control de lo que gastas?', style: TextStyle(color: AppColors.wine, fontSize: 16, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
                     for (final option in options) ...[
                       OptionCard(
                         title: option.title,

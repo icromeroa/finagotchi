@@ -1,6 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'presentation_screen_3.dart';
+import '../login_screen.dart';
 
 class PresentationScreen2 extends StatelessWidget {
   const PresentationScreen2({super.key});
@@ -76,6 +76,22 @@ class PresentationScreen2 extends StatelessWidget {
                   top: h * 0.22,
                   right: w * 0.12,
                   child: const _Huella(size: 36, angle: -0.2),
+                ),
+
+                // ===================================================
+                // NANCY PENSANDO (Imagen central en la zona verde)
+                // ===================================================
+                Positioned(
+                  top: h * 0.02,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/nancy_pensando.png', // Asegúrate de tenerla en esta ruta
+                      width: w * 0.38, // Tamaño proporcionado y limpio
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
 
                 // Indicador: segunda presentación activa.
@@ -188,14 +204,14 @@ class PresentationScreen2 extends StatelessWidget {
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
+                          children: const [
+                            Icon(
                               Icons.notifications_active_rounded,
                               size: 18,
                               color: darkGreen,
                             ),
-                            const SizedBox(width: 6),
-                            const Text(
+                            SizedBox(width: 6),
+                            Text(
                               'Gastos fijos',
                               style: TextStyle(
                                 color: wine,
@@ -217,14 +233,14 @@ class PresentationScreen2 extends StatelessWidget {
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
+                          children: const [
+                            Icon(
                               Icons.monetization_on_rounded,
                               size: 18,
                               color: Color(0xFFD86F9B),
                             ),
-                            const SizedBox(width: 6),
-                            const Text(
+                            SizedBox(width: 6),
+                            Text(
                               'Metas de ahorro',
                               style: TextStyle(
                                 color: wine,
@@ -309,15 +325,57 @@ class PresentationScreen2 extends StatelessWidget {
                   ),
                 ),
 
+                // Enlace de inicio de sesión (Para que mantenga la coherencia con la pantalla 1)
+                Positioned(
+                  bottom: h * 0.085,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: RichText(
+                        text: const TextSpan(
+                          style: TextStyle(
+                            color: wine,
+                            fontSize: 11.5,
+                          ),
+                          children: [
+                            TextSpan(text: '¿Ya tienes cuenta? '),
+                            TextSpan(
+                              text: 'Inicia sesión',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
                 // Logo inferior.
                 Positioned(
-                  bottom: h * 0.04,
+                  bottom: h * 0.02,
                   left: 0,
                   right: 0,
                   child: Center(
                     child: Image.asset(
                       'assets/images/logo.png',
-                      width: w * 0.24,
+                      width: w * 0.22,
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -355,7 +413,7 @@ class _Huella extends StatelessWidget {
             return Icon(
               Icons.pets,
               size: size * 0.8,
-              color: PresentationScreen2.wine.withValues(alpha: 0.5),
+              color: PresentationScreen2.wine.withOpacity(0.5),
             );
           },
         ),
