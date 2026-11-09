@@ -5,14 +5,48 @@ Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32, al si
 **Integrantes:** Helen Andrea Lavao Benitez · Danna Michelle Guzman Angarita · Irene Charlotte Romero Avendaño
 **Asignatura:** Desarrollo de Aplicaciones AV - Universidad de San Buenaventura
 
+## Arquitectura
+
+```text
+Usuarios (Flutter / Simulador PC / ESP32)
+        │
+        ├─ POST /auth/login|register ────────────────┐
+        ▼                                          │
+Flask Backend (/api/v1) ◀──────────────────────────┘  (Bearer usuario)
+  │  ├── STT faster-whisper local (PC)
+  │  ├── LLM Ollama qwen3:4b (opcional, fallback a reglas nlp.py)
+  │  ├── SQLite finagotchi.db
+  │  └── TTS Piper local (WAV en memoria)
+  │
+  ├─ Dispositivo: POST /device/register → PIN 6 dígitos
+  ├─ Flutter vincula: POST /device/pair (device_uid + pin)
+  ├─ Dispositivo reclama: POST /device/claim (mismo PIN)
+  └─ POST /device/messages (X-Device-Token) → movimientos del mismo usuario
+```
+
+* Flujo de voz: grabar → transcribir (local) → interpretar (Ollama) → Nancy propone → **usuario confirma** → sin confirmación no se mueve dinero.
+* Movimientos pendientes viven en `transacciones.estado=pendiente` hasta el `POST /messages/{id}/confirm`.
+
+## Tecnologías
+
+| Componente | Tech |
+|---|---|
+| Backend | Flask + SQLite (v4), `backend/server.py` |
+| STT | faster-whisper local (`backend/ai.py`, `STT_MODELO_LOCAL=base`) |
+| LLM interpretación | Ollama `qwen3:4b` (local) + respaldo por reglas `backend/nlp.py` |
+| TTS | Piper local `es_MX` (`backend/tts.py`, modelo fuera del repo) |
+| Simulador | Python + CustomTkinter (`simulator/gui/app.py`), micrófono `sounddevice` |
+| App | Flutter Dart (`http`) (`frontend/lib/services/api_service.dart`) |
+| Firmware (prototipo) | PlatformIO ESP32-S3 + LovyanGFX ILI9225 (`firmware/`) |
+
 ## Componentes
 
 | Ruta | Qué es |
 |---|---|
 | `backend/` | API Flask + SQLite + IA. Endpoints, autenticación, reglas de negocio. |
-| `backend/ai.py` | Proveedores de transcripción (faster-whisper local). |
+| `backend/ai.py` | Transcripción (faster-whisper local) y extracción con LLM (Ollama). |
 | `backend/audio.py` | Validación del WAV que llega del dispositivo. |
-| `backend/nlp.py` | Interpretación con LLM (Ollama/faster-whisper) y reglas locales de respaldo. |
+| `backend/nlp.py` | Interpretación con LLM (Ollama) y reglas locales de respaldo. |
 | `backend/finance_engine.py` | Ingreso, gasto, colchón y capacidad de ahorro on-the-fly. |
 | `backend/optimization.py` | Programación lineal del plan de metas y fallback greedy. |
 | `database/` | Esquema SQL, vistas, seeds e inicializador. |
@@ -20,7 +54,9 @@ Tamagotchi financiero por voz. El usuario le habla a un dispositivo ESP32, al si
 | `tests/` | Pruebas del esquema, la API y la optimización. |
 | `tools/` | Utilidades, incluida la prueba real del flujo de voz. |
 | `docs/` | Especificaciones, lógica de negocio, endpoints y detalle de la IO. |
-| `frontend/` | App Flutter conectada al backend; funciona en macOS y en iPhone. |
+| `frontend/` | App Flutter conectada al backend: login/registro real, vinculación por PIN y cuentas con saldo real; funciona en macOS y en iPhone. |
+| `firmware/` | Firmware ESP32-S3 (F1: pantalla ILI9225 con LovyanGFX, CS a GND). |
+| `simulator/gui/` | Ventana gráfica moderna del simulador (CustomTkinter, estilo del mockup). |
 
 ## Puesta en marcha
 
@@ -67,10 +103,69 @@ Queda en `http://127.0.0.1:5001/api/v1`.
 
 ```powershell
 py -3 -m pip install -r requirements-simulator.txt
+py -3 -m simulator.gui.app
+```
+
+La GUI es la forma principal: respeta las pantallas del dispositivo (reposo
+con fecha/hora, conversación con tarjetas Sí/No, cuentas, categorías con
+conteo y metas con progreso). Si prefieres consola:
+
+```powershell
 py -3 simulator/main.py
 ```
 
 Ejecutar como administrador para que `keyboard` capture la tecla ESPACIO. Más detalles en `GUIA_SIMULADOR.md`.
+
+### 6. App Flutter (conectada al backend)
+
+La app ya está conectada al backend (sin rama aparte). El flujo sincronizado es:
+
+1. **Simulador** al arrancar: `POST /device/register` → muestra el **PIN de 6 dígitos** en D02 y espera vinculación (polling de `claim` cada 3 s, 10 min).
+2. **Flutter** inicia sesión → `POST /auth/login|register` con el **mismo correo** del usuario.
+3. **Flutter** ingresa ese PIN (`device_uid` + `pin`) → `POST /device/pair` → solo si devuelve 200 muestra **“¡Listo, ya estamos enlazados!”**.
+4. **Simulador** reclama su token con `POST /device/claim` (mismo PIN) → desde ahí sus movimientos quedan en la misma cuenta que Flutter.
+
+```powershell
+cd frontend
+flutter pub get
+flutter run          # emulador Android (http://10.0.2.2:5001 por defecto)
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:5001/api/v1   # Chrome / iOS Simulator
+flutter run --dart-define=API_BASE_URL=http://IP_DE_TU_PC:5001/api/v1 # celular físico en la misma Wi-Fi
+```
+
+- En Windows nativo (`flutter run`) el plugin `jni` puede fallar con `ERROR_INVALID_FUNCTION` si el proyecto está en Google Drive (`G:`) y el SDK en `C:` (symlink entre discos). Con `-d chrome` se evita; para Windows nativo, copia el proyecto a `C:`.
+- Ver detalle de `API_BASE_URL` y arranque en Mac en `GUIA_SIMULADOR.md`.
+
+Las **cuentas demo** de la base son `simulador@finagotchi.local / simulador123`
+y `demo01@… / Demo1234` en adelante; cada usuario demo trae su dispositivo
+`FG-0001`, `FG-0002`, etc. Ver detalle en “Dataset de la base de datos”.
+
+### 7. Endpoints principales (`/api/v1`)
+
+Base: `http://localhost:5001/api/v1` (o el puerto/IP que configures). Todas
+las respuestas de `/api/v1` responden `{"ok": true, "data": ...}` o
+`{"ok": false, "error": {...}}` en JSON, incluso en errores 500.
+
+| Grupo | Endpoints |
+|---|---|
+| Salud | `GET /health`, `GET /ready` |
+| Auth | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /me`, `GET /home` |
+| Finanzas | `GET/POST /accounts`, `GET/POST /categories`, `GET/POST /transactions`, `PATCH/DELETE /transactions/{id}` |
+| Mensajes/voz | `POST /messages`, `POST /messages/{id}/confirm`, `POST /voice/synthesize` |
+| Dispositivo | ver flujo de abajo |
+| Compatibilidad (Guia 4) | ver §6 |
+
+Detalle completo y ejemplos `curl` en `docs/endpoints.md`.
+
+**Vinculación simulador ↔ Flutter:**
+
+| Paso | Método y ruta | Auth | Qué devuelve |
+|---|---|---|---|
+| 1. Simulador genera PIN | `POST /api/v1/device/register` | ninguno | `pin` (6 dígitos, 10 min) |
+| 2. Flutter vincula | `POST /api/v1/device/pair` | Bearer del usuario | `device_token` y 200 → “¡Listo!” |
+| 3. Simulador reclama | `POST /api/v1/device/claim` | PIN (sin Bearer) | `device_token` nuevo |
+| 4. Voz del simulador | `POST /api/v1/device/messages` | `X-Device-Token` | mensaje + transacción `pendiente` |
+| 5. Confirmación | `POST /api/v1/device/messages/{id}/confirm` | `X-Device-Token` | `confirmado` + notificación |
 
 ### 6. Endpoints de consultas (Guia 4)
 
@@ -108,7 +203,7 @@ Estos son los comandos del proyecto, verificados por `tests/test_comandos.py`, q
 
 | Comando | Qué hace |
 |---|---|
-| `py -3 backend/server.py` | Levanta la API en el puerto 5000. |
+| `py -3 backend/server.py` | Levanta la API en el puerto 5001. |
 | `py -3 simulator/main.py` | Abre el dispositivo simulado con su menú de pantallas. |
 | `py -3 tools/configurar_voz.py` | Descarga e instala la voz local de Nancy en `%USERPROFILE%/.finagotchi/piper`. |
 | `py -3 database/init_db.py` | Crea o actualiza la base de datos. |
@@ -237,8 +332,9 @@ Cuentas demo: `simulador@finagotchi.local` / `simulador123` y `demo01@finagotchi
 
 ## App Flutter
 
-La app está **conectada al backend**. La URL se elige automáticamente según la
-plataforma en `frontend/lib/services/api_config.dart`:
+La app está **conectada al backend**: login/registro real, vinculación por PIN y
+pantallas (cuentas con saldo real, métricas, historial) contra la API. La URL se
+elige automáticamente según la plataforma en `frontend/lib/services/api_config.dart`:
 
 - macOS: `http://127.0.0.1:5001/api/v1`.
 - Android/iOS: usa la IP del Mac en la red local. Se puede sobrescribir con
@@ -268,6 +364,17 @@ flutter build ios --release \
   --dart-define=API_BASE_URL=http://192.168.1.22:5001/api/v1
 ```
 
+En el emulador de Android la URL se detecta automáticamente (`10.0.2.2:5001`);
+en Chrome/Web o en un celular físico se puede sobrescribir:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:5001/api/v1
+flutter run --dart-define=API_BASE_URL=http://IP_DE_TU_PC:5001/api/v1
+```
+
+Ver flujo simulador↔Flutter en “Puesta en marcha §6”. La app y el simulador
+deben usar el **mismo usuario** para ver los mismos datos y movimientos.
+
 Pruebas de la app (no necesitan backend):
 
 ```bash
@@ -284,6 +391,17 @@ correo y contraseña.
 - Esquema versionado en `database/sql/`; la versión vigente está en `database/init_db.py`.
 - `fecha_hora` en UTC y `fecha_local` en `America/Bogota`.
 - Solo las transacciones `confirmado` afectan balances, puntos, metas y salud.
+
+## Anexos y evidencias dentro del repositorio
+
+App de flutter:
+![alt text](image.png) ![alt text](image-1.png) ![alt text](image-2.png)
+
+Simulador CustomTkinter:
+
+
+Desvincular dispositivo:
+![alt text](image-3.png)
 
 ## Documentación
 

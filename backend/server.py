@@ -1541,6 +1541,51 @@ def create_app(database=None):
         conn.commit()
         return ok({"device_uid": data["device_uid"], "pin": pin, "expira_en": expires}, 201)
 
+    @app.post("/api/v1/device/claim")
+    def claim_device():
+        """El dispositivo reclama su token tras una vinculación externa.
+
+        Flujo: simulador genera PIN con /device/register, usuario lo ingresa
+        en Flutter que llama /device/pair, luego simulador llama /device/claim
+        con el MISMO pin para obtener un device_token propio. No requiere
+        Authorization: el PIN es el secreto de corto plazo (6 digitos,
+        10 minutos). Rota el token para no entregar el que vio Flutter.
+        """
+        data = body()
+        missing = require_fields(data, ("device_uid", "pin"))
+        if missing:
+            return error("CAMPOS_REQUERIDOS", "Faltan campos obligatorios", 422, {"campos": missing})
+        conn = get_db()
+        device = conn.execute(
+            "SELECT * FROM dispositivos WHERE device_uid = ?", (data["device_uid"],)
+        ).fetchone()
+        if device is None:
+            return error("DISPOSITIVO_NO_ENCONTRADO", "El dispositivo no existe", 404)
+        if not device["usuario_id"]:
+            return error("DISPOSITIVO_NO_VINCULADO", "El dispositivo aun no esta vinculado", 409)
+        code = conn.execute(
+            """
+            SELECT * FROM vinculacion_codigos
+            WHERE dispositivo_id = ? AND codigo_hash = ? AND expira_en > ?
+            ORDER BY id DESC LIMIT 1
+            """,
+            (device["id"], token_hash(str(data["pin"])), iso_utc()),
+        ).fetchone()
+        if code is None:
+            return error("PIN_INVALIDO", "El PIN es incorrecto o expiro", 401)
+        raw_token = new_token()
+        conn.execute(
+            """
+            UPDATE dispositivos
+            SET token_hash = ?, token_actualizado_en = ?,
+                estado_conexion = 'conectado', actualizado_en = ?
+            WHERE id = ?
+            """,
+            (token_hash(raw_token), iso_utc(), iso_utc(), device["id"]),
+        )
+        conn.commit()
+        return ok({"device_uid": data["device_uid"], "device_token": raw_token})
+
     @app.post("/api/v1/device/pair")
     @auth_required
     def pair_device():
@@ -1593,6 +1638,15 @@ def create_app(database=None):
         )
         conn.commit()
         return ok({"device_uid": data["device_uid"], "device_token": raw_token})
+
+    @app.get("/api/v1/device/home")
+    @device_required
+    def device_home():
+        """Devuelve el home del usuario dueño (simulador/firmware sin password)."""
+        device = g.device
+        if not device.get("usuario_id"):
+            return error("DISPOSITIVO_NO_VINCULADO", "El dispositivo no está vinculado", 403)
+        return ok(services.home_payload(get_db(), device["usuario_id"]))
 
     @app.post("/api/v1/device/telemetry")
     @device_required
@@ -1790,6 +1844,28 @@ def create_app(database=None):
             (g.user_id,),
         ).fetchall()
         return ok(dict_rows(rows))
+
+    @app.post("/api/v1/device/unlink-self")
+    @device_required
+    def unlink_self_device():
+        """Permite a un dispositivo desvinculase de su dueño con su propio token.
+
+        Sin pedir la contraseña del usuario. Limpia usuario_id y token_hash
+        para que el simulador/firmware pueda generar un PIN nuevo.
+        """
+        conn = get_db()
+        conn.execute(
+            """
+            UPDATE dispositivos
+            SET usuario_id = NULL, token_hash = NULL, token_actualizado_en = NULL,
+                metodo_vinculacion = NULL, vinculado_en = NULL,
+                estado_conexion = 'desconectado', actualizado_en = ?
+            WHERE id = ?
+            """,
+            (iso_utc(), g.device["id"]),
+        )
+        conn.commit()
+        return ok({"desvinculado": True, "device_uid": g.device["device_uid"]})
 
     @app.post("/api/v1/device/unlink")
     @auth_required

@@ -224,6 +224,107 @@ class NavegacionTests(unittest.TestCase):
         finally:
             app.destroy()
 
+    def test_encabezado_fecha_ayer_y_rango(self):
+        from simulator.gui.app import encabezado_fecha
+
+        self.assertEqual(
+            encabezado_fecha({"desde": "2026-11-08", "hasta": "2026-11-08", "etiqueta": "ayer"}),
+            "Ayer, domingo 8 nov",
+        )
+        self.assertEqual(
+            encabezado_fecha({"desde": "2026-05-03", "hasta": "2026-05-05"}),
+            "Del 3 al 5 de mayo",
+        )
+
+    def test_balance_pinta_dona_y_detalle(self):
+        from simulator.gui.app import App
+
+        try:
+            app = App(arranque=False)
+        except Exception as exc:  # noqa: BLE001
+            self.skipTest(f"Sin pantalla: {exc}")
+        try:
+            app._procesar_respuesta(
+                {
+                    "intent": "consultar_balance",
+                    "datos": {
+                        "rango": {"desde": "2026-11-08", "hasta": "2026-11-08", "etiqueta": "ayer"},
+                        "resumen": {
+                            "total_ingresos": 40000, "total_gastos": 6500,
+                            "total_ahorrado": 0, "balance_neto": 33500,
+                            "presupuesto_diario": 30000, "num_registros": 2,
+                        },
+                        "movimientos": [
+                            {"tipo": "ingreso", "monto": 40000, "categoria": "Trabajo",
+                             "cuenta": "Efectivo", "fecha_local": "2026-11-08"},
+                            {"tipo": "gasto", "monto": 6500, "categoria": "Transporte",
+                             "cuenta": "Efectivo", "fecha_local": "2026-11-08"},
+                        ],
+                    },
+                }
+            )
+            textos = []
+
+            def recolectar(widget):
+                try:
+                    texto = widget.cget("text")
+                except Exception:  # noqa: BLE001
+                    texto = ""
+                if texto:
+                    textos.append(str(texto))
+                for hijo in widget.winfo_children():
+                    recolectar(hijo)
+
+            recolectar(app.contenido)
+            unidos = " ".join(textos)
+            self.assertIn("Ayer", unidos)
+            self.assertIn("Trabajo", unidos)
+        finally:
+            app.destroy()
+
+    def test_cierre_no_muestra_dict_crudo(self):
+        from simulator.gui.app import App
+
+        try:
+            app = App(arranque=False)
+        except Exception as exc:  # noqa: BLE001
+            self.skipTest(f"Sin pantalla: {exc}")
+        try:
+            app._vista_cierre(
+                {
+                    "fecha_local": "2026-11-09",
+                    "calificacion": "bien",
+                    "balance_neto": 0,
+                    "num_registros": 0,
+                    "porcentaje_usado": 0,
+                    "delta_salud": -5,
+                    "salud_fin": 84,
+                    "reglas": [
+                        {"codigo": "INACTIVIDAD", "motivo": "inactividad",
+                         "delta_solicitado": -5, "detalle": {"dias": 1}}
+                    ],
+                }
+            )
+            textos = []
+
+            def recolectar(widget):
+                try:
+                    texto = widget.cget("text")
+                except Exception:  # noqa: BLE001
+                    texto = ""
+                if texto:
+                    textos.append(str(texto))
+                for hijo in widget.winfo_children():
+                    recolectar(hijo)
+
+            recolectar(app.contenido)
+            unidos = " ".join(textos)
+            self.assertNotIn("{", unidos)
+            self.assertNotIn("delta_salud", unidos)
+            self.assertIn("Balance", unidos)
+        finally:
+            app.destroy()
+
     def test_la_ventana_se_construye_y_pinta_reposo(self):
         from simulator.gui.app import App
 

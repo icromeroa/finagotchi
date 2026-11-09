@@ -1,8 +1,18 @@
+# Secretos y configuracion local
 .idea/
+.env
+.env.*
+!.env.example
+backend/.env
+simulator/device_token.local.json
+
+# Base de datos local
+*.db
+*.db-wal
+*.db-shm
+backups/
+
+# Python
 __pycache__/
 *.py[cod]
-.env
-backend/.env
 .venv/
-*.db-shm
-*.db-wal

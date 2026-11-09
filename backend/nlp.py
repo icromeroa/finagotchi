@@ -1195,7 +1195,11 @@ def detectar_intencion_conversacional(text):
     if rango["expresion"]:
         pide_balance = any(
             word_in_text(palabra, normalized)
-            for palabra in ("cuanto", "balance", "resumen", "total")
+            for palabra in (
+                "cuanto", "balance", "resumen", "total",
+                "como me fue", "como va", "como voy", "me fue",
+                "como va mi dia",
+            )
         )
         menciona_movimiento = any(
             word_in_text(palabra, normalized)
@@ -1221,11 +1225,18 @@ def detectar_intencion_conversacional(text):
             parse_amount(normalized) is None or rango["alcance"] == "rango"
         )
         if consulta_temporal:
+            entidades = {"fecha_texto": text}
+            # Se conserva también ``periodo`` para los clientes antiguos que
+            # leen ese campo (por ejemplo, "¿cómo me fue hoy?" -> "hoy").
+            for frase, periodo in INTENCIONES_CONSULTA.items():
+                if word_in_text(frase, normalized):
+                    entidades["periodo"] = periodo
+                    break
             return {
                 "intent": (
                     "consultar_balance" if pide_balance else "consultar_movimientos"
                 ),
-                "entidades": {"fecha_texto": text},
+                "entidades": entidades,
                 "confianza": 0.85,
             }
 

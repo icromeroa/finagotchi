@@ -107,6 +107,14 @@ class ResolverRangoTests(unittest.TestCase):
         negada = self.resolver("no fue ayer")
         self.assertEqual(negada["expresion"], "")
 
+    def test_como_me_fue_ayer_es_balance_con_ayer(self):
+        for texto in ("como me fue ayer", "como me fue hoy"):
+            intencion = nlp.detectar_intencion_conversacional(texto)
+            self.assertEqual(intencion["intent"], "consultar_balance", texto)
+            rango = nlp.resolver_rango(intencion["entidades"]["fecha_texto"], hoy=HOY)
+            esperado = "2026-11-05" if texto.endswith("ayer") else "2026-11-06"
+            self.assertEqual(rango["desde"], esperado, texto)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -39,6 +39,143 @@ ESTADO_ANIMO = {
     "CRITICO": "critico",
 }
 
+_DIAS_LARGO = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+_MESES_LARGO = (
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)
+_MESES_CORTO = (
+    "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sep", "oct", "nov", "dic",
+)
+
+
+def encabezado_fecha(rango, resumen=None):
+    """Cabecera estilo mockup: «Ayer, sábado 8 nov» o «Del 3 al 5 de mayo»."""
+    from datetime import datetime
+
+    def _parse(valor):
+        try:
+            return datetime.fromisoformat(str(valor)).date()
+        except (TypeError, ValueError):
+            return None
+
+    desde = _parse((rango or {}).get("desde"))
+    hasta = _parse((rango or {}).get("hasta"))
+    etiqueta = str((rango or {}).get("etiqueta") or "").lower()
+    if desde and hasta and hasta > desde:
+        if desde.year == hasta.year and desde.month == hasta.month:
+            return f"Del {desde.day} al {hasta.day} de {_MESES_LARGO[desde.month - 1]}"
+        return f"Del {desde.day} de {_MESES_LARGO[desde.month - 1]} al {hasta.day} de {_MESES_LARGO[hasta.month - 1]}"
+    if desde:
+        dia = f"{_DIAS_LARGO[desde.weekday()]} {desde.day} {_MESES_CORTO[desde.month - 1]}"
+        if etiqueta == "hoy":
+            return f"Hoy, {dia}"
+        if etiqueta == "ayer":
+            return f"Ayer, {dia}"
+        if etiqueta == "anteayer":
+            return f"Anteayer, {dia}"
+        return dia.capitalize()
+    if resumen and resumen.get("desde"):
+        fecha = _parse(resumen["desde"])
+        if fecha:
+            return f"{_DIAS_LARGO[fecha.weekday()]} {fecha.day} {_MESES_CORTO[fecha.month - 1]}"
+    return "Resumen"
+
+# Iconos por nombre normalizado (sin tildes). Fallback genérico si no hay match.
+ICONOS_CATEGORIA = {
+    "alimentacion": "🍲",
+    "transporte": "🚌",
+    "cafe": "☕",
+    "cafe y mecato": "☕",
+    "salud": "💊",
+    "casa": "🏠",
+    "vivienda": "🏠",
+    "educacion": "📚",
+    "entretenimiento": "🎮",
+    "ocio": "🎮",
+    "ropa": "👕",
+    "tecnologia": "💻",
+    "servicios": "🧾",
+    "trabajo": "💼",
+    "nomina": "💼",
+    "ingreso": "💵",
+    "ingresos": "💵",
+    "beca": "🎓",
+    "apoyo": "🤝",
+    "apoyo familiar": "🤝",
+    "ahorro": "🐷",
+    "emprendimiento": "🏪",
+    "imprevistos": "🚨",
+    "mantenimientos": "🔧",
+    "abono": "💳",
+    "otros": "💸",
+}
+
+ICONOS_CUENTA = {
+    "efectivo": "💵",
+    "nequi": "📱",
+    "daviplata": "📲",
+    "nu": "🏦",
+    "billetera": "👛",
+    "tarjeta": "💳",
+    "banco": "🏦",
+    "cuenta": "🏦",
+}
+
+def _normalizar_nombre(texto):
+    import unicodedata
+
+    limpio = unicodedata.normalize("NFKD", str(texto or "").lower())
+    return "".join(c for c in limpio if not unicodedata.combining(c)).strip()
+
+
+def _icono_para(nombre, tipo=None):
+    clave = _normalizar_nombre(nombre)
+    for pista, icono in ICONOS_CATEGORIA.items():
+        if pista in clave or clave in pista:
+            return icono
+    if tipo == "gasto":
+        return "💸"
+    if tipo == "ingreso":
+        return "💵"
+    return "◎"
+
+
+def _icono_cuenta(nombre):
+    clave = _normalizar_nombre(nombre)
+    for pista, icono in ICONOS_CUENTA.items():
+        if pista in clave or clave in pista:
+            return icono
+    return "◉"
+
+
+def _coach_tip(resumen, movimientos=None):
+    """Tip corto de Nancy Coach calculado solo con los movimientos reales."""
+    resumen = resumen or {}
+    gastos = int(resumen.get("total_gastos") or resumen.get("gastos") or 0)
+    ingresos = int(resumen.get("total_ingresos") or resumen.get("ingresos") or 0)
+    presupuesto = int(resumen.get("presupuesto_diario") or 0)
+    if gastos <= 0 and ingresos <= 0:
+        return "Sin movimientos netos hoy. Registra al menos un gasto o ingreso para poder ayudarte con un consejo útil."
+    por_cat = {}
+    for mov in movimientos or []:
+        if str(mov.get("tipo") or "gasto").lower() == "gasto":
+            cat = str(mov.get("categoria") or "Otros")
+            por_cat[cat] = por_cat.get(cat, 0) + int(mov.get("monto") or 0)
+    if por_cat:
+        top, total_top = max(por_cat.items(), key=lambda kv: kv[1])
+        pct = int(round(total_top * 100 / gastos)) if gastos else 0
+        if pct >= 60:
+            return f"{top} concentra el {pct}% de tus gastos de hoy. Reducirlo un poco ya mejora tu saldo."
+        if pct >= 35:
+            return f"Vas bien, pero {top} pesa el {pct}% del gasto. Mantén ese control mañana."
+    if presupuesto and gastos > presupuesto:
+        return "Hoy pasaste el presupuesto. Mirar los gastos más frecuentes te puede devolver al rango seguro."
+    if gastos < presupuesto * 0.7 if presupuesto else ingresos > 0:
+        return "Vas en rango seguro. Mantén ese ritmo y registra cada gasto al momento."
+    return "Anota tus movimientos al momento para que el consejo de mañana sea más preciso."
+
 
 class App(ctk.CTk):
     def __init__(self, client=None, config=None, arranque=True):
@@ -180,15 +317,52 @@ class App(ctk.CTk):
         try:
             while True:
                 accion, payload = self.cola.get_nowait()
-                if accion == "reposo":
+                if accion == "cierre":
+                    self._vista_cierre(payload)
+                elif accion == "balance":
+                    hoy = (payload or {}).get("hoy", {})
+                    mascota = (payload or {}).get("mascota", {})
+                    movimientos = (payload or {}).get("movimientos") or []
+                    resumen = {
+                        "total_ingresos": hoy.get("ingresos", 0),
+                        "total_gastos": hoy.get("gastos", 0),
+                        "total_ahorrado": hoy.get("ahorro", 0),
+                        "presupuesto_diario": hoy.get("presupuesto_diario", 0),
+                        "num_registros": hoy.get("num_registros", len(movimientos)),
+                        "balance_neto": hoy.get("balance_neto", 0),
+                    }
+                    salud = mascota.get("salud")
+                    self.etiqueta_animo.configure(text=f"Nancy · {str(mascota.get('animo') or 'FELIZ').capitalize()}")
+                    self._poner_sprite(ESTADO_ANIMO.get(str(mascota.get("animo") or "FELIZ"), "feliz"))
+                    self._limpiar()
+                    self._vista_balance_v11(
+                        hoy, resumen, movimientos, salud=salud,
+                        etiqueta_fecha=str((payload or {}).get("fecha_local") or "hoy"),
+                    )
+                elif accion == "vinculacion":
+                    self.mostrar_vinculacion(payload)
+                elif accion == "vinculacion_error":
+                    self.mostrar_vinculacion_error(payload)
+                elif accion == "reposo":
                     self.mostrar_reposo(payload)
                 elif accion == "respuesta":
                     self._procesar_respuesta(payload)
                 elif accion == "texto":
-                    titulo, mensaje = payload
-                    self.mostrar_texto(titulo, mensaje)
+                    titulo, mensaje, *extra = payload
+                    if extra:
+                        self.mostrar_texto(titulo, mensaje, estado_sprite=extra[0], etiqueta_animo=extra[1] if len(extra) > 1 else None)
+                    else:
+                        self.mostrar_texto(titulo, mensaje)
                 elif accion == "sprite":
                     self._poner_sprite(payload)
+                    etiqueta = {
+                        "escuchando": "Nancy · Escuchando",
+                        "puntos": "Nancy · Pensando",
+                        "ola": "Nancy · Escuchando",
+                        "dormida": "Nancy · Dormida",
+                    }.get(str(payload).lower())
+                    if etiqueta:
+                        self.etiqueta_animo.configure(text=etiqueta)
         except queue.Empty:
             pass
         self.after(150, self._procesar_cola)
@@ -200,8 +374,50 @@ class App(ctk.CTk):
             return
         client = FinaGotchiClient(self.config)
         try:
+            # ¿Tienes token guardado de una sesión anterior? Úsalo (seguir usando).
+            if client.cargar_token_local():
+                try:
+                    client.home()  # valida que el token sigue vivo
+                    client.telemetry()
+                    self.client = client
+                    self.cola.put(("reposo", self._home_seguro()))
+                    return
+                except Exception:
+                    pass  # token vencido o desvinculado: sigue al flujo PIN
             client.login_or_register()
-            client.ensure_device()
+            try:
+                registration = client.generar_pin()
+                pin = registration["pin"]
+            except RuntimeError as exc:
+                self.cola.put(("vinculacion_error", {
+                    "device_uid": client.device_uid,
+                    "mensaje": str(exc),
+                }))
+                return
+            if pin is not None:
+                self.cola.put(("vinculacion", {
+                    "device_uid": client.device_uid,
+                    "pin": pin,
+                }))
+                # Polling de claim cada 3s por hasta 10 minutos (expiry del PIN)
+                import time as _time
+                inicio = _time.monotonic()
+                while _time.monotonic() - inicio < 600:
+                    try:
+                        client.claim_token(pin)
+                        break
+                    except ApiError as exc:
+                        if exc.status not in (409, 401):
+                            raise
+                        self.cola.put(("vinculacion", {
+                            "device_uid": client.device_uid,
+                            "pin": pin,
+                            "esperando": True,
+                        }))
+                        _time.sleep(3)
+                else:
+                    self.cola.put(("texto", ("Sin vinculación", "El PIN expiró (10 min). Reinicia el simulador para generar uno nuevo.")))
+                    return
             client.telemetry()
         except ApiError as exc:
             self.cola.put(("texto", ("Error al vincular", str(exc))))
@@ -216,6 +432,136 @@ class App(ctk.CTk):
             return {}
 
     # --- Pantallas ---------------------------------------------------------
+
+    def mostrar_vinculacion_error(self, vinculacion):
+        """D02 error: dispositivo ya vinculado a otra cuenta."""
+        self._limpiar()
+        self.etiqueta_animo.configure(text="Nancy · Esperando")
+        self._poner_sprite("puntos")
+        device_uid = str((vinculacion or {}).get("device_uid") or "")
+        mensaje = str((vinculacion or {}).get("mensaje") or "")
+        tarjeta = ctk.CTkFrame(
+            self.contenido, fg_color=tema.SECONDARY, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
+        )
+        ctk.CTkLabel(
+            tarjeta, text="Dispositivo vinculado",
+            font=tema.headline(18), text_color=tema.PRIMARY,
+        ).pack(pady=(12, 0))
+        ctk.CTkLabel(
+            tarjeta,
+            text=mensaje or "El dispositivo está vinculado a otra cuenta. Desvincúlalo desde Flutter (GET /device + POST /device/unlink) o usa otro device_uid.",
+            font=tema.cuerpo(12), text_color=tema.TEXTO, wraplength=280, justify="center",
+        ).pack(padx=12, pady=8)
+        ctk.CTkLabel(
+            tarjeta,
+            text=f"Dispositivo: {device_uid}",
+            font=tema.cuerpo(11), text_color=tema.TEXTO,
+        ).pack(padx=12, pady=(0, 12))
+        tarjeta.pack(fill="x", pady=4, padx=4)
+
+        def desvincular_y_reintentar():
+            def trabajo():
+                try:
+                    if self.client and getattr(self.client, "device_token", None):
+                        self.client.unlink_self()
+                    elif self.client:
+                        # Intenta via cuenta dueña del simulador si ya la tiene
+                        try:
+                            devices = self.client.request(
+                                "GET", "/device",
+                                headers=self.client.user_headers(),
+                            )
+                            if any((d.get("device_uid") == self.client.device_uid) for d in devices):
+                                self.client.request(
+                                    "POST", "/device/unlink",
+                                    headers=self.client.user_headers(),
+                                    json={"device_uid": self.client.device_uid},
+                                )
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+                self._arranque_hilo()
+
+            self._hilo(trabajo)
+
+        ctk.CTkButton(
+            self.contenido,
+            text="Cerrar sesión / Desvincular",
+            font=tema.headline(13),
+            fg_color=tema.SECONDARY,
+            text_color=tema.TEXTO,
+            command=desvincular_y_reintentar,
+        ).pack(pady=4)
+
+        def seguir_usando():
+            def trabajo():
+                ok = False
+                try:
+                    # Si hay token guardado y sigue vivo, úsalo de una vez
+                    if self.client and self.client.cargar_token_local():
+                        self.client.home()
+                        ok = True
+                except Exception:
+                    ok = False
+                if ok:
+                    self.client.telemetry()
+                    self.client = self.client
+                    self.cola.put(("reposo", self._home_seguro()))
+                else:
+                    self.cola.put(("texto", ("Sin token válido", "No pudimos seguir usando este vínculo. Debes desvincularlo y generar un PIN nuevo.")))
+
+            self._hilo(trabajo)
+
+        ctk.CTkButton(
+            self.contenido,
+            text="Seguir usando (ya vinculado)",
+            font=tema.headline(13),
+            fg_color=tema.TERTIARY,
+            text_color=tema.TEXTO,
+            command=seguir_usando,
+        ).pack(pady=4)
+
+        ctk.CTkButton(
+            self.contenido,
+            text="Ya lo desvinculé, reintentar",
+            font=tema.headline(13),
+            fg_color=tema.SECONDARY,
+            text_color=tema.TEXTO,
+            command=lambda: self._hilo(lambda: self._arranque_hilo()),
+        ).pack(pady=4)
+
+    def mostrar_vinculacion(self, vinculacion):
+        """D02 Sin vincular: muestra PIN grande esperando el ingreso en Flutter."""
+        self._limpiar()
+        self.etiqueta_animo.configure(text="Nancy · Esperando")
+        self._poner_sprite("puntos")
+        pin = str((vinculacion or {}).get("pin") or "------")
+        device_uid = str((vinculacion or {}).get("device_uid") or "")
+        tarjeta = ctk.CTkFrame(
+            self.contenido, fg_color=tema.SECONDARY, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
+        )
+        ctk.CTkLabel(
+            tarjeta, text="Enlaza tu finagotchi",
+            font=tema.headline(18), text_color=tema.PRIMARY,
+        ).pack(pady=(12, 0))
+        ctk.CTkLabel(
+            tarjeta,
+            text="Escribe este PIN en la app Flutter (Conectar → PIN manual).",
+            font=tema.cuerpo(12), text_color=tema.TEXTO, wraplength=280, justify="center",
+        ).pack(padx=12)
+        ctk.CTkLabel(
+            tarjeta, text=pin, font=("Outfit", 42, "bold"), text_color=tema.TEXTO,
+        ).pack(pady=8)
+        ctk.CTkLabel(
+            tarjeta,
+            text=f"Dispositivo: {device_uid}\nVálido 10 minutos. Esperando que lo ingreses en Flutter…",
+            font=tema.cuerpo(11), text_color=tema.TEXTO, wraplength=280, justify="center",
+        ).pack(padx=12, pady=(0, 12))
+        tarjeta.pack(fill="x", pady=4, padx=4)
+
     def mostrar_reposo(self, home):
         self._limpiar()
         hoy = (home or {}).get("hoy", {})
@@ -237,8 +583,12 @@ class App(ctk.CTk):
             tema.NEUTRAL,
         )
 
-    def mostrar_texto(self, titulo, mensaje):
+    def mostrar_texto(self, titulo, mensaje, estado_sprite=None, etiqueta_animo=None):
         self._limpiar()
+        if estado_sprite:
+            self._poner_sprite(estado_sprite)
+        if etiqueta_animo:
+            self.etiqueta_animo.configure(text=etiqueta_animo)
         self._tarjeta(titulo, mensaje)
 
     # --- Vistas estructuradas (sin volcar diccionarios crudos) ------------
@@ -277,7 +627,7 @@ class App(ctk.CTk):
             distintivo = "PREDET." if cuenta.get("es_sistema") else "TUYA"
             color = tema.SECONDARY if cuenta.get("es_sistema") else tema.TERTIARY
             self._mini(
-                rejilla, indice // 2, indice % 2, "◉",
+                rejilla, indice // 2, indice % 2, _icono_cuenta(cuenta.get("nombre")),
                 cuenta.get("nombre") or "?",
                 f"{cuenta.get('num_movs') or 0} movs · "
                 f"{pantallas._dinero(cuenta.get('saldo_actual'))}",
@@ -312,22 +662,28 @@ class App(ctk.CTk):
         self._pintar_categorias("gasto")
 
     def _pintar_categorias(self, tipo):
+        self._tipo_categorias_activa = tipo
+        # Estado visual de las pestañas (bug: no se quedaba seleccionado)
+        self._boton_gastos.configure(
+            fg_color=tema.PRIMARY if tipo == "gasto" else tema.SECONDARY,
+            text_color="white" if tipo == "gasto" else tema.TEXTO,
+        )
+        self._boton_ingresos.configure(
+            fg_color=tema.PRIMARY if tipo == "ingreso" else tema.SECONDARY,
+            text_color="white" if tipo == "ingreso" else tema.TEXTO,
+        )
         for hijo in self._rejilla_categorias.winfo_children():
             hijo.destroy()
         lista = [c for c in self._categorias if c.get("tipo") == tipo]
-        activos = [c for c in lista if c.get("num_registros")]
-        self._tarjeta(
-            f"Catálogo activo — {tipo}",
-            f"{len(activos)} movimientos registrados",
-            tema.NEUTRAL,
-        )
+        lista = sorted(lista, key=lambda c: int(c.get("num_registros") or 0), reverse=True)
         for indice, categoria in enumerate(lista[:8]):
             distintivo = "PREDET." if categoria.get("es_sistema") else "TUYA"
             color = tema.SECONDARY if categoria.get("es_sistema") else tema.TERTIARY
+            nombre = categoria.get("nombre") or "?"
             self._mini(
                 self._rejilla_categorias, indice // 2, indice % 2,
-                str(categoria.get("nombre") or "?")[:1].upper(),
-                categoria.get("nombre") or "?",
+                _icono_para(nombre, tipo),
+                nombre,
                 f"{categoria.get('num_registros') or 0} movs",
                 distintivo, color,
             )
@@ -395,16 +751,227 @@ class App(ctk.CTk):
                 tema.NEUTRAL,
             )
 
+    def _dona_ingresos_gastos(self, total_ingresos, total_gastos):
+        """Dona ingresos vs. gastos estilo «Distribución del Día»."""
+        import tkinter as tk
+
+        total = total_ingresos + total_gastos
+        lienzo = tk.Canvas(
+            self.contenido, width=320, height=170, bg=tema.NEUTRAL, highlightthickness=0
+        )
+        lienzo.pack(padx=4, pady=4)
+        cx, cy, radio = 80, 85, 62
+        if total <= 0:
+            lienzo.create_oval(cx - radio, cy - radio, cx + radio, cy + radio,
+                               fill=tema.SECONDARY, outline=tema.BORDE, width=2)
+            texto = "Sin datos"
+        else:
+            parte_ingresos = total_ingresos / total
+            lienzo.create_arc(cx - radio, cy - radio, cx + radio, cy + radio,
+                              start=90, extent=-360 * parte_ingresos,
+                              fill=tema.TERTIARY, outline=tema.BORDE, width=2)
+            lienzo.create_arc(cx - radio, cy - radio, cx + radio, cy + radio,
+                              start=90 - 360 * parte_ingresos,
+                              extent=-360 * (total_gastos / total),
+                              fill=tema.PRIMARY, outline=tema.BORDE, width=2)
+            texto = f"Ingresos {int(round(parte_ingresos * 100))}%"
+        lienzo.create_text(cx, cy, text=texto, font=("Outfit", 11, "bold"), fill=tema.PRIMARY)
+        leyenda = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL)
+        leyenda.pack(pady=(0, 2))
+        ctk.CTkLabel(leyenda, text=f"● Ingresos {pantallas._dinero(total_ingresos)}",
+                     font=tema.cuerpo(12), text_color=tema.TERTIARY).pack(side="left", padx=6)
+        ctk.CTkLabel(leyenda, text=f"● Gastos {pantallas._dinero(total_gastos)}",
+                     font=tema.cuerpo(12), text_color=tema.PRIMARY).pack(side="left", padx=6)
+
+    def _vista_balance_v11(self, hoy, resumen=None, movimientos=None, salud=None, etiqueta_fecha="hoy", rango=None):
+        resumen = resumen or {}
+        movimientos = movimientos or []
+        total_ingresos = int(resumen.get("total_ingresos") or hoy.get("ingresos") or 0)
+        total_gastos = int(resumen.get("total_gastos") or hoy.get("gastos") or 0)
+        total_ahorro = int(resumen.get("total_ahorrado") or hoy.get("ahorro") or 0)
+        balance = int(resumen.get("balance_neto") or hoy.get("balance_neto") or (total_ingresos - total_gastos))
+        presupuesto = int(resumen.get("presupuesto_diario") or hoy.get("presupuesto_diario") or 0)
+        num_mov = int(resumen.get("num_registros") or hoy.get("num_registros") or len(movimientos) or 0)
+        cupo = presupuesto - total_gastos if presupuesto else int(hoy.get("cupo_restante") or 0)
+        if salud is None:
+            pet = int(hoy.get("salud") or 0) if isinstance(hoy, dict) else 0
+            salud = pet or (100 - int(round(total_gastos * 100 / presupuesto)) if presupuesto and total_gastos else 84)
+        salud = max(0, min(100, int(salud)))
+        # Encabezado con fecha o rango real consultado (mockup "Hoy, jueves…")
+        cabecera = ctk.CTkFrame(
+            self.contenido, fg_color=tema.SECONDARY, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
+        )
+        ctk.CTkLabel(
+            cabecera, text=encabezado_fecha(rango, resumen) if rango else str(etiqueta_fecha or "Hoy"),
+            font=tema.headline(17), text_color=tema.PRIMARY,
+        ).pack(pady=(8, 8))
+        cabecera.pack(fill="x", padx=4, pady=4)
+        self._dona_ingresos_gastos(total_ingresos, total_gastos)
+        # Arco circular + saldo
+        cont = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL)
+        cont.pack(fill="x", padx=4, pady=2)
+        ctk.CTkLabel(
+            cont, text=f"{salud}%", font=("Outfit", 36, "bold"),
+            text_color=tema.TERTIARY if salud >= 50 else "#C0392B",
+        ).pack(pady=(6, 0))
+        ctk.CTkLabel(
+            cont, text="EN RANGO SEGURO" if salud >= 60 else "REVISAR",
+            font=tema.cuerpo(11), text_color=tema.TEXTO,
+        ).pack()
+        ctk.CTkLabel(
+            cont, text="SALDO NETO DEL DÍA", font=tema.cuerpo(11), text_color=tema.TEXTO,
+        ).pack(pady=(6, 0))
+        signo = "+" if balance >= 0 else ""
+        ctk.CTkLabel(
+            cont,
+            text=f"{signo}{pantallas._dinero(balance)} COP",
+            font=tema.headline(20),
+            text_color=tema.TERTIARY if balance >= 0 else "#C0392B",
+        ).pack()
+        ctk.CTkLabel(
+            cont,
+            text="✓ Superávit" if balance >= 0 else "Revisar ritmo",
+            font=tema.cuerpo(11), text_color=tema.TEXTO, fg_color=tema.TERTIARY, corner_radius=8,
+        ).pack(pady=2)
+        # Ingresos / Gastos totales
+        fila = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL)
+        fila.pack(fill="x", padx=4, pady=2)
+        for titulo, valor, sub in (
+            ("Ingresos Totales", f"{pantallas._dinero(total_ingresos)} COP", f"{num_mov} registros"),
+            ("Gastos Totales", f"-{pantallas._dinero(total_gastos)} COP", f"{num_mov} registros"),
+        ):
+            caja = ctk.CTkFrame(fila, fg_color=tema.NEUTRAL, border_width=2, border_color=tema.BORDE, corner_radius=14)
+            ctk.CTkLabel(caja, text=titulo, font=tema.cuerpo(11), text_color=tema.TEXTO).pack(anchor="w", padx=10, pady=(8, 0))
+            ctk.CTkLabel(caja, text=valor, font=tema.headline(15), text_color=tema.PRIMARY).pack(anchor="w", padx=10)
+            ctk.CTkLabel(caja, text=sub, font=tema.cuerpo(11), text_color=tema.TEXTO).pack(anchor="w", padx=10, pady=(0, 8))
+            caja.pack(side="left", fill="x", expand=True, padx=3)
+        # Presupuesto
+        caja = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL, border_width=2, border_color=tema.BORDE, corner_radius=14)
+        ctk.CTkLabel(
+            caja, text=f"Presupuesto diario  {pantallas._dinero(total_gastos)} / {pantallas._dinero(presupuesto)} COP",
+            font=tema.cuerpo(12), text_color=tema.TEXTO,
+        ).pack(anchor="w", padx=10, pady=(8, 2))
+        barra = ctk.CTkProgressBar(caja, fg_color=tema.SECONDARY, progress_color=tema.TERTIARY, height=12, corner_radius=8)
+        barra.pack(fill="x", padx=10)
+        barra.set(max(0.0, min(1.0, total_gastos / presupuesto)) if presupuesto else 0.0)
+        ctk.CTkLabel(caja, text=f"Margen libre: {pantallas._dinero(max(0, cupo))} COP", font=tema.cuerpo(11), text_color=tema.TEXTO).pack(anchor="w", padx=10, pady=(2, 8))
+        caja.pack(fill="x", padx=4, pady=4)
+        # Análisis Nancy Coach (tip IA local deterministic)
+        tip = _coach_tip(resumen, movimientos)
+        if total_gastos and presupuesto:
+            tip += f" Tu cupo restante es {pantallas._dinero(max(0, cupo))} COP."
+        self._tarjeta("💡 Análisis de Nancy Coach", tip, tema.SECONDARY)
+        # Gastos por categoría
+        por_cat = {}
+        for mov in movimientos:
+            if str(mov.get("tipo") or "gasto").lower() == "gasto":
+                cat = str(mov.get("categoria") or "Otros")
+                por_cat[cat] = por_cat.get(cat, 0) + int(mov.get("monto") or 0)
+        if por_cat:
+            ctk.CTkLabel(
+                self.contenido, text=f"🏷️ Gastos por Categoría  ·  {sum(1 for v in por_cat.values() if v)} activas hoy",
+                font=tema.headline(13), text_color=tema.PRIMARY,
+            ).pack(anchor="w", padx=8, pady=(6, 2))
+            top = max(por_cat.values()) or 1
+            for cat, total in sorted(por_cat.items(), key=lambda kv: kv[1], reverse=True)[:5]:
+                pct = int(round(total * 100 / total_gastos)) if total_gastos else 0
+                estado = "Rango seguro" if pct < 50 else "En presupuesto" if pct < 70 else "Revisar"
+                tarjeta = ctk.CTkFrame(
+                    self.contenido, fg_color=tema.NEUTRAL, corner_radius=14,
+                    border_width=2, border_color=tema.BORDE,
+                )
+                ctk.CTkLabel(
+                    tarjeta, text=f"{_icono_para(cat, 'gasto')} {cat}", font=tema.headline(13), text_color=tema.PRIMARY,
+                ).pack(anchor="w", padx=10, pady=(8, 0))
+                ctk.CTkLabel(
+                    tarjeta, text=f"{pantallas._dinero(total)} COP · {pct}% del gasto · {estado}",
+                    font=tema.cuerpo(12), text_color=tema.TEXTO,
+                ).pack(anchor="w", padx=10)
+                barra = ctk.CTkProgressBar(tarjeta, fg_color=tema.SECONDARY, progress_color=tema.TERTIARY, height=8, corner_radius=6)
+                barra.pack(fill="x", padx=10, pady=(2, 8))
+                barra.set(max(0.0, min(1.0, total / top)))
+                tarjeta.pack(fill="x", pady=3, padx=4)
+        if movimientos:
+            ctk.CTkLabel(
+                self.contenido, text="Desglose de movimientos",
+                font=tema.headline(14), text_color=tema.PRIMARY,
+            ).pack(anchor="w", padx=8, pady=(8, 2))
+            for movimiento in movimientos[:8]:
+                tipo = str(movimiento.get("tipo") or "").lower()
+                signo = "-" if tipo == "gasto" else ("+" if tipo == "ingreso" else "")
+                self._tarjeta(
+                    f"{str(movimiento.get('categoria') or movimiento.get('cuenta') or tipo).capitalize()}",
+                    f"{signo}{pantallas._dinero(movimiento.get('monto', 0))} · "
+                    f"{movimiento.get('fecha_local') or ''}",
+                    tema.TERTIARY if tipo == "ingreso" else tema.SECONDARY,
+                )
+
+    def _vista_cierre(self, cierre):
+        cierre = cierre if isinstance(cierre, dict) else {}
+        self._limpiar()
+        balance = int(cierre.get("balance_neto") or 0)
+        delta = int(cierre.get("delta_salud") or 0)
+        salud_fin = cierre.get("salud_fin")
+        self._tarjeta(
+            "Cierre del día",
+            f"{cierre.get('fecha_local') or ''} · "
+            f"{cierre.get('calificacion') or cierre.get('animo') or ''}",
+            tema.PRIMARY,
+        )
+        self._tarjeta(
+            "Balance",
+            f"{pantallas._dinero(balance)} · "
+            f"{cierre.get('num_registros') or 0} registros · "
+            f"uso {cierre.get('porcentaje_usado') or 0}%",
+            tema.TERTIARY if balance >= 0 else tema.SECONDARY,
+        )
+        linea_salud = f"{delta:+} de salud" if delta else "sin cambio de salud"
+        if salud_fin is not None:
+            linea_salud += f" · salud final {salud_fin}%"
+        self._tarjeta("Salud", linea_salud, tema.SECONDARY)
+        reglas = cierre.get("reglas") or []
+        if reglas:
+            lineas = []
+            for regla in reglas[:5]:
+                if not isinstance(regla, dict):
+                    continue
+                detalle = regla.get("detalle") or {}
+                motivo = regla.get("motivo") or regla.get("codigo") or ""
+                dias = detalle.get("dias") if isinstance(detalle, dict) else None
+                extra = f" ({dias} días)" if dias else ""
+                lineas.append(f"{regla.get('codigo', '')}{extra}: {motivo}")
+            if lineas:
+                self._tarjeta("Reglas aplicadas", "\n".join(lineas), tema.NEUTRAL)
+        self._tarjeta("Nancy", "Nancy duerme tranquila.", tema.SECONDARY)
+
     def _vista_resumen(self, datos):
         resumen = datos.get("resumen") or {}
+        movimientos = datos.get("movimientos") or []
+        # Balance V11.1 cuando es consulta (¿cómo me fue hoy? / esta semana / rango)
         if resumen:
-            self._tarjeta(
-                "Resumen",
-                f"Ingresos {pantallas._dinero(resumen.get('total_ingresos', 0))} · "
-                f"Gastos {pantallas._dinero(resumen.get('total_gastos', 0))} · "
-                f"Ahorro {pantallas._dinero(resumen.get('total_ahorrado', 0))}",
-                tema.SECONDARY,
+            # Extraer salud si viene en datos (mascota o proyección)
+            salud = None
+            if datos.get("mascota"):
+                salud = datos["mascota"].get("salud")
+            elif datos.get("proyeccion_hoy"):
+                salud = datos["proyeccion_hoy"].get("salud_proyectada") or datos["proyeccion_hoy"].get("salud")
+            etiqueta = str(resumen.get("desde") or datos.get("periodo") or "hoy")
+            self._vista_balance_v11(
+                {}, resumen, movimientos, salud=salud,
+                etiqueta_fecha=f"Resumen — {etiqueta}",
+                rango=datos.get("rango"),
             )
+            return
+        cabecera = ctk.CTkFrame(
+            self.contenido, fg_color=tema.SECONDARY, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
+        )
+        ctk.CTkLabel(
+            cabecera, text=encabezado_fecha(datos.get("rango")),
+            font=tema.headline(17), text_color=tema.PRIMARY,
+        ).pack(pady=(8, 8))
+        cabecera.pack(fill="x", padx=4, pady=4)
         for movimiento in (datos.get("movimientos") or [])[:5]:
             self._tarjeta(
                 str(movimiento.get("tipo") or "").capitalize(),
@@ -495,6 +1062,7 @@ class App(ctk.CTk):
                 return
             self._grabando = True
             self._poner_sprite("ola")
+            self.etiqueta_animo.configure(text="Nancy · Escuchando")
             self.mostrar_texto(
                 "Te escucho",
                 f"Habla ahora ({nombre}) y pulsa [Detener] al terminar.",
@@ -522,8 +1090,12 @@ class App(ctk.CTk):
                 self.mostrar_texto("Audio vacío", "No se pudo capturar la frase.")
             return
 
-        self.mostrar_texto("Procesando", "Entendiendo tu mensaje…")
-        self._poner_sprite("puntos")
+        self.mostrar_texto(
+            "Procesando",
+            "Entendiendo tu mensaje…",
+            estado_sprite="puntos",
+            etiqueta_animo="Nancy · Pensando",
+        )
 
         def trabajo():
             try:
@@ -555,7 +1127,10 @@ class App(ctk.CTk):
     def enviar_texto(self, texto):
         if self.client is None:
             return
-        self.mostrar_texto("Procesando", "Entendiendo tu mensaje…")
+        self.mostrar_texto(
+            "Procesando", "Entendiendo tu mensaje…",
+            estado_sprite="puntos", etiqueta_animo="Nancy · Pensando",
+        )
 
         def trabajo():
             try:
@@ -580,7 +1155,30 @@ class App(ctk.CTk):
     def estado_del_dia(self):
         if self.client is None:
             return
-        self.cola.put(("reposo", self._home_seguro()))
+
+        def trabajo():
+            home = self._home_seguro()
+            hoy = (home or {}).get("hoy", {})
+            fecha = (home or {}).get("fecha_local") or ""
+            movimientos = []
+            try:
+                payload = self.client.request(
+                    "GET",
+                    "/transactions",
+                    params={"desde": fecha, "hasta": fecha, "tipo": "gasto", "limit": 50, "offset": 0},
+                    headers=self.client.user_headers(),
+                )
+                if isinstance(payload, dict):
+                    movimientos = payload.get("items") or []
+                elif isinstance(payload, list):
+                    movimientos = payload
+            except Exception:  # noqa: BLE001 - el balance se pinta sin desglose
+                movimientos = []
+            home = dict(home or {})
+            home["movimientos"] = movimientos
+            self.cola.put(("balance", home))
+
+        self._hilo(trabajo)
 
     def ver_plan(self):
         if self.client is None:
@@ -606,7 +1204,7 @@ class App(ctk.CTk):
         def trabajo():
             try:
                 cierre = self.client.close_day()
-                self.cola.put(("texto", ("Cierre del día", str(cierre))))
+                self.cola.put(("cierre", cierre))
                 self.cola.put(("sprite", "dormida"))
             except ApiError as exc:
                 self.cola.put(("texto", ("No se pudo cerrar", str(exc))))

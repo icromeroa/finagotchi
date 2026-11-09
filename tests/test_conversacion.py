@@ -288,13 +288,35 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(respuesta["datos"]["periodo"], "hoy")
 
     def test_consulta_de_balance_semanal_y_mensual(self):
-        self.decir("gasté 20 mil en almuerzo")
+        from backend import nlp
+
+        # Fijado un miércoles para que «esta semana» no colapse a «hoy»
+        # cuando la prueba corre un lunes.
+        fijo = "2026-11-04"
+        resolver_real = nlp.resolver_rango
+        with mock.patch.object(conversation.services, "local_date", return_value=fijo):
+            with mock.patch.object(
+                nlp, "resolver_rango",
+                side_effect=lambda texto, hoy=None: resolver_real(texto, hoy=fijo),
+            ):
+                self.decir("gasté 20 mil en almuerzo")
+                self.decir("sí")
+                semanal = self.decir("balance de esta semana")
+                self.assertEqual(semanal["datos"]["periodo"], "semana")
+                self.assertIn("$20.000", semanal["mensaje_nancy"])
+                mensual = self.decir("¿cuánto gasté este mes?")
+                self.assertEqual(mensual["datos"]["periodo"], "mes")
+
+    def test_como_me_fue_ayer_responde_balance_de_ayer(self):
+        hoy = date.fromisoformat(services.local_date())
+        ayer = (hoy - timedelta(days=1)).isoformat()
+        self.decir("gasté 20 mil en almuerzo ayer")
         self.decir("sí")
-        semanal = self.decir("balance de esta semana")
-        self.assertEqual(semanal["datos"]["periodo"], "semana")
-        self.assertIn("$20.000", semanal["mensaje_nancy"])
-        mensual = self.decir("¿cuánto gasté este mes?")
-        self.assertEqual(mensual["datos"]["periodo"], "mes")
+
+        respuesta = self.decir("como me fue ayer")
+        self.assertEqual(respuesta["intent"], "consulta_estado")
+        self.assertEqual(respuesta["datos"]["rango"]["desde"], ayer)
+        self.assertIn("Ayer", respuesta["mensaje_nancy"])
 
     def test_registrar_con_fecha_de_ayer(self):
         hoy = date.fromisoformat(services.local_date())

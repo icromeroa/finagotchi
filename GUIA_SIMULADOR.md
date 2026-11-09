@@ -36,6 +36,8 @@ Qué muestra:
   - *Metas*: total ahorrado, barra de progreso y detalle por meta (monto, %, fecha, aporte).
   - *Pendientes* y *movimientos*: lista con tipo, monto, categoría/cuenta y fecha.
 - **Botones Sí/No** cuando Nancy pide confirmación (hablan la misma frase por el flujo conversacional).
+- **Cierre del día** en tarjetas: balance, salud (delta y final), nº de registros y reglas aplicadas; Nancy queda dormida (sprite `dormida`).
+- **Consulta del día** (“cómo me fue ayer”, rango…): cabecera con la fecha/rango real, dona de ingresos vs. gastos y desglose de movimientos.
 - **Entrada dual**: campo de texto y botón **Hablar** (clic para empezar a grabar, clic en **Detener** para terminar) + acciones Estado, Plan, Cerrar, Avisos, Repetir, Voz y Salir.
 
 **Nancy lo dice en voz, no lo muestra**: la frase larga de Nancy no se pinta en la GUI (se reproduce por Piper o el banco offline). Solo los avisos (aclaración/error/ayuda) se muestran como tarjeta, porque sin ellos no sabrías por qué se pidió aclaración.
@@ -257,7 +259,7 @@ python3 tools/verificar_entorno.py
 PORT=5001 python3 backend/server.py
 ```
 
-Sin `PORT=`, el backend escucha en 5000.
+Sin `PORT=`, el backend escucha en 5001.
 
 3. **Apuntar el simulador a ese puerto** — edita `simulator/config.json`:
 

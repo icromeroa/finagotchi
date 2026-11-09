@@ -14,6 +14,7 @@ import '../login_screen.dart';
 import '../home_screen.dart';
 import '../metrics_screen.dart';
 import '../accounts_overview_screen.dart';
+import 'device_link_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -453,6 +454,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 10),
 
+                    // VINCULAR DISPOSITIVO (PIN simulador)
+                    _buildProfileItem(
+                      icon: Icons.link,
+                      title: 'Vincular dispositivo',
+                      subtitle: 'Enlaza con el simulador usando el PIN',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DeviceLinkScreen(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 10),
+
                     // 6. ELIMINAR CUENTA
                     _buildProfileItem(
                       icon: Icons.warning_amber_rounded,
@@ -660,11 +678,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Material(
         type: MaterialType.transparency,
         child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 2,
-        ),
+          onTap: onTap,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 2,
+          ),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -700,13 +718,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             fontSize: 10.5,
           ),
         ),
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          color: isDestructive
-              ? Colors.red.shade700
-              : AppColors.wine,
-          size: 14,
-        ),
+          trailing: Icon(
+            Icons.arrow_forward_ios,
+            color: isDestructive
+                ? Colors.red.shade700
+                : AppColors.wine,
+            size: 14,
+          ),
         ),
       ),
     );

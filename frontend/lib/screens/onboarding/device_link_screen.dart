@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import 'stages_overview_screen.dart';
+import '../../services/api_service.dart';
+import '../../services/auth_session.dart';
 
 enum LinkState { linking, qrScanner, success, connectionLost, error }
 
@@ -108,7 +110,7 @@ class _DeviceLinkScreenState extends State<DeviceLinkScreen> {
 // =====================================================================
 // 1. V03.1 ELEGIR MÉTODO (QR O PIN)
 // =====================================================================
-class _LinkingView extends StatelessWidget {
+class _LinkingView extends StatefulWidget {
   final VoidCallback onCancel;
   final VoidCallback onOpenScanner;
   final VoidCallback onConnect;
@@ -120,7 +122,107 @@ class _LinkingView extends StatelessWidget {
   });
 
   @override
+  State<_LinkingView> createState() => _LinkingViewState();
+}
+
+class _LinkingViewState extends State<_LinkingView> {
+  final _deviceUidController = TextEditingController(
+    text: 'FINAGOTCHI-PC-SIMULATOR-01',
+  );
+  final _pinController = TextEditingController();
+  final _api = ApiService();
+  bool _linking = false;
+  bool _unlinking = false;
+  String? _error;
+  String? _unlinkMsg;
+
+  Future<void> _desvincular() async {
+    if (_unlinking) return;
+    final deviceUid = _deviceUidController.text.trim();
+    if (deviceUid.isEmpty) {
+      setState(() => _error = 'Escribe el device_uid del dispositivo.');
+      return;
+    }
+    final token = AuthSession.accessToken;
+    if (token == null || token.isEmpty) {
+      setState(() => _error = 'Primero inicia sesión en la app.');
+      return;
+    }
+    setState(() {
+      _unlinking = true;
+      _error = null;
+      _unlinkMsg = null;
+    });
+    try {
+      final result = await _api.unlinkDevice(
+        deviceUid: deviceUid,
+        accessToken: token,
+      );
+      if (!mounted) return;
+      final desvinculado = (result['data'] as Map?)?['desvinculado'] == true;
+      setState(() {
+        _unlinkMsg = desvinculado
+            ? 'Dispositivo desvinculado. Reinicia el simulador para generar un PIN nuevo.'
+            : 'No se pudo desvincular.';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() => _unlinking = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _deviceUidController.dispose();
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _conectar() async {
+    if (_linking) return;
+    final pin = _pinController.text.trim();
+    final deviceUid = _deviceUidController.text.trim();
+    if (pin.length != 6 || deviceUid.isEmpty) {
+      setState(() => _error = 'Escribe el device_uid y el PIN de 6 dígitos del simulador.');
+      return;
+    }
+    final token = AuthSession.accessToken;
+    if (token == null || token.isEmpty) {
+      setState(() => _error = 'Primero inicia sesión en la app.');
+      return;
+    }
+    setState(() {
+      _linking = true;
+      _error = null;
+    });
+    try {
+      await _api.pairDevice(
+        deviceUid: deviceUid,
+        pin: pin,
+        accessToken: token,
+      );
+      if (!mounted) return;
+      // Solo si el backend confirma la vinculación avanzamos.
+      widget.onConnect();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() => _linking = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final onCancel = widget.onCancel;
+    final onOpenScanner = widget.onOpenScanner;
+    final onConnect = widget.onConnect;
     return SingleChildScrollView(
       key: const ValueKey('linking'),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -276,17 +378,33 @@ class _LinkingView extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 14),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildPinBox('7'),
-                    _buildPinBox('2'),
-                    _buildPinBox('9'),
-                    _buildPinBox('•'),
-                    _buildPinBox('•'),
-                    _buildPinBox('•'),
-                  ],
+                TextField(
+                  controller: _deviceUidController,
+                  decoration: const InputDecoration(
+                    labelText: 'device_uid del simulador',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
                 ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _pinController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'PIN de 6 dígitos',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                    counterText: '',
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: Color(0xFFB00020), fontSize: 12),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -313,7 +431,7 @@ class _LinkingView extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.lightBlue,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF005691).withValues(alpha: 0.3), width: 1),
+              border: Border.all(color: const Color(0xFF005691).withOpacity(0.3), width: 1),
             ),
             child: Row(
               children: const [
@@ -340,7 +458,7 @@ class _LinkingView extends StatelessWidget {
               ),
             ),
             child: InkWell(
-              onTap: onConnect,
+              onTap: _linking ? null : _conectar,
               borderRadius: BorderRadius.circular(24),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -360,6 +478,20 @@ class _LinkingView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+          if (_unlinkMsg != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _unlinkMsg!,
+                  style: const TextStyle(color: Color(0xFF0B5D3B), fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
+          TextButton(
+            onPressed: _unlinking ? null : _desvincular,
+            child: Text(
+              _unlinking ? 'Desvinculando…' : 'Desvincular este dispositivo',
+              style: const TextStyle(color: AppColors.wine, fontWeight: FontWeight.bold, fontSize: 12.5, decoration: TextDecoration.underline),
+            ),
+          ),
           TextButton(
             onPressed: onCancel,
             child: const Text(
@@ -654,7 +786,7 @@ class _SuccessView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.mutedPink.withValues(alpha: 0.4),
+                        color: AppColors.mutedPink.withOpacity(0.4),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.smart_toy_outlined, color: AppColors.wine, size: 20),
