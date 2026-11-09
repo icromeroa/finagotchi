@@ -19,6 +19,13 @@ venv/
 
 # Node
 node_modules/
+package.json
+package-lock.json
+
+# Herramientas locales de IA (no de FinaGotchi)
+.opencode/
+.opencode.json
+opencode.json
 
 # Dataset de audio (no versionar grabaciones personales)
 datasets/**/audio/*
