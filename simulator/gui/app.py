@@ -288,6 +288,8 @@ class App(ctk.CTk):
                         hoy, resumen, movimientos, salud=salud,
                         etiqueta_fecha=str((payload or {}).get("fecha_local") or "hoy"),
                     )
+                elif accion == "vinculacion":
+                    self.mostrar_vinculacion(payload)
                 elif accion == "reposo":
                     self.mostrar_reposo(payload)
                 elif accion == "respuesta":
@@ -320,7 +322,38 @@ class App(ctk.CTk):
         client = FinaGotchiClient(self.config)
         try:
             client.login_or_register()
-            client.ensure_device()
+            # Flujo sync: simulador genera PIN, Flutter lo ingresa, simulador reclama.
+            try:
+                registration = client.generar_pin()
+                pin = registration["pin"]
+            except RuntimeError:
+                # Ya vinculado a otra cuenta: cae al flujo auto para demo.
+                client.ensure_device()
+                pin = None
+            if pin is not None:
+                self.cola.put(("vinculacion", {
+                    "device_uid": client.device_uid,
+                    "pin": pin,
+                }))
+                # Polling de claim cada 3s por hasta 10 minutos (expiry del PIN)
+                import time as _time
+                inicio = _time.monotonic()
+                while _time.monotonic() - inicio < 600:
+                    try:
+                        client.claim_token(pin)
+                        break
+                    except ApiError as exc:
+                        if exc.status not in (409, 401):
+                            raise
+                        self.cola.put(("vinculacion", {
+                            "device_uid": client.device_uid,
+                            "pin": pin,
+                            "esperando": True,
+                        }))
+                        _time.sleep(3)
+                else:
+                    self.cola.put(("texto", ("Sin vinculación", "El PIN expiró (10 min). Reinicia el simulador para generar uno nuevo.")))
+                    return
             client.telemetry()
         except ApiError as exc:
             self.cola.put(("texto", ("Error al vincular", str(exc))))
@@ -335,6 +368,37 @@ class App(ctk.CTk):
             return {}
 
     # --- Pantallas ---------------------------------------------------------
+
+    def mostrar_vinculacion(self, vinculacion):
+        """D02 Sin vincular: muestra PIN grande esperando el ingreso en Flutter."""
+        self._limpiar()
+        self.etiqueta_animo.configure(text="Nancy · Esperando")
+        self._poner_sprite("puntos")
+        pin = str((vinculacion or {}).get("pin") or "------")
+        device_uid = str((vinculacion or {}).get("device_uid") or "")
+        tarjeta = ctk.CTkFrame(
+            self.contenido, fg_color=tema.SECONDARY, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
+        )
+        ctk.CTkLabel(
+            tarjeta, text="Enlaza tu finagotchi",
+            font=tema.headline(18), text_color=tema.PRIMARY,
+        ).pack(pady=(12, 0))
+        ctk.CTkLabel(
+            tarjeta,
+            text="Escribe este PIN en la app Flutter (Conectar → PIN manual).",
+            font=tema.cuerpo(12), text_color=tema.TEXTO, wraplength=280, justify="center",
+        ).pack(padx=12)
+        ctk.CTkLabel(
+            tarjeta, text=pin, font=("Outfit", 42, "bold"), text_color=tema.TEXTO,
+        ).pack(pady=8)
+        ctk.CTkLabel(
+            tarjeta,
+            text=f"Dispositivo: {device_uid}\nVálido 10 minutos. Esperando que lo ingreses en Flutter…",
+            font=tema.cuerpo(11), text_color=tema.TEXTO, wraplength=280, justify="center",
+        ).pack(padx=12, pady=(0, 12))
+        tarjeta.pack(fill="x", pady=4, padx=4)
+
     def mostrar_reposo(self, home):
         self._limpiar()
         hoy = (home or {}).get("hoy", {})

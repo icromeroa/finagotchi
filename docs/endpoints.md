@@ -453,9 +453,17 @@ completo está en `docs/OPTIMIZACION_IO.md`.
 | Método | Ruta | Token | Para qué |
 |---|---|---|---|
 | `POST` | `/api/v1/device/register` | ninguno | Registrar un dispositivo nuevo y recibir un PIN de 6 dígitos (vale 10 minutos) |
-| `POST` | `/api/v1/device/pair` | usuario | Vincular el dispositivo con `device_uid` y `pin` |
+| `POST` | `/api/v1/device/pair` | usuario | Vincular el dispositivo con `device_uid` y `pin` (desde Flutter) |
+| `POST` | `/api/v1/device/claim` | ninguno (PIN) | El dispositivo reclama su `device_token` con el mismo `pin` tras el pair externo |
 | `GET` | `/api/v1/device` | usuario | Listar dispositivos |
 | `POST` | `/api/v1/device/unlink` | usuario | Desvincular |
+
+**Flujo sincronizado simulador ↔ Flutter:**
+
+1. Simulador genera PIN con `POST /device/register`.
+2. Usuario inicia sesión en Flutter y llama `POST /device/pair` con ese PIN.
+3. Solo si `pair` devuelve 200, Flutter muestra “¡Listo, ya estamos enlazados!”.
+4. Simulador reclama su token con `POST /device/claim` (mismo PIN) y desde ahí sus movimientos quedan en la misma cuenta que Flutter.
 
 ### Desde el dispositivo
 

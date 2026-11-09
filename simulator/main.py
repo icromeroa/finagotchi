@@ -136,6 +136,40 @@ class FinaGotchiClient:
     def user_headers(self):
         return {"Authorization": "Bearer " + self.user_token}
 
+    def generar_pin(self):
+        """Registra el dispositivo y devuelve su PIN (sin vincular aun).
+
+        El usuario escribe ese PIN en Flutter (que llama /device/pair).
+        Luego el simulador reclama su token con claim_token(pin).
+        """
+        body = {
+            "device_uid": self.device_uid,
+            "modelo": "Simulador PC",
+            "firmware": "sim-v3",
+        }
+        try:
+            registration = self.request("POST", "/device/register", json=body)
+        except ApiError as exc:
+            if exc.status != 409:
+                raise
+            # Ya vinculado a otro usuario: no podemos generar un PIN nuevo.
+            raise RuntimeError("El dispositivo está vinculado a otra cuenta") from exc
+        self.pin_generado = registration["pin"]
+        return registration
+
+    def claim_token(self, pin=None):
+        """Reclama el device_token despues de que Flutter vinculo el PIN."""
+        pin = pin or getattr(self, "pin_generado", None)
+        if not pin:
+            raise RuntimeError("Primero genera el PIN con generar_pin()")
+        claimed = self.request(
+            "POST",
+            "/device/claim",
+            json={"device_uid": self.device_uid, "pin": str(pin)},
+        )
+        self.device_token = claimed["device_token"]
+        return self.device_token
+
     def ensure_device(self):
         body = {
             "device_uid": self.device_uid,

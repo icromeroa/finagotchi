@@ -248,6 +248,49 @@ class ApiService {
   }
 
   // ==============================
+  // DISPOSITIVOS (vinculación)
+  // ==============================
+
+  Future<Map<String, dynamic>> registerDevice({
+    required String deviceUid,
+    String? modelo,
+    String? firmware,
+  }) async {
+    return _post(
+      '/device/register',
+      {
+        'device_uid': deviceUid,
+        if (modelo != null) 'modelo': modelo,
+        if (firmware != null) 'firmware': firmware,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> pairDevice({
+    required String deviceUid,
+    required String pin,
+    required String accessToken,
+  }) async {
+    return _post(
+      '/device/pair',
+      {
+        'device_uid': deviceUid,
+        'pin': pin,
+      },
+      accessToken: accessToken,
+    );
+  }
+
+  Future<Map<String, dynamic>> listDevices({
+    required String accessToken,
+  }) async {
+    return _get(
+      '/device',
+      accessToken: accessToken,
+    );
+  }
+
+  // ==============================
   // MÉTODO INTERNO GET
   // ==============================
 
