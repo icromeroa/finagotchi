@@ -153,6 +153,61 @@ class FinaGotchiClient:
     def user_headers(self):
         return {"Authorization": "Bearer " + self.user_token}
 
+    def generar_pin(self):
+        """Registra el dispositivo y devuelve su PIN (sin vincular aun).
+
+        El usuario escribe ese PIN en Flutter (que llama /device/pair).
+        Luego el simulador reclama su token con claim_token(pin).
+        """
+        body = {
+            "device_uid": self.device_uid,
+            "modelo": "Simulador PC",
+            "firmware": "sim-v3",
+        }
+        try:
+            registration = self.request("POST", "/device/register", json=body)
+        except ApiError as exc:
+            if exc.status != 409:
+                raise
+            # Si el dispositivo ya esta vinculado a CUENTA de este simulador,
+            # lo desvincula para generar un PIN nuevo (demo repetible).
+            if self.user_token:
+                try:
+                    devices = self.request("GET", "/device", headers=self.user_headers())
+                    if any(d.get("device_uid") == self.device_uid for d in devices):
+                        self.request(
+                            "POST",
+                            "/device/unlink",
+                            headers=self.user_headers(),
+                            json={"device_uid": self.device_uid},
+                        )
+                        registration = self.request("POST", "/device/register", json=body)
+                        self.pin_generado = registration["pin"]
+                        return registration
+                except Exception:
+                    pass
+            raise RuntimeError(
+                "El dispositivo está vinculado a otra cuenta. "
+                "Desvincúlalo desde Flutter (GET /device + POST /device/unlink) "
+                "o usa otro device_uid."
+            ) from exc
+        self.pin_generado = registration["pin"]
+        return registration
+
+    def claim_token(self, pin=None):
+        """Reclama el device_token despues de que Flutter vinculo el PIN."""
+        pin = pin or getattr(self, "pin_generado", None)
+        if not pin:
+            raise RuntimeError("Primero genera el PIN con generar_pin()")
+        claimed = self.request(
+            "POST",
+            "/device/claim",
+            json={"device_uid": self.device_uid, "pin": str(pin)},
+        )
+        self.device_token = claimed["device_token"]
+        self.guardar_token_local()
+        return self.device_token
+
     def ensure_device(self):
         body = {
             "device_uid": self.device_uid,
@@ -186,6 +241,50 @@ class FinaGotchiClient:
 
     def device_headers(self):
         return {"X-Device-Token": self.device_token}
+
+    def unlink_self(self):
+        """Desvincula este dispositivo con su propio token (sin password del usuario)."""
+        result = self.request(
+            "POST",
+            "/device/unlink-self",
+            headers=self.device_headers(),
+        )
+        self.device_token = None
+        self._borrar_token_guardado()
+        return result
+
+    def _ruta_token_local(self):
+        from pathlib import Path
+        return Path(__file__).resolve().parent / "device_token.local.json"
+
+    def guardar_token_local(self):
+        if not self.device_token:
+            return
+        try:
+            import json
+            self._ruta_token_local().write_text(
+                json.dumps({"device_uid": self.device_uid, "device_token": self.device_token}),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
+
+    def cargar_token_local(self):
+        try:
+            import json
+            data = json.loads(self._ruta_token_local().read_text(encoding="utf-8"))
+            if data.get("device_uid") == self.device_uid and data.get("device_token"):
+                self.device_token = data["device_token"]
+                return self.device_token
+        except Exception:
+            pass
+        return None
+
+    def _borrar_token_guardado(self):
+        try:
+            self._ruta_token_local().unlink(missing_ok=True)
+        except Exception:
+            pass
 
     def telemetry(self):
         return self.request(
@@ -261,6 +360,8 @@ class FinaGotchiClient:
         )
 
     def home(self):
+        if getattr(self, "device_token", None):
+            return self.request("GET", "/device/home", headers=self.device_headers())
         return self.request("GET", "/home", headers=self.user_headers())
 
     def goal_plan(self, meses=12):

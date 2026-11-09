@@ -1,14 +1,16 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'api_config.dart';
 
 class ApiService {
   final String baseUrl;
 
   ApiService({
-    String? baseUrl,
-  }) : baseUrl = baseUrl ?? apiBaseUrl;
+    this.baseUrl = const String.fromEnvironment(
+      'API_BASE_URL',
+      defaultValue: 'http://10.0.2.2:5000/api/v1',
+    ),
+  });
 
   // ==============================
   // REGISTRO
@@ -74,7 +76,8 @@ class ApiService {
     return _post(
       '/auth/logout',
       {
-        if (refreshToken != null) 'refresh_token': refreshToken,
+        if (refreshToken != null)
+          'refresh_token': refreshToken,
       },
       accessToken: accessToken,
     );
@@ -104,6 +107,21 @@ class ApiService {
       '/home',
       accessToken: accessToken,
     );
+  }
+
+  // ==============================
+  // OBTENER CUENTAS
+  // ==============================
+
+  Future<List<Map<String, dynamic>>> getAccounts({
+    required String accessToken,
+  }) async {
+    final data = await _get('/accounts', accessToken: accessToken);
+    final items = data['items'] ?? data['data'] ?? data;
+    if (items is List) {
+      return items.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
   }
 
   // ==============================
@@ -140,7 +158,9 @@ class ApiService {
     required String accessToken,
     required String fecha,
   }) async {
-    final uri = Uri.parse('$baseUrl/metrics/daily').replace(
+    final uri = Uri.parse(
+      '$baseUrl/metrics/daily',
+    ).replace(
       queryParameters: {
         'fecha': fecha,
       },
@@ -156,9 +176,10 @@ class ApiService {
 
     return _handleResponse(response);
   }
-// ==============================
-// REGISTRAR MOVIMIENTO
-// ==============================
+
+  // ==============================
+  // REGISTRAR MOVIMIENTO
+  // ==============================
 
   Future<Map<String, dynamic>> createTransaction({
     required String accessToken,
@@ -174,14 +195,141 @@ class ApiService {
       {
         'tipo': tipo,
         'monto': monto,
-        if (categoriaId != null) 'categoria_id': categoriaId,
-        if (cuentaId != null) 'cuenta_id': cuentaId,
-        if (metaId != null) 'meta_id': metaId,
+        if (categoriaId != null)
+          'categoria_id': categoriaId,
+        if (cuentaId != null)
+          'cuenta_id': cuentaId,
+        if (metaId != null)
+          'meta_id': metaId,
         if (concepto != null && concepto.isNotEmpty)
           'concepto': concepto,
         'origen': 'manual',
         'estado': 'confirmado',
       },
+      accessToken: accessToken,
+    );
+  }
+
+  // ==============================
+  // OBTENER HISTORIAL DE MOVIMIENTOS
+  // ==============================
+
+  Future<Map<String, dynamic>> getTransactions({
+    required String accessToken,
+    String? tipo,
+    String? desde,
+    String? hasta,
+    int? categoriaId,
+    int? cuentaId,
+    String? estado,
+    int? montoMin,
+    int? montoMax,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    final query = <String, String>{
+      'limit': limit.toString(),
+      'offset': offset.toString(),
+      if (tipo != null && tipo.isNotEmpty)
+        'tipo': tipo,
+      if (desde != null && desde.isNotEmpty)
+        'desde': desde,
+      if (hasta != null && hasta.isNotEmpty)
+        'hasta': hasta,
+      if (categoriaId != null)
+        'categoria_id': categoriaId.toString(),
+      if (cuentaId != null)
+        'cuenta_id': cuentaId.toString(),
+      if (estado != null && estado.isNotEmpty)
+        'estado': estado,
+      if (montoMin != null)
+        'monto_min': montoMin.toString(),
+      if (montoMax != null)
+        'monto_max': montoMax.toString(),
+    };
+
+    final uri = Uri.parse(
+      '$baseUrl/transactions',
+    ).replace(
+      queryParameters: query,
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Accept': 'application/json',
+      },
+    );
+
+    return _handleResponse(response);
+  }
+
+  // ==============================
+  // DISPOSITIVOS (vinculación)
+  // ==============================
+
+  Future<Map<String, dynamic>> registerDevice({
+    required String deviceUid,
+    String? modelo,
+    String? firmware,
+  }) async {
+    return _post(
+      '/device/register',
+      {
+        'device_uid': deviceUid,
+        if (modelo != null) 'modelo': modelo,
+        if (firmware != null) 'firmware': firmware,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> pairDevice({
+    required String deviceUid,
+    required String pin,
+    required String accessToken,
+  }) async {
+    return _post(
+      '/device/pair',
+      {
+        'device_uid': deviceUid,
+        'pin': pin,
+      },
+      accessToken: accessToken,
+    );
+  }
+
+  Future<Map<String, dynamic>> claimDevice({
+    required String deviceUid,
+    required String pin,
+  }) async {
+    return _post(
+      '/device/claim',
+      {
+        'device_uid': deviceUid,
+        'pin': pin,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> unlinkDevice({
+    required String deviceUid,
+    required String accessToken,
+  }) async {
+    return _post(
+      '/device/unlink',
+      {
+        'device_uid': deviceUid,
+      },
+      accessToken: accessToken,
+    );
+  }
+
+  Future<Map<String, dynamic>> listDevices({
+    required String accessToken,
+  }) async {
+    return _get(
+      '/device',
       accessToken: accessToken,
     );
   }
@@ -214,7 +362,7 @@ class ApiService {
       Map<String, dynamic> data, {
         String? accessToken,
       }) async {
-    final headers = {
+    final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
@@ -236,11 +384,14 @@ class ApiService {
   // INTERPRETAR RESPUESTAS
   // ==============================
 
-  Map<String, dynamic> _handleResponse(http.Response response) {
+  Map<String, dynamic> _handleResponse(
+      http.Response response,
+      ) {
     Map<String, dynamic> result;
 
     try {
       final decoded = jsonDecode(response.body);
+
       result = Map<String, dynamic>.from(decoded);
     } catch (_) {
       throw Exception(

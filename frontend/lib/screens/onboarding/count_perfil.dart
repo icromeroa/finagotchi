@@ -14,6 +14,7 @@ import '../login_screen.dart';
 import '../home_screen.dart';
 import '../metrics_screen.dart';
 import '../accounts_overview_screen.dart';
+import 'device_link_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -453,6 +454,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 10),
 
+                    // VINCULAR DISPOSITIVO (PIN simulador)
+                    _buildProfileItem(
+                      icon: Icons.link,
+                      title: 'Vincular dispositivo',
+                      subtitle: 'Enlaza con el simulador usando el PIN',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DeviceLinkScreen(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 10),
+
                     // 6. ELIMINAR CUENTA
                     _buildProfileItem(
                       icon: Icons.warning_amber_rounded,
@@ -657,9 +675,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               : AppColors.wine.withOpacity(0.15),
         ),
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: ListTile(
+      child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
@@ -706,7 +722,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ? Colors.red.shade700
               : AppColors.wine,
           size: 14,
-        ),
         ),
       ),
     );

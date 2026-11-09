@@ -7,12 +7,11 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
-import 'api_config.dart';
-
 class AudioService {
   final AudioRecorder _audioRecorder = AudioRecorder();
 
-  final String baseUrl = apiBaseUrl;
+  // Dirección del backend para el emulador de Android.
+  final String baseUrl = 'http://10.0.2.2:5000/api/v1';
 
   Future<void> startRecording() async {
     try {
@@ -28,16 +27,15 @@ class AudioService {
       }
 
       final dir = await getApplicationDocumentsDirectory();
-
       final path = '${dir.path}/audio_gasto.wav';
 
+      // Audio compatible con el backend:
+      // WAV, 16000 Hz y un solo canal (mono).
       await _audioRecorder.start(
         const RecordConfig(
           encoder: AudioEncoder.wav,
-          // El backend solo acepta WAV mono a 16 kHz y 16 bits. Sin esto
-          // macOS graba en estéreo a 44.1 kHz y la API responde 422.
-          numChannels: 1,
           sampleRate: 16000,
+          numChannels: 1,
         ),
         path: path,
       );
@@ -101,12 +99,15 @@ class AudioService {
 
       final request = http.MultipartRequest('POST', url);
 
+      // Token de autenticación del usuario.
       request.headers['Authorization'] = 'Bearer $accessToken';
 
+      // Datos que necesita el backend.
       request.fields['message_id'] = messageId;
       request.fields['origen'] = 'app_voz';
       request.fields['idioma'] = 'es';
 
+      // Adjuntar archivo WAV.
       request.files.add(
         await http.MultipartFile.fromPath(
           'audio',
@@ -132,7 +133,8 @@ class AudioService {
       } catch (e) {
         return {
           'success': false,
-          'error': 'El servidor devolvió una respuesta no válida: ${response.body}',
+          'error':
+          'El servidor devolvió una respuesta no válida: ${response.body}',
         };
       }
 
@@ -142,7 +144,9 @@ class AudioService {
           decoded['ok'] == true) {
         final data = decoded['data'];
 
-        debugPrint('AUDIO: El backend recibió el audio correctamente.');
+        debugPrint(
+          'AUDIO: El backend recibió el audio correctamente.',
+        );
 
         return {
           'success': true,

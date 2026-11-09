@@ -1,6 +1,8 @@
 
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
+import '../../services/api_service.dart';
+import '../../services/auth_session.dart';
 import 'home_screen.dart';
 import 'metrics_screen.dart';
 import 'accounts_overview_screen.dart';
@@ -20,6 +22,65 @@ class AccountsOverviewScreen extends StatefulWidget {
 
 class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
   bool _isCuentasSelected = true;
+  List<Map<String, dynamic>> _cuentas = [];
+  bool _cargando = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar_cuentas();
+  }
+
+  Future<void> _cargar_cuentas() async {
+    final token = AuthSession.accessToken;
+    if (token == null || token.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _cargando = false;
+          _error = 'Inicia sesión para ver tus cuentas.';
+        });
+      }
+      return;
+    }
+    try {
+      final cuentas = await ApiService().getAccounts(accessToken: token);
+      if (!mounted) return;
+      setState(() {
+        _cuentas = cuentas;
+        _cargando = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  String _dinero(num? valor) {
+    final v = (valor ?? 0).toInt();
+    final signo = v < 0 ? '-' : '';
+    final abs = v.abs();
+    final s = abs.toString().replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (m) => '.',
+        );
+    return '$signo\$$s';
+  }
+
+  IconData _icono_cuenta(String tipo) {
+    return switch (tipo) {
+      'efectivo' => Icons.payments_outlined,
+      'billetera_digital' => Icons.phone_android_outlined,
+      'tarjeta' => Icons.credit_card_outlined,
+      'cuenta_ahorros' => Icons.account_balance_outlined,
+      'inversion' => Icons.trending_up_outlined,
+      _ => Icons.account_balance,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -399,47 +460,54 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
           ),
           const SizedBox(height: 14),
 
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.35,
-            children: [
-              _buildAccountCard(
-                icon: Icons.account_balance,
-                title: 'Nequi',
-                subtitle: '2 movs',
-                tagText: 'PREDET.',
+          if (_cargando)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_error != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.mutedPink.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(16),
               ),
-              _buildAccountCard(
-                icon: Icons.account_balance,
-                title: 'Nu',
-                subtitle: '0 movs',
-                tagText: 'PREDET.',
+              child: Text(
+                _error!,
+                style: const TextStyle(color: AppColors.wine, fontSize: 12),
               ),
-              _buildAccountCard(
-                icon: Icons.account_balance,
-                title: 'Bancolombia',
-                subtitle: '1 mov',
-                tagText: 'PREDET.',
-              ),
-              _buildAccountCard(
-                icon: Icons.account_balance,
-                title: 'Daviplata',
-                subtitle: '1 mov',
-                tagText: 'PREDET.',
-              ),
-              _buildAccountCard(
-                icon: Icons.payments_outlined,
-                title: 'Efectivo',
-                subtitle: '2 movs',
-                hasTag: false,
-              ),
-              _buildCreateCard(),
-            ],
-          ),
+            )
+          else
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.35,
+              children: [
+                for (final cuenta in _cuentas)
+                  _buildAccountCard(
+                    icon: _icono_cuenta(
+                      (cuenta['tipo_cuenta'] ?? '').toString(),
+                    ),
+                    title: (cuenta['nombre'] ?? '?').toString(),
+                    saldo: (cuenta['saldo_actual'] as num?) ?? 0,
+                    movimientos: (cuenta['num_movs'] as num?)?.toInt() ?? 0,
+                    tagText: cuenta['es_sistema'] == 1 ? 'PREDET.' : 'TUYA',
+                    hasTag: true,
+                  ),
+                if (_cuentas.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Sin cuentas. Crea tu primera cuenta.',
+                      style: TextStyle(color: AppColors.wine, fontSize: 12),
+                    ),
+                  ),
+                _buildCreateCard(),
+              ],
+            ),
         ],
       ),
     );
@@ -868,11 +936,14 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
   Widget _buildAccountCard({
     required IconData icon,
     required String title,
-    required String subtitle,
+    required num saldo,
+    required int movimientos,
     String? tagText,
     bool hasTag = true,
   }) {
-    return Container(
+    final monto = _dinero(saldo);
+    final esNegativo = saldo < 0;
+    final tarjeta = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.cardCream,
@@ -934,9 +1005,20 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 1),
+              const SizedBox(height: 4),
               Text(
-                subtitle,
+                monto,
+                style: TextStyle(
+                  color: esNegativo ? Colors.red[800] : AppColors.darkGreen,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 22,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$movimientos movs',
                 style: const TextStyle(
                   color: AppColors.darkGreen,
                   fontSize: 10,
@@ -948,6 +1030,7 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
         ],
       ),
     );
+    return tarjeta;
   }
 
   // TARJETA CREAR CUENTA

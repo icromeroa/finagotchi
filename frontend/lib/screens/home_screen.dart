@@ -863,32 +863,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Mantén para hablar',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.darkGreen,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Mantén para hablar',
+                        style: TextStyle(
+                          color: AppColors.darkGreen,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
-                        Text(
-                          '“Almuerzo corriente 14 mil”',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.darkGreen,
-                            fontSize: 9.5,
-                          ),
+                      ),
+                      Text(
+                        '“Almuerzo corriente 14 mil”',
+                        style: TextStyle(
+                          color: AppColors.darkGreen,
+                          fontSize: 9.5,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),

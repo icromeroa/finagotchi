@@ -343,9 +343,7 @@ class ImproveMetricsScreen extends StatelessWidget {
           color: AppColors.wine.withValues(alpha: 0.15),
         ),
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: ListTile(
+      child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
@@ -423,7 +421,6 @@ class ImproveMetricsScreen extends StatelessWidget {
               size: 14,
             ),
           ],
-        ),
         ),
       ),
     );
