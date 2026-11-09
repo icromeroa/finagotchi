@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../services/api_service.dart';
+import '../services/auth_session.dart';
 import 'register_screen.dart';
+import 'home_screen.dart'; // <--- Redirección directa al Home
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,8 +16,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
+  final ApiService apiService = ApiService();
+
   bool showPassword = false;
   bool showErrors = false;
+  bool isLoading = false;
 
   bool get emailIsValid =>
       RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
@@ -27,14 +33,62 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void login() {
-    setState(() => showErrors = true);
+  Future<void> login() async {
+    if (isLoading) return;
+
+    setState(() {
+      showErrors = true;
+    });
 
     if (!emailIsValid || passwordController.text.isEmpty) {
       return;
     }
 
-    _message('Inicio de sesión de demostración.');
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final result = await apiService.login(
+        correo: emailController.text.trim(),
+        password: passwordController.text,
+      );
+
+      final data = Map<String, dynamic>.from(result['data']);
+      final tokens = Map<String, dynamic>.from(data['tokens']);
+      final usuario = Map<String, dynamic>.from(data['usuario']);
+
+      final accessToken = tokens['access_token'] as String;
+      final refreshToken = tokens['refresh_token'] as String;
+
+      AuthSession.start(
+        newAccessToken: accessToken,
+        newRefreshToken: refreshToken,
+        userData: usuario,
+      );
+
+      if (!mounted) return;
+
+      // REDIRECCIÓN DIRECTA AL HOME SCREEN
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const HomeScreen(),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      _message(
+        e.toString().replaceFirst('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   void _message(String message) {
@@ -98,8 +152,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Panel vino con borde lima.
                     Container(
                       width: double.infinity,
-                      constraints: const BoxConstraints(minHeight: 475),
-                      padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+                      constraints:
+                      const BoxConstraints(minHeight: 475),
+                      padding:
+                      const EdgeInsets.fromLTRB(20, 40, 20, 30),
                       decoration: const BoxDecoration(
                         color: AppColors.wine,
                         borderRadius: BorderRadius.vertical(
@@ -128,37 +184,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 25),
 
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _SocialButton(
-                                  label: 'Google',
-                                  onTap: () => _message(
-                                    'Inicio con Google próximamente.',
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: _SocialButton(
-                                  label: 'Apple',
-                                  apple: true,
-                                  onTap: () => _message(
-                                    'Inicio con Apple próximamente.',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 30),
-
                           const _FieldLabel('Correo'),
                           const SizedBox(height: 7),
+
                           _InputBox(
                             controller: emailController,
                             hint: 'hola@tucorreo.com',
                             icon: Icons.mail_outline,
-                            keyboardType: TextInputType.emailAddress,
+                            keyboardType:
+                            TextInputType.emailAddress,
                             onChanged: (_) {
                               if (showErrors) setState(() {});
                             },
@@ -167,11 +201,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           if (showErrors && !emailIsValid) ...[
                             const SizedBox(height: 8),
                             const _ErrorChip(
-                              text: 'Usa un correo válido ej: name@gmail.com',
+                              text:
+                              'Usa un correo válido ej: name@gmail.com',
                             ),
                           ],
 
                           const SizedBox(height: 16),
+
                           Row(
                             children: const [
                               _FieldLabel('Contraseña'),
@@ -218,6 +254,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
 
+                          // Error ubicado justo debajo de la contraseña
+                          if (showErrors &&
+                              passwordController.text.isEmpty) ...[
+                            const SizedBox(height: 8),
+                            const _ErrorChip(
+                              text: 'Ingresa tu contraseña',
+                            ),
+                          ],
+
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
@@ -234,19 +279,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
 
-                          if (showErrors &&
-                              passwordController.text.isEmpty) ...[
-                            const _ErrorChip(
-                              text: 'Ingresa tu contraseña',
-                            ),
-                            const SizedBox(height: 15),
-                          ],
+                          const SizedBox(height: 10),
 
-                          const SizedBox(height: 15),
                           Center(
                             child: _LimeButton(
-                              text: 'Entrar a mi Finagotchi',
-                              onTap: login,
+                              text: isLoading
+                                  ? 'Ingresando...'
+                                  : 'Entrar a mi Finagotchi',
+                              onTap: isLoading ? () {} : login,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -264,6 +304,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 GestureDetector(
                                   onTap: () {
+                                    if (isLoading) return;
+
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -278,7 +320,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                       color: AppColors.cream,
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      decoration: TextDecoration.underline,
+                                      decoration:
+                                      TextDecoration.underline,
                                       decorationColor: AppColors.cream,
                                     ),
                                   ),
@@ -321,7 +364,6 @@ class _RecoveryPanelState extends State<_RecoveryPanel> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.62,
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
         24,
@@ -466,60 +508,6 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
-class _SocialButton extends StatelessWidget {
-  const _SocialButton({
-    required this.label,
-    required this.onTap,
-    this.apple = false,
-  });
-
-  final String label;
-  final VoidCallback onTap;
-  final bool apple;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.cream,
-          foregroundColor: AppColors.wine,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          shape: const StadiumBorder(),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (apple)
-              const Icon(
-                Icons.phone_iphone,
-                size: 17,
-                color: Colors.black,
-              )
-            else
-              const Text(
-                'G',
-                style: TextStyle(
-                  color: Color(0xFF4285F4),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            const SizedBox(width: 7),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 11),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _InputBox extends StatelessWidget {
   const _InputBox({
     required this.controller,
@@ -574,9 +562,11 @@ class _InputBox extends StatelessWidget {
             size: 18,
           ),
           suffixIcon: suffix,
-          prefixIconConstraints: const BoxConstraints(minWidth: 40),
+          prefixIconConstraints:
+          const BoxConstraints(minWidth: 40),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          contentPadding:
+          const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );

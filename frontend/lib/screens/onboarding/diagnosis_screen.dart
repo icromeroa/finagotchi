@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/main_button.dart';
@@ -37,14 +36,19 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
             OnboardingHeader(
               step: 7,
               onBack: () => Navigator.pop(context),
+              onSkip: () => Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    (route) => false,
+              ),
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(22, 20, 22, 24),
+                padding: const EdgeInsets.fromLTRB(22, 10, 22, 24),
                 child: Column(
                   children: [
                     const Text(
-                      '¡Diagnóstico Listo! 🎉',
+                      '¡Test Listo! 🎉',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.wine,
@@ -53,115 +57,41 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                       ),
                     ),
                     const SizedBox(height: 5),
-                    Text(
-                      '${widget.name}, tu perfil está configurado. '
-                          '¡Nancy tiene la energía al máximo!',
+                    const Text(
+                      'Tu perfil está configurado a la perfección. Nancy tiene la energía al máximo.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.darkGreen,
-                        fontSize: 11,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 18),
 
-                    const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.pets,
-                          size: 78,
-                          color: AppColors.mutedPink,
-                        ),
-                        SizedBox(width: 15),
-                        Icon(
-                          Icons.school,
-                          size: 48,
-                          color: AppColors.wine,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    // SALUD DE NANCY
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardCream,
-                        border: Border.all(
-                          color: AppColors.darkGreen.withValues(
-                            alpha: 0.45,
-                          ),
-                        ),
-                        borderRadius: BorderRadius.circular(13),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: AppColors.darkGreen,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.monitor_heart,
-                                color: AppColors.lime,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Salud de Nancy',
-                                  style: TextStyle(
-                                    color: AppColors.wine,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '100% ÓPTIMA',
-                                style: TextStyle(
-                                  color: AppColors.lime,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: const LinearProgressIndicator(
-                              value: 1,
-                              minHeight: 10,
-                              backgroundColor:
-                              AppColors.progressBackground,
-                              valueColor: AlwaysStoppedAnimation(
-                                AppColors.lime,
-                              ),
-                            ),
-                          ),
-                        ],
+                    // Ilustración central de Nancy con libreta
+                    SizedBox(
+                      height: 142,
+                      child: Image.asset(
+                        'assets/images/nancy_libreta 1.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.pets, size: 80, color: AppColors.mutedPink);
+                        },
                       ),
                     ),
 
-                    const SizedBox(height: 25),
+                    const SizedBox(height: 42),
 
-                    // PRESUPUESTO SUGERIDO
+                    // TARJETA DE PRESUPUESTO DIARIO
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: AppColors.cardCream,
                         border: Border.all(
-                          color: AppColors.darkGreen.withValues(
-                            alpha: 0.45,
-                          ),
+                          color: AppColors.darkGreen.withValues(alpha: 0.45),
                         ),
-                        borderRadius: BorderRadius.circular(13),
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: const [
                           BoxShadow(
                             color: AppColors.wine,
@@ -173,35 +103,40 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Presupuesto Sugerido',
+                            'Comienza con tu presupuesto Diario',
                             style: TextStyle(
                               color: AppColors.wine,
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
-                            'Límite inteligente para días de clase',
-                            style: TextStyle(
-                              color: AppColors.wine,
-                              fontSize: 11,
-                            ),
+                          Row(
+                            children: const [
+                              Icon(Icons.account_balance_wallet_outlined, size: 14, color: AppColors.wine),
+                              SizedBox(width: 6),
+                              Text(
+                                'Límite inteligente para cada dia de clase',
+                                style: TextStyle(
+                                  color: AppColors.wine,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 14),
 
+                          // Selector numérico de presupuesto
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
-                              vertical: 10,
+                              vertical: 8,
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.cream,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: AppColors.darkGreen.withValues(
-                                  alpha: 0.4,
-                                ),
+                                color: AppColors.darkGreen.withValues(alpha: 0.4),
                               ),
                               boxShadow: const [
                                 BoxShadow(
@@ -214,9 +149,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                               children: [
                                 IconButton(
                                   onPressed: dailyBudget > 5000
-                                      ? () => setState(
-                                        () => dailyBudget -= 1000,
-                                  )
+                                      ? () => setState(() => dailyBudget -= 1000)
                                       : null,
                                   icon: const Icon(
                                     Icons.remove_circle_outline,
@@ -230,7 +163,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                                         '\$${formatMoney(dailyBudget)}',
                                         style: const TextStyle(
                                           color: AppColors.wine,
-                                          fontSize: 30,
+                                          fontSize: 28,
                                           fontWeight: FontWeight.w900,
                                         ),
                                       ),
@@ -248,9 +181,7 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                                 ),
                                 IconButton(
                                   onPressed: dailyBudget < 200000
-                                      ? () => setState(
-                                        () => dailyBudget += 1000,
-                                  )
+                                      ? () => setState(() => dailyBudget += 1000)
                                       : null,
                                   icon: const Icon(
                                     Icons.add_circle_outline,
@@ -261,43 +192,79 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 14),
-                          const Text(
-                            'Distribución sugerida del día:',
-                            style: TextStyle(
-                              color: AppColors.darkGreen,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(height: 12),
+
+                          // Caja de dictado por voz
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.cream,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppColors.darkGreen.withValues(alpha: 0.4),
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: AppColors.darkGreen,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.wine,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.mic, color: AppColors.cream, size: 16),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: const [
+                                      Text(
+                                        'Mantén presionado para dictar',
+                                        style: TextStyle(
+                                          color: AppColors.wine,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Ej: «Mi presupuesto diario es de 10mil».',
+                                        style: TextStyle(
+                                          color: AppColors.darkGreen,
+                                          fontSize: 9.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.graphic_eq, color: AppColors.wine, size: 24),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 8),
 
-                          const Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              _BudgetChip(text: 'Transporte: \$7.000'),
-                              _BudgetChip(text: 'Almuerzo: \$17.000'),
-                              _BudgetChip(text: 'Snack / Tinto: \$6.000'),
-                            ],
-                          ),
-
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                           const Text(
-                            'ⓘ Puedes ajustar este valor en cualquier '
-                                'momento desde tu bóveda de ahorros.',
+                            'ⓘ Puedes ajustar este valor en cualquier momento desde tu bóveda de ahorros.',
                             style: TextStyle(
                               color: AppColors.wine,
                               fontSize: 10,
+                              height: 1.3,
                             ),
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 22),
 
-                    // BOTÓN QUE ABRE EL HOME SCREEN
+                    // BOTÓN PRINCIPAL
                     MainButton(
                       text: '¡Comenzar mi aventura con FinaGotchi! 🚀',
                       onPressed: () {
@@ -314,38 +281,6 @@ class _DiagnosisScreenState extends State<DiagnosisScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BudgetChip extends StatelessWidget {
-  final String text;
-
-  const _BudgetChip({
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 6,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.cream,
-        border: Border.all(
-          color: AppColors.mutedPink,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AppColors.wine,
-          fontSize: 9,
         ),
       ),
     );

@@ -25,10 +25,15 @@ class _ChallengeOneScreenState extends State<ChallengeOneScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.cream,
       body: SafeArea(
         child: Column(
           children: [
-            OnboardingHeader(step: 4, onBack: () => Navigator.pop(context), onSkip: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChallengeTwoScreen(name: widget.name)))),
+            OnboardingHeader(
+              step: 4,
+              onBack: () => Navigator.pop(context),
+              onSkip: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChallengeTwoScreen(name: widget.name))),
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(22, 22, 22, 24),
@@ -37,10 +42,21 @@ class _ChallengeOneScreenState extends State<ChallengeOneScreen> {
                   children: [
                     const Text('Mini Reto #1 con Nancy 🧠', style: TextStyle(color: AppColors.wine, fontSize: 20, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 22),
-                    const Row(
+                    Row(
                       children: [
-                        Expanded(child: Icon(Icons.pets, size: 75, color: AppColors.mutedPink)),
-                        Expanded(child: _Bubble(text: '¡Imagina que estás guardando tu plata! ¿Qué pasará con el tiempo?')),
+                        Expanded(
+                          child: SizedBox(
+                            height: 115,
+                            child: Image.asset(
+                              'assets/images/nancy_calendario.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.pets, size: 75, color: AppColors.mutedPink);
+                              },
+                            ),
+                          ),
+                        ),
+                        const Expanded(child: _Bubble(text: '¡Imagina que estás guardando tu plata! ¿Qué pasará con el tiempo?')),
                       ],
                     ),
                     const SizedBox(height: 28),
