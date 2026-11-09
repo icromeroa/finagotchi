@@ -492,8 +492,8 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
                       (cuenta['tipo_cuenta'] ?? '').toString(),
                     ),
                     title: (cuenta['nombre'] ?? '?').toString(),
-                    subtitle:
-                        '${cuenta['num_movs'] ?? 0} movs · ${_dinero(cuenta['saldo_actual'] as num?)}',
+                    saldo: (cuenta['saldo_actual'] as num?) ?? 0,
+                    movimientos: (cuenta['num_movs'] as num?)?.toInt() ?? 0,
                     tagText: cuenta['es_sistema'] == 1 ? 'PREDET.' : 'TUYA',
                     hasTag: true,
                   ),
@@ -936,11 +936,14 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
   Widget _buildAccountCard({
     required IconData icon,
     required String title,
-    required String subtitle,
+    required num saldo,
+    required int movimientos,
     String? tagText,
     bool hasTag = true,
   }) {
-    return Container(
+    final monto = _dinero(saldo);
+    final esNegativo = saldo < 0;
+    final tarjeta = Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.cardCream,
@@ -1002,9 +1005,20 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 1),
+              const SizedBox(height: 4),
               Text(
-                subtitle,
+                monto,
+                style: TextStyle(
+                  color: esNegativo ? Colors.red[800] : AppColors.darkGreen,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 22,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$movimientos movs',
                 style: const TextStyle(
                   color: AppColors.darkGreen,
                   fontSize: 10,
@@ -1016,6 +1030,7 @@ class _AccountsOverviewScreenState extends State<AccountsOverviewScreen> {
         ],
       ),
     );
+    return tarjeta;
   }
 
   // TARJETA CREAR CUENTA
