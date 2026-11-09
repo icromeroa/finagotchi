@@ -212,6 +212,63 @@ O la consola clásica:
 py -3 simulator/main.py
 ```
 
+### En macOS (MacBook): pasos y cambio de puerto
+
+En Windows se usa `py -3`; en Mac se usa `python3`. El flujo es el mismo.
+
+1. **Instalar dependencias** (desde la raíz del repositorio, en cualquier terminal):
+
+```bash
+python3 -m pip install -r requirements.txt
+python3 -m pip install -r requirements-simulator.txt
+python3 tools/verificar_entorno.py
+```
+
+> Desde Python 3.10 en adelante (`python3 --version`). Si `faster-whisper` no está, instálalo con:
+> `python3 -m pip install faster-whisper`
+
+2. **Levantar el backend en puerto 5001** (otra Terminal, deja esta ventana abierta):
+
+```bash
+PORT=5001 python3 backend/server.py
+```
+
+Sin `PORT=`, el backend escucha en 5000.
+
+3. **Apuntar el simulador a ese puerto** — edita `simulator/config.json`:
+
+```json
+{
+  "http_base_url": "http://127.0.0.1:5001/api/v1"
+}
+```
+
+También puedes usar la variable de entorno `FINAGOTCHI_BASE_URL`.
+
+4. **Verificar la conexión (otra Terminal, dejarla abierta):**
+
+```bash
+curl http://localhost:5001/api/v1/health
+```
+
+Debe responder `{"ok": true, "data": {"estado": "ok", …}}`. Si no responde, el backend no está en 5001: revisa que lo levantaste con `PORT=5001`, que la terminal del backend sigue abierta y que no haya firewall bloqueando el puerto.
+
+5. **Levantar el simulador** (Mac):
+
+```bash
+python3 simulator/main.py
+```
+
+O la GUI (macOS puede pedir permiso especial):
+
+```bash
+python3 -m simulator.gui.app
+```
+
+> **Permiso de teclado (macOS):** para que `keyboard` capture ESPACIO sin problemas, ve a *System Settings → Privacy & Security → Accessibility* y autoriza la app de terminal (Terminal o iTerm2). Si no quieres dar permiso, el simulador avisa que usará **ENTER** para grabar.
+
+**Error típico “No se pudo conectar con el backend”:** casi siempre es “levanté el backend en 5000 pero el simulador busca 5001” (o al revés). Todo debe coincidir: **mismo puerto, backend abierto y simulador apuntando a ese puerto**.
+
 Elige `[H] Hablar` y mantén presionada la tecla ESPACIO mientras hablas. Al soltarla, el simulador envía el WAV al backend, muestra la transcripción, propone los movimientos o la acción, y te pide que respondas con una frase natural:
 
 - "sí", "ok", "correcto", "está bien", "confirmo" → confirmar.
