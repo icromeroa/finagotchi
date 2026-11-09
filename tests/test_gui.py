@@ -96,6 +96,27 @@ class SpritesTests(unittest.TestCase):
         # La esquina era fondo negro: ahora es la tarjeta rosa.
         self.assertEqual(frames[0].getpixel((0, 0)), (240, 175, 197))
 
+    def test_diptico_vertical_deja_una_sola_cerdita(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as carpeta:
+            original, gifs_original = self._con_carpetas(carpeta)
+            ruta = sprites.SPRITES / "nancy_escuchando.gif"
+            arriba = Image.new("RGB", (60, 60), (0, 0, 0))
+            abajo = Image.new("RGB", (60, 60), (255, 255, 255))
+            abajo = Image.new("RGB", (60, 60), (255, 255, 255))
+            lienzo = Image.new("RGB", (60, 120), (255, 255, 255))
+            lienzo.paste(arriba, (0, 0))
+            lienzo.paste(abajo, (0, 60))
+            lienzo.save(ruta, save_all=True, append_images=[lienzo.copy()], duration=100, loop=0)
+            try:
+                frames, _duracion = sprites.cargar_frames("escuchando", tamano=60)
+            finally:
+                sprites.SPRITES = original
+                sprites.GIFS = gifs_original
+        # Solo queda la mitad clara (ya sin negro) como una sola imagen.
+        self.assertEqual(frames[0].getpixel((0, 0)), (240, 175, 197))
+
     def test_ventana_es_compacta(self):
         self.assertLessEqual(tema.TAMANO_VENTANA[0], 400)
         self.assertLessEqual(tema.TAMANO_VENTANA[1], 650)
