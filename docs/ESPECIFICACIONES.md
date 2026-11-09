@@ -916,12 +916,13 @@ Una frase larga nunca confirma por la decisión del LLM; solo cuentan los dispar
 | “gastos del 3 al 5 de mayo” | Totales y lista del rango indicado, incluso si cruza de mes. |
 | “¿cómo van mis metas?” | Progreso y estado por meta. |
 | “¿cuánto debo ahorrar este mes?” | Capacidad y aportes recomendados (LP). |
-| “mis cuentas” | Cuentas base vs. propias, sin ocultas, con saldo (puede ser negativo = sobregiro). |
-| “mis categorías” (+ “de gasto”/“de ingreso”) | Categorías con nº de registros y total confirmado; por voz, las principales. “De ahorro” explica que el ahorro usa metas. |
+| “mis cuentas” | Cuentas base vs. propias, sin ocultas, con saldo (puede ser negativo = sobregiro). En la GUI: tarjetas con distintivo, nº de movs y saldo. |
+| “mis categorías” (+ “de gasto”/“de ingreso”) | Categorías con nº de registros y total confirmado; por voz, las principales. “De ahorro” explica que el ahorro usa metas. En la GUI: pestañas Gastos/Ingresos con tarjetas. |
 | “muéstrame lo que hay pendiente” / “qué tengo pendiente” | Movimientos pendientes de confirmar, sin resolverlos. |
+| “cómo me fue hoy/ayer/en fecha/rango” | Cabecera con el día o rango consultado, flujo (ingresos/egresos/balance), dona ingresos vs. gastos y desglose de movimientos. Por voz, el resumen corto. |
 | “mis movimientos”, “mi presupuesto”, “mi perfil” | Resúmenes desde el catálogo real. |
 
-Las fechas se resuelven en Python, no en el LLM: `nlp.resolver_rango()` entiende `hoy`, `ayer`, `anteayer`, `esta semana` (lunes a hoy), `la semana pasada`, `este mes`, `el mes pasado`, un día suelto (`3 de mayo`, `05/11`, `2026-11-04`) y un rango (`del 3 al 5 de mayo`). El modelo solo copia la expresión temporal en `entidades.fecha_texto`; si no hay expresión, la consulta cae en “hoy” sin marcarla como fecha explícita.
+Las fechas se resuelven en Python, no en el LLM: `nlp.resolver_rango()` entiende `hoy`, `ayer`, `anteayer`, `esta semana` (lunes a hoy), `la semana pasada`, `este mes`, `el mes pasado`, un día suelto (`3 de mayo`, `05/11`, `2026-11-04`) y un rango (`del 3 al 5 de mayo`). El modelo solo copia la expresión temporal en `entidades.fecha_texto`; si no hay expresión, la consulta cae en “hoy” sin marcarla como fecha explícita. Los estados (“cómo me fue”, “cómo voy”) respetan la fecha dictada: “cómo me fue ayer” consulta ayer, no hoy.
 
 **Regla de “gasté ayer”.** Si la frase menciona un movimiento en pasado pero no incluye monto, es una consulta: Nancy resume el total por voz y deja la lista completa en `datos.movimientos` para la pantalla. Si incluye un monto, es un registro con fecha de ayer y pasa por la confirmación normal ("¿Registro un gasto de 20 mil pesos en almuerzo con fecha de ayer?"). Solo se fechan movimientos con un día concreto entre hoy y 365 días atrás; una fecha futura se rechaza antes de crear el pendiente. Un rango como “del 3 al 5” nunca se interpreta como monto.
 

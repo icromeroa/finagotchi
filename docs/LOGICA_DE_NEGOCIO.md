@@ -2297,6 +2297,30 @@ categorías. La categoría nueva inserta su nombre como palabra clave.
 Una categoría de corrección inexistente se crea y se aplica al pendiente
 (`aplicar_a_message_id`) antes de pedir el “sí” final del movimiento.
 
+**Fases 24 y 25 — GUI del simulador.** `simulator/gui/` (CustomTkinter)
+replica las pantallas D01–D17 con la paleta Primary `#832D52`, Secondary
+`#F0AFC5`, Tertiary `#B2CE45`, Neutral `#F6E5D1`, Outfit/Space Grotesk y
+sprites PNG/GIF en `assets/sprites|gifs/` (sin fondo: chroma-key del fondo
+conectado al borde). La ventana es compacta (380×620) con marco verde y
+título en Title Case. La voz de Nancy **no se pinta**: solo se reproduce;
+en pantalla van tarjetas estructuradas (transacción, cuentas, categorías,
+metas, pendientes, resumen y cierre). La consola de `simulator/main.py`
+sigue disponible.
+
+**Fase 26 — Vistas estructuradas sin dicts crudos.** Consultas de cuentas,
+categorías y metas se pintan como tarjetas (distintivo PREDET./TUYA,
+conteo y saldo; pestañas Gastos/Ingresos; metas con total, barra de
+progreso y estado). Los avisos (aclaración/error/ayuda) sí se muestran,
+porque sin ellos el usuario no sabe por qué se pidió aclaración.
+
+**Fase 27 — Fechas temporales y gráfico del día.** “Cómo me fue” con
+expresión temporal (“ayer”, día suelto o rango) se consulta por esa fecha,
+no por el periodo genérico “hoy” (`detectar_intencion_conversacional` pone
+los estados en `pide_balance` antes que la intención genérica). La GUI
+muestra cabecera con día/rango real, dona ingresos vs. gastos, flujo y
+desglose de movimientos. El cierre del día se pinta en tarjetas (balance,
+salud, reglas aplicadas) en vez de volcar el diccionario crudo.
+
 ---
 
 
