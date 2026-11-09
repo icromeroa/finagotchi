@@ -87,6 +87,30 @@ class VinculacionSyncTests(unittest.TestCase):
         items = transactions.get_json()["data"]["items"]
         self.assertTrue(any(t["monto"] == 8000 for t in items))
 
+    def test_device_home_sin_password_muestra_datos_del_dueno(self):
+        device_uid = "FINAGOTCHI-HOME-001"
+        registration = self.client.post(
+            "/api/v1/device/register",
+            json={"device_uid": device_uid},
+        )
+        pin = registration.get_json()["data"]["pin"]
+        self.client.post(
+            "/api/v1/device/pair",
+            json={"device_uid": device_uid, "pin": pin},
+            headers=self.headers,
+        )
+        claimed = self.client.post(
+            "/api/v1/device/claim",
+            json={"device_uid": device_uid, "pin": pin},
+        )
+        device_token = claimed.get_json()["data"]["device_token"]
+        device_home = self.client.get(
+            "/api/v1/device/home",
+            headers={"X-Device-Token": device_token},
+        )
+        self.assertEqual(device_home.status_code, 200, device_home.get_json())
+        self.assertEqual(device_home.get_json()["data"]["usuario"]["nombre"], "Ana")
+
     def test_claim_pin_invalido_401(self):
         device_uid = "FINAGOTCHI-FLUTTER-001"
         registration = self.client.post(

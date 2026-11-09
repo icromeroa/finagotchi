@@ -367,14 +367,12 @@ class App(ctk.CTk):
         client = FinaGotchiClient(self.config)
         try:
             client.login_or_register()
-            # Flujo sync: simulador genera PIN, Flutter lo ingresa, simulador reclama.
             try:
                 registration = client.generar_pin()
                 pin = registration["pin"]
-            except RuntimeError:
-                # Ya vinculado a otra cuenta: cae al flujo auto para demo.
-                client.ensure_device()
-                pin = None
+            except RuntimeError as exc:
+                self.cola.put(("texto", ("Dispositivo vinculado", str(exc))))
+                return
             if pin is not None:
                 self.cola.put(("vinculacion", {
                     "device_uid": client.device_uid,

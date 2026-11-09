@@ -152,8 +152,28 @@ class FinaGotchiClient:
         except ApiError as exc:
             if exc.status != 409:
                 raise
-            # Ya vinculado a otro usuario: no podemos generar un PIN nuevo.
-            raise RuntimeError("El dispositivo está vinculado a otra cuenta") from exc
+            # Si el dispositivo ya esta vinculado a CUENTA de este simulador,
+            # lo desvincula para generar un PIN nuevo (demo repetible).
+            if self.user_token:
+                try:
+                    devices = self.request("GET", "/device", headers=self.user_headers())
+                    if any(d.get("device_uid") == self.device_uid for d in devices):
+                        self.request(
+                            "POST",
+                            "/device/unlink",
+                            headers=self.user_headers(),
+                            json={"device_uid": self.device_uid},
+                        )
+                        registration = self.request("POST", "/device/register", json=body)
+                        self.pin_generado = registration["pin"]
+                        return registration
+                except Exception:
+                    pass
+            raise RuntimeError(
+                "El dispositivo está vinculado a otra cuenta. "
+                "Desvincúlalo desde Flutter (GET /device + POST /device/unlink) "
+                "o usa otro device_uid."
+            ) from exc
         self.pin_generado = registration["pin"]
         return registration
 
@@ -278,6 +298,8 @@ class FinaGotchiClient:
         )
 
     def home(self):
+        if getattr(self, "device_token", None):
+            return self.request("GET", "/device/home", headers=self.device_headers())
         return self.request("GET", "/home", headers=self.user_headers())
 
     def goal_plan(self, meses=12):

@@ -1635,6 +1635,15 @@ def create_app(database=None):
         conn.commit()
         return ok({"device_uid": data["device_uid"], "device_token": raw_token})
 
+    @app.get("/api/v1/device/home")
+    @device_required
+    def device_home():
+        """Devuelve el home del usuario dueño (simulador/firmware sin password)."""
+        device = g.device
+        if not device.get("usuario_id"):
+            return error("DISPOSITIVO_NO_VINCULADO", "El dispositivo no está vinculado", 403)
+        return ok(services.home_payload(get_db(), device["usuario_id"]))
+
     @app.post("/api/v1/device/telemetry")
     @device_required
     def device_telemetry():
