@@ -6,7 +6,7 @@ Uso:
 Revisa, en este orden:
 - Version de Python y dependencias instaladas.
 - Estado del esquema de la base de datos.
-- De donde viene la API key de Gemini y si la API responde.
+- Si faster-whisper (STT local) esta disponible.
 - Si el microfono esta disponible para el simulador.
 
 Devuelve 0 si todo esta bien y 1 si hay algo que arreglar.
@@ -41,7 +41,6 @@ def revisar_python():
     faltantes = []
     for paquete, etiqueta in (
         ("flask", "Flask"),
-        ("google.genai", "google-genai"),
         ("dotenv", "python-dotenv"),
         ("requests", "requests"),
         ("sounddevice", "sounddevice"),
@@ -85,68 +84,19 @@ def revisar_base():
 
 
 def revisar_ia():
-    print("Proveedor de transcripcion")
+    print("Proveedor de transcripcion (local)")
     print(f"  Modo configurado: {ai.proveedor_preferido()}")
 
     local_ok = ai.local_disponible()
     if local_ok:
         ok(f"Proveedor local disponible (faster-whisper, modelo {ai.modelo_local()})")
+        ok(f"Modelo de transcripcion: {ai.modelo()}")
+        return True
     else:
-        aviso(
+        error(
             "Proveedor local no disponible: falta faster-whisper "
             "(py -3 -m pip install faster-whisper)"
         )
-
-    origen = ai.origen_de_la_key()
-    if not ai.esta_configurado():
-        error("No hay API key de Gemini")
-        aviso(
-            "Genera una key en https://aistudio.google.com y ejecuta: "
-            "py -3 tools/configurar_api_key.py"
-        )
-        if local_ok:
-            aviso("Igual se puede transcribir con el modelo local.")
-            return True
-        return False
-
-    ok(f"Key cargada desde: {origen}")
-    ok(f"Modelo principal: {ai.modelo()}")
-    ok(f"Cadena de modelos: {', '.join(ai.cadena_modelos())}")
-
-    try:
-        from google import genai
-
-        cliente = genai.Client(api_key=ai.api_key())
-        modelos = [m.name.replace("models/", "") for m in cliente.models.list()]
-        ok(f"La API responde. {len(modelos)} modelos disponibles")
-        for candidato in ai.cadena_modelos():
-            marca = "ok" if candidato in modelos else "no disponible"
-            aviso(f"  {candidato}: {marca}")
-        return True
-    except Exception as exc:  # noqa: BLE001
-        codigo = getattr(exc, "code", None)
-        if codigo == 401:
-            error("Google rechazo la API key (401)")
-            prefijo = ai.api_key()[:4]
-            if prefijo.startswith("AQ"):
-                aviso(
-                    "Es una 'Auth key' (AQ.Ab). Desde el 28 de mayo de 2026 AI Studio "
-                    "solo emite claves AQ y hay un problema abierto de compatibilidad: "
-                    "devuelven 401 ACCESS_TOKEN_TYPE_UNSUPPORTED."
-                )
-            aviso(
-                "Opciones: usar una clave Standard (AIza) de otro proyecto, "
-                "pedir revision de la cuenta a Google, o dejar STT_PROVEEDOR=local."
-            )
-        elif codigo == 403:
-            error("La clave no tiene permiso (403). Revisa la Generative Language API.")
-        elif codigo == 429:
-            aviso("Cuota agotada (429). Es temporal.")
-        else:
-            error(f"La API no responde: {type(exc).__name__}: {str(exc)[:200]}")
-        if local_ok:
-            aviso("El modelo local puede transcribir igual: no hay bloqueo.")
-            return True
         return False
 
 
@@ -165,10 +115,9 @@ def revisar_llm():
         "Instalalo con: winget install --id Ollama.Ollama --exact --silent  "
         "y despues: ollama pull " + ai.modelo_ollama()
     )
-    if ai.esta_configurado():
-        aviso("Se puede usar Gemini para la interpretacion si la clave funciona.")
-    else:
-        aviso("Sin LLM el backend usa las reglas por palabra clave.")
+    aviso(
+        "Sin LLM el backend usa las reglas por palabra clave."
+    )
     return False
 
 

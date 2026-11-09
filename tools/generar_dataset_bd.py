@@ -1255,15 +1255,9 @@ class Generador:
             for mensaje in mensajes:
                 recibido = mensaje["recibido"]
                 if mensaje["duracion"] is not None:
-                    if rng.random() < 0.7:
-                        proveedor, modelo, tokens_in, tokens_out = (
-                            "gemini", "gemini-2.5-flash",
-                            rng.randint(40, 220), rng.randint(15, 90),
-                        )
-                    else:
-                        proveedor, modelo, tokens_in, tokens_out = (
-                            "faster-whisper", "small", None, None,
-                        )
+                    proveedor, modelo, tokens_in, tokens_out = (
+                        "faster-whisper", "small", None, None,
+                    )
                     if mensaje.get("error"):
                         salida = {"error": mensaje["error"]}
                     else:

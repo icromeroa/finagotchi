@@ -1,4 +1,4 @@
-# Simulador FinaGotchi (PC)
+﻿# Simulador FinaGotchi (PC)
 
 El simulador representa el dispositivo físico: inicia sesión con un usuario de prueba, vincula un dispositivo virtual, captura la voz, **envía el audio al backend** y pide la confirmación por voz.
 
@@ -75,7 +75,7 @@ simulador te recuerda usar `[H]` o `[T]` para responder.
 
 ## Sobre la transcripción y la IA
 
-El simulador no transcribe en el PC. Graba un WAV de 16 kHz mono y lo sube por `multipart/form-data` a `POST /api/v1/device/messages`. La transcripción la hace `faster-whisper` o Gemini en el backend, y la interpretación de la frase (tipo, monto, categoría y cuenta) la hace un modelo de lenguaje con Ollama. Es exactamente el camino que seguirá el firmware de la ESP32.
+El simulador no transcribe en el PC. Graba un WAV de 16 kHz mono y lo sube por `multipart/form-data` a `POST /api/v1/device/messages`. La transcripción la hace `faster-whisper` o faster-whisper en el backend, y la interpretación de la frase (tipo, monto, categoría y cuenta) la hace un modelo de lenguaje con Ollama. Es exactamente el camino que seguirá el firmware de la ESP32.
 
 ## Voz de Nancy
 
@@ -99,7 +99,7 @@ El altavoz debe ser audible. Si no hay audio, el simulador sigue mostrando el te
 
 - Python 3.10 o superior.
 - Micrófono.
-- Conexión a Internet **opcional**: con Ollama (`qwen3:4b`) y faster-whisper el flujo completo funciona offline; Gemini solo si quieres usar esa clave.
+- Conexión a Internet **opcional**: con Ollama (`qwen3:4b`) y faster-whisper el flujo completo funciona offline.
 - Permisos de administrador para que `keyboard` capture la tecla ESPACIO.
 
 ## Instalación
@@ -109,39 +109,31 @@ py -3 -m pip install -r requirements.txt
 py -3 -m pip install -r requirements-simulator.txt
 ```
 
-El backend necesita la clave de Gemini. La clave se guarda **fuera del repositorio**, en `%USERPROFILE%\.finagotchi\gemini.env`:
-
-```powershell
-py -3 tools/configurar_api_key.py
-```
-
-El asistente pide la clave, la guarda en ese archivo y la verifica contra la API. Para ver el estado:
+No se necesita clave de API. Solo verifica que el modelo local esté instalado:
 
 ```powershell
 py -3 tools/verificar_entorno.py
 ```
 
-Sin clave, el backend responde `STT_NO_CONFIGURADO` cuando llega audio.
+Sin faster-whisper, el backend responde `STT_NO_CONFIGURADO` cuando llega audio.
 
-> No copies la clave a `backend/.env.example`: ese archivo está versionado en git.
+> No copies un secreto a `backend/.env.example` (está versionado en git).
 
-### Si la clave de Gemini no funciona
+### Si la transcripción local no funciona
 
-Google está cambiando el formato de sus claves: desde el 28 de mayo de 2026 AI Studio solo emite "Auth keys" (`AQ.Ab...`) y hay un problema abierto por el que devuelven `401 ACCESS_TOKEN_TYPE_UNSUPPORTED`.
-
-El simulador funciona igual gracias al **proveedor local**: `faster-whisper` corriendo en tu PC, sin clave, sin cuota y sin internet. Para activarlo:
+El backend transcribe siempre con `faster-whisper` local (sin clave, sin cuota y sin internet). Para activarlo:
 
 ```powershell
 py -3 -m pip install faster-whisper
 ```
 
-Con `STT_PROVEEDOR=auto` (el valor por defecto) no hay que hacer nada: el backend intenta Gemini y cae al modelo local si la clave falla. El simulador muestra con qué proveedor se transcribió:
+El simulador muestra con qué proveedor se transcribió:
 
 ```
 [TRANSCRIPTO POR]: local whisper-base
 ```
 
-Para forzar siempre el modelo local, pon `STT_PROVEEDOR=local` en `%USERPROFILE%\.finagotchi\gemini.env`.
+El modelo se elige con `STT_MODELO_LOCAL` (`tiny`, `base`, `small`, `medium`, `large-v3`; por defecto `base`) en `backend/.env`.
 
 ### El modelo que interpreta la frase
 
@@ -188,7 +180,7 @@ Edita `simulator/config.json`:
   "voice_scope": "resumen",
   "sample_rate": 16000,
   "language": "es-CO",
-  "stt_provider": "gemini",
+  "stt_provider": "faster-whisper",
   "request_timeout_s": 90
 }
 ```
@@ -196,7 +188,7 @@ Edita `simulator/config.json`:
 - `input_device`: escribe el índice del micrófono que quieres usar (`py -3 simulator/main.py` y opción `[A]`); en `null` usa el predeterminado.
 - `voice_output`: activa/desactiva que Nancy hable.
 - `voice_scope`: qué respuestas habla Nancy. `resumen` (recomendado) habla confirmaciones, resultados, consultas, aclaraciones y errores con el `texto_voz` corto, y deja el detalle en pantalla; `acciones` limita la voz a confirmaciones y resultados; `todo` también lee las consultas completas. El audio se genera en memoria y nunca se guarda.
-- `request_timeout_s` sube a 90 porque la transcripción y la IA pueden tardar varios segundos (Gemini 3–6 s, Ollama 2–25 s según el equipo).
+- `request_timeout_s` sube a 90 porque la transcripción y la IA pueden tardar varios segundos (faster-whisper 3–6 s, Ollama 2–25 s según el equipo).
 - Si el usuario no existe, el simulador lo registra automáticamente.
 - Si el dispositivo ya está vinculado a esa cuenta, lo desvincula y lo vuelve a vincular.
 
@@ -326,9 +318,10 @@ El `message_id` se genera una vez por grabación, así que un reintento no dupli
 - `ERROR DE CONEXIÓN`: verifica que el backend escuche en `http://127.0.0.1:5000`.
 - `401` o `403`: el dispositivo está vinculado a otra cuenta; usa otro `device_uid` o desvincula el dispositivo desde la app.
 - `keyboard` no detecta ESPACIO: ejecuta la terminal como administrador.
-- `503 STT_NO_CONFIGURADO`: falta la clave de Gemini (o usa `LLM_PROVEEDOR`/`STT_PROVEEDOR` locales que no la necesita).
+- `503 STT_NO_CONFIGURADO`: falta la clave de faster-whisper (o usa `LLM_PROVEEDOR`/`STT_PROVEEDOR` locales que no la necesita).
 - `422 AUDIO_INVALIDO`: el audio no es WAV de 16 kHz mono, o está fuera del rango de 0,5 a 40 segundos.
-- `502 STT_NO_DISPONIBLE`: Gemini no respondió. El simulador reintenta con el mismo `message_id`.
+- `502 STT_NO_DISPONIBLE`: faster-whisper no respondió. El simulador reintenta con el mismo `message_id`.
 - `429 STT_CUOTA`: se alcanzó la cuota de la capa gratuita; esperar y reintentar.
 - El simulador dice "No escuché tu voz" o la estadística de pico es 0: el micrófono está silenciado, mute o con índice equivocado. Usa `[A] Probar micrófono` y ajusta `input_device` en `simulator/config.json`.
 - El backend no arranca: verifica `py -3 database/init_db.py` y que `finagotchi.db` no sea una base legacy.
+

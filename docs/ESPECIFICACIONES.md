@@ -1,4 +1,4 @@
-# FinaGotchi · Especificaciones funcionales y técnicas
+﻿# FinaGotchi · Especificaciones funcionales y técnicas
 
 Versión del documento: 2.2  
 Estado: vigente para implementación  
@@ -33,7 +33,7 @@ simulador funcionan de extremo a extremo. Al cierre de este documento:
 |---|---|
 | Backend | Flask en `backend/server.py`, 65 rutas HTTP tras añadir la IO y el TTS. |
 | Base de datos | SQLite, esquema 4, 40 tablas, 15 vistas y 11 triggers. |
-| Agente de voz | STT y LLM con proveedores intercambiables; Gemini es opcional. El agente conversacional (`backend/conversation.py`) conoce el diálogo en curso y confirma con frases naturales. |
+| Agente de voz | STT y LLM con proveedores intercambiables; faster-whisper es opcional. El agente conversacional (`backend/conversation.py`) conoce el diálogo en curso y confirma con frases naturales. |
 | Simulador | Cliente real del backend en `simulator/`; entrada voz-primero con `[T]` texto y `[A]` prueba de micrófono; pantallas D14 plan de ahorro, D15 respuesta de Nancy, D16 error explicado y D17 prueba de micrófono. |
 | App Flutter | Prototipo visual sin capa HTTP; la versión conectada está en la rama `respaldo-frontend-conectado`. |
 | Automatización temporal | No existe scheduler; todo cálculo ocurre dentro de una petición. |
@@ -810,36 +810,30 @@ flujo. El proveedor de transcripción expone:
 - `clasificar_categoria(texto, categorias_usuario) -> categoria_id`.
 - `esta_configurado() -> estado`.
 
-**Decisión vigente.** La transcripción la hace un proveedor de STT en el backend (`backend/ai.py`) y la interpretación de montos, categorías y cuentas usa un **modelo de lenguaje** (`backend/nlp.py::interpretar_con_ia`), con las reglas locales de `backend/nlp.py::interpret` como respaldo determinista. Ningún proveedor decide confirmaciones: la IA solo propone y el usuario confirma.
+**Decisión vigente.** La transcripción la hace **faster-whisper local**
+(`backend/ai.py`) y la interpretación de montos, categorías y cuentas usa un
+**modelo de lenguaje Ollama** (`backend/nlp.py::interpretar_con_ia`), con las
+reglas locales de `backend/nlp.py::interpret` como respaldo determinista.
+Ningún proveedor decide confirmaciones: la IA solo propone y el usuario confirma.
 
-Los proveedores son intercambiables y **ninguno es obligatorio**:
-
-| Etapa | Proveedor preferido | Alternativa | Clave |
+| Etapa | Proveedor | Dónde corre | Clave |
 |---|---|---|---|
-| Transcripción (STT) | Gemini Flash | faster-whisper local | Solo Gemini |
-| Interpretación (LLM) | Ollama `qwen3:4b` | Gemini | Solo Gemini |
+| Transcripción (STT) | faster-whisper local | PC/servidor del backend | no |
+| Interpretación (LLM) | Ollama `qwen3:4b` | PC/servidor del backend | no |
 
-`STT_PROVEEDOR` y `LLM_PROVEEDOR` deciden el comportamiento. Con `auto` (por
-defecto) se intenta el proveedor preferido y, si no hay clave, cuota o
-conexión, se cae al alternativo local. Sin ningún proveedor disponible, la
-interpretación usa reglas por palabra clave y el audio responde error de STT.
+Sin Ollama corriendo, la interpretación usa reglas por palabra clave; sin
+faster-whisper instalado, el endpoint de audio responde `STT_NO_CONFIGURADO`.
 
 | Proveedor STT | Qué es | Clave | Cuota | Latencia |
 |---|---|---|---|---|
-| `gemini` | Gemini Flash por la API de Google | `GEMINI_API_KEY` | 3 peticiones/min en la capa gratuita | 3–5 s |
 | `local` | faster-whisper corriendo en el PC del backend | no | ninguna | ~1 s |
 
-`STT_PROVEEDOR` decide el comportamiento:
+La transcripción es siempre local. El modelo se configura con
+`STT_MODELO_LOCAL` (`tiny`, `base`, `small`, `medium`, `large-v3`; por defecto
+`base`).
 
-- `auto` (por defecto): usa Gemini si hay clave y responde. Si la clave está rota, no hay cuota o el proveedor falla, cae al modelo local y deja constancia del motivo en `interacciones_ia`.
-- `gemini`: solo la API de Google. Si falla, el endpoint responde error.
-- `local`: solo el modelo local del PC. No necesita clave ni conexión.
-
-**Por qué existe el proveedor local.** Desde el 28 de mayo de 2026 Google AI Studio solo emite "Auth keys" (`AQ.Ab...`) en lugar de las estándar (`AIza...`), y hay un problema abierto de compatibilidad: esas claves responden `401 UNAUTHENTICATED` con motivo `ACCESS_TOKEN_TYPE_UNSUPPORTED` en `generativelanguage.googleapis.com`. El modelo local garantiza que el proyecto se pueda demostrar sin depender de ese servicio y sin `GEMINI_API_KEY`.
-
-El modelo se configura con `GEMINI_MODEL` y admite una cadena de respaldo con `GEMINI_MODEL_FALLBACKS`, porque la API de Google puede responder con `503` por demanda alta o dejar de ofrecer un modelo. El modelo local se configura con `STT_MODELO_LOCAL` (`tiny`, `base`, `small`, `medium`).
-
-Los modelos locales (whisper, Ollama, llama.cpp, Gemma) se ejecutan en el **PC o servidor del backend**, nunca en la ESP32. La ESP32 solo graba, envía y muestra.
+Los modelos locales (whisper, Ollama) se ejecutan en el **PC o servidor del
+backend**, nunca en la ESP32. La ESP32 solo graba, envía y muestra.
 
 ### 9.1.1 Interpretación: el modelo de lenguaje
 
@@ -848,7 +842,6 @@ Transcribir no basta. Hay un paso aparte donde un modelo de lenguaje decide **qu
 | Proveedor | Clave | Latencia | Notas |
 |---|---|---|---|
 | `ollama` | no | 2–8 s | Modelo local. `qwen3:4b` por defecto. Gratis, offline, sin cuota. |
-| `gemini` | sí | 1–3 s | Solo si la API key funciona. |
 
 El modelo recibe el catálogo real del usuario (sus categorías con su tipo y sus cuentas) y debe responder un JSON:
 
@@ -1320,7 +1313,7 @@ Los endpoints de esta sección usan `X-Device-Token`. Los equivalentes de app us
 
 #### `POST /device/messages`
 
-Procesa audio o texto enviado por el dispositivo. El audio se transcribe en el backend con el proveedor de STT configurado (Gemini o faster-whisper local) y luego se interpreta con el LLM o con las reglas locales de respaldo; el dispositivo nunca transcribe.
+Procesa audio o texto enviado por el dispositivo. El audio se transcribe en el backend con el proveedor de STT configurado (faster-whisper local) y luego se interpreta con el LLM o con las reglas locales de respaldo; el dispositivo nunca transcribe.
 
 Estado de implementación: **operativo**. El endpoint recibe `audio` (multipart) o `texto` (JSON o multipart). Con audio se valida el WAV, se transcribe, se registra la auditoría en `interacciones_ia` y se crea el mensaje con sus transacciones pendientes.
 
@@ -1340,7 +1333,7 @@ Orden de procesamiento:
 
 1. Si el `message_id` ya existe, se devuelve el mensaje guardado con `duplicado: true` **sin volver a llamar a la IA**.
 2. Se valida el WAV: 16 kHz, mono, 16 bits, 0.5–40 s y máximo 2 MB.
-3. Se transcribe con el proveedor de STT configurado (Gemini o faster-whisper local).
+3. Se transcribe con el proveedor de STT configurado (faster-whisper local).
 4. Se interpretan montos, categoría y cuenta con el LLM; si no está disponible, con las reglas de `backend/nlp.py`.
 5. Se guarda el texto, la duración y la auditoría. El audio no se persiste en ningún sitio.
 
@@ -1370,11 +1363,8 @@ Errores:
 | `CAMPOS_REQUERIDOS` | 422 | Falta `audio` y `texto`, o falta `message_id` cuando hay audio. |
 | `AUDIO_INVALIDO` | 422 | El WAV no cumple el formato o la duración (0.5–40 s). |
 | `AUDIO_MUY_GRANDE` | 413 | El archivo supera los 2 MB. |
-| `STT_NO_CONFIGURADO` | 503 | No hay ni Gemini configurado ni proveedor local disponible. |
-| `STT_KEY_INVALIDA` | 502 | Google rechazó la credencial (401). Ocurre con las "Auth keys" (`AQ.Ab...`). |
-| `STT_SIN_PERMISOS` | 502 | La credencial es válida pero no tiene acceso al modelo (403). |
-| `STT_CUOTA` | 429 | Google rechazó la petición por límite de cuota. |
-| `STT_NO_DISPONIBLE` | 502 | Google no responde o el modelo no está disponible. |
+| `STT_NO_CONFIGURADO` | 503 | faster-whisper no está instalado. |
+| `STT_NO_DISPONIBLE` | 502 | El modelo local falló al transcribir. |
 | `STT_ERROR` | 502 | Cualquier otro fallo del proveedor. |
 | `STT_SIN_TEXTO` | 422 | El modelo no devolvió texto para el audio recibido. |
 
@@ -1386,24 +1376,15 @@ Equivalente para la app. Usa `Authorization: Bearer <token>`. Acepta los mismos 
 
 #### Configuración de los proveedores de IA
 
-La IA se configura en `backend/.env` (copiar `backend/.env.example`). La clave nunca viaja al dispositivo ni al frontend. **Ninguna clave es obligatoria**: sin `GEMINI_API_KEY`, el backend usa faster-whisper para transcribir y Ollama para interpretar.
+La IA se configura en `backend/.env` (copiar `backend/.env.example`). Ninguna clave de API es obligatoria: el backend usa faster-whisper para transcribir y Ollama para interpretar.
 
 | Variable | Default | Descripción |
 |---|---|---|
-| `GEMINI_API_KEY` | vacío | Clave opcional de Gemini. Sin ella se usan los proveedores locales. |
-| `GEMINI_MODEL` | `gemini-3.8-flash` | Modelo principal de transcripción. |
-| `GEMINI_MODEL_FALLBACKS` | `gemini-3.5-flash,gemini-3.5-flash-lite` | Modelos alternos cuando el principal no responde. |
-| `GEMINI_TIMEOUT_S` | `60` | Tiempo máximo de espera de una llamada. |
-| `GEMINI_PLAZO_S` | `90` | Tiempo máximo total de todos los reintentos. |
-| `STT_PROVEEDOR` | `auto` | `auto`, `gemini` o `local`. |
 | `STT_MODELO_LOCAL` | `base` | Modelo de faster-whisper: `tiny`, `base`, `small`, `medium`. |
-| `LLM_PROVEEDOR` | `auto` | `auto`, `ollama` o `gemini`. |
 | `OLLAMA_URL` | `http://127.0.0.1:11434` | Servidor local de Ollama. |
 | `OLLAMA_MODEL` | `qwen3:4b` | Modelo local de interpretación. |
 
-La API de Google puede responder `503` por demanda alta o retirar un modelo. El backend reintenta con el siguiente modelo de la cadena antes de devolver un error, y el dispositivo puede reintentar con el mismo `message_id`.
-
-**Límites de la capa gratuita.** Google limita a 3 peticiones por minuto y por modelo. Al agotarse la cuota la latencia de transcripción sube de 3–5 segundos a 16–18 segundos y las peticiones responden `429`. El backend tiene un plazo total (`GEMINI_PLAZO_S`, 90 segundos por defecto) para no dejar la petición colgada. Para una demo frente a la docencia o para producción se recomienda una cuenta de pago; la clave sigue siendo la misma.
+La transcripción es con faster-whisper local: si el modelo falla, el endpoint responde error y el dispositivo puede reintentar con el mismo `message_id`.
 
 #### Auditoría de las llamadas a la IA
 
@@ -1411,7 +1392,7 @@ Cada llamada al proveedor se registra en `interacciones_ia`:
 
 | Columna | Contenido |
 |---|---|
-| `proveedor` | `google`. |
+| `proveedor` | `local`. |
 | `modelo` | Modelo que respondió. |
 | `version_prompt` | Prompt de transcripción usado. |
 | `entrada_json` | Metadatos del audio: `mime_type`, `duracion_s` e `idioma`. |
@@ -1742,7 +1723,7 @@ no existe.
 
 | Tema | Estado | Propuesta |
 |---|---|---|
-| Proveedor de IA/STT | Decidido | Transcripción con Gemini Flash o faster-whisper local, e interpretación con Ollama `qwen3:4b` o Gemini. `auto` prefiere Ollama para interpretar y Gemini para transcribir si hay clave; si no, usa los locales. Las reglas de `backend/nlp.py` son el respaldo determinista. Ningún proveedor es obligatorio. |
+| Proveedor de IA/STT | Decidido | Transcripción con faster-whisper local e interpretación con Ollama `qwen3:4b`. Si Ollama no está, las reglas de `backend/nlp.py` son el respaldo determinista. Ningún proveedor externo es obligatorio. |
 | Duración máxima del audio | Decidido | 40 segundos, validada por el servidor. |
 | Transmisión del audio | Decidido | Wi-Fi por HTTP multipart. BLE queda solo para configuración inicial. |
 | SLM local | Decidido | Se ejecuta en el PC o servidor del backend, nunca en la ESP32. Queda para el agente consejero. |
@@ -1771,17 +1752,15 @@ no existe.
 py -3 -m pip install -r requirements.txt
 ```
 
-Con eso el backend ya funciona sin claves externas: la transcripción usa
-faster-whisper local y la interpretación usa Ollama si está corriendo. Gemini es
-opcional. Para habilitarlo:
+Con eso el backend ya funciona: la transcripción usa faster-whisper local
+y la interpretación usa Ollama si está corriendo. Para habilitar Ollama:
 
 ```powershell
-py -3 tools/configurar_api_key.py
+winget install --id Ollama.Ollama --exact --silent
+ollama pull qwen3:4b
 ```
 
-La API key se guarda **fuera del repositorio**, en `%USERPROFILE%\.finagotchi\gemini.env`, para que ningún `git clean -xdf` ni una reinstalación la borren. El asistente también la verifica contra la API real antes de terminar. Si no hay clave, el sistema cae a los proveedores locales sin fallar.
-
-La voz de Nancy es independiente de Gemini. Para instalarla:
+La voz de Nancy es independiente del STT. Para instalarla:
 
 ```powershell
 py -3 tools/configurar_voz.py
@@ -1799,12 +1778,11 @@ El backend busca la configuración en este orden:
 
 | Prioridad | Origen | Nota |
 |---|---|---|
-| 1 | Variable de entorno del sistema | `GEMINI_API_KEY` gana sobre todo lo demás. |
+| 1 | Variable de entorno del sistema | Ollama y Whisper (p. ej. `OLLAMA_URL`, `STT_MODELO_LOCAL`) |
 | 2 | `backend/.env` | Ignorado por git, se puede borrar. |
 | 3 | `.env` en la raíz | Ignorado por git, se puede borrar. |
-| 4 | `%USERPROFILE%/.finagotchi/gemini.env` | Fuera del repo, a salvo de `git clean`. |
 
-`backend/.env.example` **sí está versionado**: es una plantilla y nunca debe llevar una clave real. `tests/test_seguridad.py` falla si encuentra una clave con formato de Google en cualquier archivo del repositorio.
+`backend/.env.example` **sí está versionado**: es una plantilla y nunca debe llevar un secreto real. `tests/test_seguridad.py` impide secretos reales en el repositorio.
 
 Diagnóstico del entorno:
 
@@ -1812,7 +1790,7 @@ Diagnóstico del entorno:
 py -3 tools/verificar_entorno.py
 ```
 
-Revisa Python y las dependencias, el esquema de la base, el origen de la clave, si la API responde y si hay micrófono disponible. Devuelve 1 si hay algo que arreglar.
+Revisa Python y las dependencias, el esquema de la base, si faster-whisper está instalado, si Ollama responde y si hay micrófono disponible. Devuelve 1 si hay algo que arreglar.
 
 ### 18.2 Inicializar una base nueva
 
@@ -1860,7 +1838,7 @@ Entre las pruebas hay `tests/test_comandos.py`, que levanta el backend en un pue
 | `py -3 tools/verificar_entorno.py` | Revisa dependencias, base, clave, IA y micrófono. |
 | `py -3 tools/configurar_voz.py` | Instala la voz local de Nancy fuera del repositorio. |
 | `py -3 tools/generar_voz.py` | Regenera las WAV pregrabadas del banco. |
-| `py -3 tools/configurar_api_key.py` | Guarda la clave de Gemini fuera del repositorio. |
+| `py -3 tools/configurar_api_key.py` | Guarda la clave de faster-whisper fuera del repositorio. |
 | `py -3 tools/grabar_dataset.py` | Graba los clips del dataset con el micrófono. |
 | `py -3 tools/evaluar_dataset.py` | Evalúa el dataset (WER, montos, latencia). |
 | `py -3 tools/probar_flujo_voz.py audio.wav` | Prueba el flujo de voz con un WAV. |
@@ -1919,10 +1897,11 @@ Métricas del reporte: WER promedio, exactitud de montos, exactitud de intenció
 | Montos exactos | al menos 90 % |
 | Latencia | menor a 5 segundos en el 95 % de los casos |
 
-La capa gratuita de Gemini limita a 3 peticiones por minuto y por modelo, así que la evaluación pausa entre clips y reintenta cuando recibe `429`.
+La capa gratuita de faster-whisper limita a 3 peticiones por minuto y por modelo, así que la evaluación pausa entre clips y reintenta cuando recibe `429`.
 
 ### 18.7 Respaldo
 
 - Copiar `finagotchi.db` con el servicio detenido.
 - Copiar también `finagotchi.db-wal` y `finagotchi.db-shm` si existen.
 - Verificar el respaldo con `PRAGMA integrity_check`.
+

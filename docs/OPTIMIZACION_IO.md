@@ -1,4 +1,4 @@
-# FinaGotchi · Optimización con Investigación de Operaciones
+﻿# FinaGotchi · Optimización con Investigación de Operaciones
 
 Documento técnico de la **optimización de metas de ahorro** implementada en el
 backend con programación lineal. Describe el problema, el modelo matemático, las
@@ -615,8 +615,8 @@ lectura y la optimización nunca mueve saldos.
 - Todas las referencias internas a archivos apuntan a rutas existentes.
 - Inventario real verificado: 63 rutas, 40 tablas, 15 vistas, 11 triggers,
   esquema 4.
-- `docs/ESPECIFICACIONES.md` ya no presenta a Gemini ni a `GEMINI_API_KEY` como
-  obligatorios, y distingue los endpoints implementados de los futuros.
+- `docs/ESPECIFICACIONES.md` ya no presenta ningún proveedor externo como
+  obligatorio, y distingue los endpoints implementados de los futuros.
 
 ---
 
@@ -627,3 +627,4 @@ lectura y la optimización nunca mueve saldos.
 - Detección de gastos hormiga.
 - Pronóstico probabilístico de gasto.
 - Persistencia opcional de planes en `planes_ahorro`.
+

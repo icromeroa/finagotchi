@@ -306,8 +306,8 @@ def procesar_mensaje_voz(
             services.log_ai_interaction(
                 conn,
                 user_id,
-                proveedor=ai.proveedor_preferido(),
-                modelo=ai.modelo(),
+                proveedor=ai.PROVEEDOR_LOCAL,
+                modelo=f"whisper-{ai.modelo_local()}",
                 version_prompt=ai.PROMPT_TRANSCRIPCION,
                 entrada={"mime_type": mime, "duracion_s": info.duracion_s, "idioma": idioma},
                 salida={
@@ -336,7 +336,7 @@ def procesar_mensaje_voz(
         services.log_ai_interaction(
             conn,
             user_id,
-            proveedor=resultado.get("proveedor") or "gemini",
+            proveedor=resultado.get("proveedor") or ai.PROVEEDOR_LOCAL,
             modelo=resultado.get("modelo"),
             version_prompt=ai.PROMPT_TRANSCRIPCION,
             entrada={"mime_type": mime, "duracion_s": info.duracion_s, "idioma": idioma},

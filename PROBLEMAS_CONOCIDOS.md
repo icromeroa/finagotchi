@@ -1,4 +1,4 @@
-# Problemas conocidos
+﻿# Problemas conocidos
 
 Registro de los errores encontrados durante el desarrollo, como se resolvieron y los que siguen abiertos.
 
@@ -18,13 +18,11 @@ Estado al cierre de la Fase A y la fase del simulador por menús.
 | El backend respondía con la página de depuración de HTML en vez de JSON | No había manejador para errores inesperados. | Se agregó un manejador que responde JSON en el error 500. |
 | `CHECK constraint failed` al guardar una transacción | El esquema exige categoría en todo movimiento distinto de ahorro, y la interpretación por IA podía devolverla nula. | Todo movimiento recibe la categoría de último recurso ("Otros" u "Otros ingresos"). |
 
-### La API key de Gemini
+### Transcripción sin proveedor externo
 
 | Síntoma | Causa | Resolución |
 |---|---|---|
-| `503 STT_NO_CONFIGURADO` con la clave puesta | El archivo `backend/.env` se había borrado. | La clave se guarda ahora fuera del repositorio, en `%USERPROFILE%/.finagotchi/gemini.env`, con `tools/configurar_api_key.py`. |
-| `401 UNAUTHENTICATED` / `ACCESS_TOKEN_TYPE_UNSUPPORTED` | La clave empezaba con `AQ.Ab` (Auth key). Desde el 28 de mayo de 2026 AI Studio solo emite Auth keys y hay un problema abierto de compatibilidad con `generativelanguage.googleapis.com`. No es un error del código. | Se agregó el proveedor local de transcripción (faster-whisper) que no necesita clave, ni cuota ni internet, y `STT_PROVEEDOR=auto` cae a él automáticamente. |
-| La clave podía quedar versionada | `backend/.env.example` sí está versionado en git. | `tests/test_seguridad.py` falla si una clave con formato de Google aparece en cualquier archivo del repo, y se limpió el archivo. |
+| `503 STT_NO_CONFIGURADO` | No está instalado `faster-whisper` en el PC del backend. | Instalarlo con `py -3 -m pip install faster-whisper` y verificar con `py -3 tools/verificar_entorno.py`. |
 
 ### La transcripción y la IA
 
@@ -79,3 +77,4 @@ Estado al cierre de la Fase A y la fase del simulador por menús.
 | El modelo de IA vive en el PC del desarrollador | Solo funciona en la red local | Hoy el backend corre en el PC y la ESP32 apunta a su IP. Cuando pase a un servidor solo cambia la URL: el firmware no cambia. |
 | BLE sin implementar | Solo configuración | El MVP usa Wi-Fi; BLE queda para la vinculación inicial. |
 | `qwen3:4b` tarda 7 segundos en interpretar | La espera después de hablar | Se puede bajar a `qwen3:1.7b` con `OLLAMA_MODEL`, pero clasifica peor. Aceptable: la pantalla D05 muestra "Entendiendo tu mensaje". |
+
