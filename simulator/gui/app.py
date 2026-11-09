@@ -235,6 +235,179 @@ class App(ctk.CTk):
         self._limpiar()
         self._tarjeta(titulo, mensaje)
 
+    # --- Vistas estructuradas (sin volcar diccionarios crudos) ------------
+    def _mini(self, padre, fila, columna, icono, nombre, linea, distintivo, color_distintivo):
+        tarjeta = ctk.CTkFrame(
+            padre, fg_color=tema.NEUTRAL, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
+        )
+        ctk.CTkLabel(
+            tarjeta, text=icono, font=tema.headline(18),
+            text_color=tema.PRIMARY, fg_color=tema.SECONDARY,
+            corner_radius=20, width=40, height=40,
+        ).grid(row=0, column=0, padx=8, pady=8)
+        ctk.CTkLabel(
+            tarjeta, text=distintivo, font=tema.cuerpo(10),
+            text_color=tema.TEXTO, fg_color=color_distintivo, corner_radius=8,
+        ).grid(row=0, column=1, padx=4, pady=8, sticky="e")
+        ctk.CTkLabel(
+            tarjeta, text=str(nombre), font=tema.headline(14),
+            text_color=tema.PRIMARY, wraplength=130, justify="left",
+        ).grid(row=1, column=0, columnspan=2, padx=8, sticky="w")
+        ctk.CTkLabel(
+            tarjeta, text=str(linea), font=tema.cuerpo(12),
+            text_color=tema.TEXTO, wraplength=130, justify="left",
+        ).grid(row=2, column=0, columnspan=2, padx=8, pady=(0, 8), sticky="w")
+        tarjeta.grid(row=fila, column=columna, padx=4, pady=4, sticky="nsew")
+        return tarjeta
+
+    def _vista_cuentas(self, cuentas):
+        self._tarjeta("Cuentas", f"{len(cuentas)} cuentas visibles", tema.SECONDARY)
+        rejilla = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL)
+        rejilla.pack(fill="x")
+        rejilla.columnconfigure(0, weight=1)
+        rejilla.columnconfigure(1, weight=1)
+        for indice, cuenta in enumerate(cuentas[:8]):
+            distintivo = "PREDET." if cuenta.get("es_sistema") else "TUYA"
+            color = tema.SECONDARY if cuenta.get("es_sistema") else tema.TERTIARY
+            self._mini(
+                rejilla, indice // 2, indice % 2, "◉",
+                cuenta.get("nombre") or "?",
+                f"{cuenta.get('num_movs') or 0} movs · "
+                f"{pantallas._dinero(cuenta.get('saldo_actual'))}",
+                distintivo, color,
+            )
+
+    def _vista_categorias(self, categorias):
+        self._categorias = categorias
+        self._tarjeta(
+            "Categorías",
+            "Nancy aprende de estas categorías para ordenar tus audios y mensajes al instante.",
+            tema.SECONDARY,
+        )
+        botones = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL)
+        botones.pack(fill="x", pady=4)
+        self._boton_gastos = ctk.CTkButton(
+            botones, text="Gastos", width=150, fg_color=tema.PRIMARY,
+            text_color="white", font=tema.headline(14), corner_radius=12,
+            command=lambda: self._pintar_categorias("gasto"),
+        )
+        self._boton_gastos.pack(side="left", padx=4)
+        self._boton_ingresos = ctk.CTkButton(
+            botones, text="Ingresos", width=150, fg_color=tema.SECONDARY,
+            text_color=tema.TEXTO, font=tema.headline(14), corner_radius=12,
+            command=lambda: self._pintar_categorias("ingreso"),
+        )
+        self._boton_ingresos.pack(side="left", padx=4)
+        self._rejilla_categorias = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL)
+        self._rejilla_categorias.pack(fill="x")
+        self._rejilla_categorias.columnconfigure(0, weight=1)
+        self._rejilla_categorias.columnconfigure(1, weight=1)
+        self._pintar_categorias("gasto")
+
+    def _pintar_categorias(self, tipo):
+        for hijo in self._rejilla_categorias.winfo_children():
+            hijo.destroy()
+        lista = [c for c in self._categorias if c.get("tipo") == tipo]
+        activos = [c for c in lista if c.get("num_registros")]
+        self._tarjeta(
+            f"Catálogo activo — {tipo}",
+            f"{len(activos)} movimientos registrados",
+            tema.NEUTRAL,
+        )
+        for indice, categoria in enumerate(lista[:8]):
+            distintivo = "PREDET." if categoria.get("es_sistema") else "TUYA"
+            color = tema.SECONDARY if categoria.get("es_sistema") else tema.TERTIARY
+            self._mini(
+                self._rejilla_categorias, indice // 2, indice % 2,
+                str(categoria.get("nombre") or "?")[:1].upper(),
+                categoria.get("nombre") or "?",
+                f"{categoria.get('num_registros') or 0} movs",
+                distintivo, color,
+            )
+
+    def _vista_metas(self, metas):
+        activas = [m for m in metas if m.get("estado") == "activa"] or metas
+        total_ahorrado = sum(int(m.get("ahorrado") or 0) for m in activas)
+        total_meta = sum(int(m.get("monto_meta") or 0) for m in activas) or 1
+        self._tarjeta(
+            "Metas de ahorro",
+            f"Has ahorrado {pantallas._dinero(total_ahorrado)} · "
+            f"{len(activas)} metas activas",
+            tema.SECONDARY,
+        )
+        barra = ctk.CTkProgressBar(
+            self.contenido, fg_color=tema.SECONDARY, progress_color=tema.TERTIARY,
+            height=14, corner_radius=8,
+        )
+        barra.pack(fill="x", padx=8, pady=4)
+        barra.set(max(0.0, min(1.0, total_ahorrado / total_meta)))
+        for meta in activas[:5]:
+            ahorrado = int(meta.get("ahorrado") or 0)
+            monto = int(meta.get("monto_meta") or 0)
+            porcentaje = int(round((ahorrado / monto * 100) if monto else 0))
+            estado = str(meta.get("estado_plan") or meta.get("estado") or "En curso")
+            fecha = str(meta.get("fecha_limite") or "")[:10]
+            linea = (
+                f"{pantallas._dinero(ahorrado)} de {pantallas._dinero(monto)} · {porcentaje}%\n"
+                f"Meta: {fecha} · Ahorra {pantallas._dinero(meta.get('aporte_periodico'))}"
+            )
+            tarjeta = ctk.CTkFrame(
+                self.contenido, fg_color=tema.NEUTRAL, corner_radius=16,
+                border_width=2, border_color=tema.BORDE,
+            )
+            ctk.CTkLabel(
+                tarjeta, text=str(meta.get("nombre") or "Meta"),
+                font=tema.headline(14), text_color=tema.PRIMARY, wraplength=300,
+            ).pack(anchor="w", padx=12, pady=(10, 0))
+            ctk.CTkLabel(
+                tarjeta, text=str(estado), font=tema.cuerpo(11),
+                text_color=tema.TEXTO, fg_color=tema.TERTIARY, corner_radius=8,
+            ).pack(anchor="e", padx=12)
+            ctk.CTkLabel(
+                tarjeta, text=linea, font=tema.cuerpo(12), text_color=tema.TEXTO,
+                wraplength=300, justify="left",
+            ).pack(anchor="w", padx=12, pady=(0, 6))
+            progreso = ctk.CTkProgressBar(
+                tarjeta, fg_color=tema.SECONDARY, progress_color=tema.TERTIARY,
+                height=10, corner_radius=6,
+            )
+            progreso.pack(fill="x", padx=12, pady=(0, 10))
+            progreso.set(max(0.0, min(1.0, porcentaje / 100)))
+            tarjeta.pack(fill="x", pady=4, padx=4)
+
+    def _vista_pendientes(self, pendientes):
+        self._tarjeta(
+            "Pendientes", f"{len(pendientes)} sin confirmar", tema.SECONDARY
+        )
+        for pendiente in pendientes[:5]:
+            self._tarjeta(
+                str(pendiente.get("tipo") or "").capitalize(),
+                f"{pantallas._dinero(pendiente.get('monto', 0))} · "
+                f"{pendiente.get('categoria') or pendiente.get('meta') or ''} · "
+                f"{pendiente.get('cuenta') or ''}",
+                tema.NEUTRAL,
+            )
+
+    def _vista_resumen(self, datos):
+        resumen = datos.get("resumen") or {}
+        if resumen:
+            self._tarjeta(
+                "Resumen",
+                f"Ingresos {pantallas._dinero(resumen.get('total_ingresos', 0))} · "
+                f"Gastos {pantallas._dinero(resumen.get('total_gastos', 0))} · "
+                f"Ahorro {pantallas._dinero(resumen.get('total_ahorrado', 0))}",
+                tema.SECONDARY,
+            )
+        for movimiento in (datos.get("movimientos") or [])[:5]:
+            self._tarjeta(
+                str(movimiento.get("tipo") or "").capitalize(),
+                f"{pantallas._dinero(movimiento.get('monto', 0))} · "
+                f"{movimiento.get('categoria') or movimiento.get('cuenta') or ''} · "
+                f"{movimiento.get('fecha_local') or ''}",
+                tema.NEUTRAL,
+            )
+
     def _procesar_respuesta(self, respuesta):
         if not isinstance(respuesta, dict):
             return
@@ -260,14 +433,23 @@ class App(ctk.CTk):
                 f"· {transaccion.get('cuenta') or ''}".strip(),
                 tema.TERTIARY,
             )
-        self._tarjeta(
-            "Nancy dice", respuesta.get("mensaje_nancy") or "No obtuve respuesta."
-        )
-        for clave in ("cuentas", "categorias", "pendientes", "movimientos"):
-            lista = datos.get(clave)
-            if lista:
-                lineas = "\n".join(str(item) for item in lista[:5])
-                self._tarjeta(clave.capitalize(), lineas, tema.NEUTRAL)
+        # Nancy lo dice en voz; en pantalla solo se muestra información
+        # estructurada. Los avisos (aclaración/error/ayuda) sí se muestran:
+        # sin ellos el usuario no sabe por qué se pidió aclaración.
+        if respuesta.get("tipo_respuesta") in ("aclaracion", "error", "ayuda"):
+            self._tarjeta(
+                "Aviso", respuesta.get("mensaje_nancy") or "No obtuve respuesta."
+            )
+        if datos.get("cuentas"):
+            self._vista_cuentas(datos["cuentas"])
+        elif datos.get("categorias"):
+            self._vista_categorias(datos["categorias"])
+        elif datos.get("metas"):
+            self._vista_metas(datos["metas"])
+        elif datos.get("pendientes"):
+            self._vista_pendientes(datos["pendientes"])
+        elif datos.get("resumen") or datos.get("movimientos"):
+            self._vista_resumen(datos)
         if respuesta.get("requiere_confirmacion"):
             fila = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL)
             ctk.CTkButton(

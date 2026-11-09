@@ -140,6 +140,90 @@ class SpritesTests(unittest.TestCase):
 
 @unittest.skipIf(os.environ.get("CI"), "Sin pantalla en CI")
 class NavegacionTests(unittest.TestCase):
+    def test_cuenta_categoria_y_meta_no_muestran_dicts(self):
+        from simulator.gui.app import App
+
+        try:
+            app = App(arranque=False)
+        except Exception as exc:  # noqa: BLE001 - sin display no se puede
+            self.skipTest(f"Sin pantalla: {exc}")
+        try:
+            app._procesar_respuesta(
+                {
+                    "intent": "consultar_cuentas",
+                    "datos": {
+                        "cuentas": [
+                            {"nombre": "Efectivo", "es_sistema": 1,
+                             "num_movs": 2, "saldo_actual": 100000},
+                            {"nombre": "Nequi", "es_sistema": 0,
+                             "num_movs": 4, "saldo_actual": -5000},
+                        ]
+                    },
+                }
+            )
+            textos = []
+
+            def recolectar(widget):
+                try:
+                    texto = widget.cget("text")
+                except Exception:  # noqa: BLE001 - frames sin texto
+                    texto = ""
+                if texto:
+                    textos.append(texto)
+                for hijo in widget.winfo_children():
+                    recolectar(hijo)
+
+            recolectar(app.contenido)
+            unidos = " ".join(textos)
+            self.assertIn("Efectivo", unidos)
+            self.assertIn("2 movs", unidos)
+            self.assertNotIn("{", unidos)
+            self.assertNotIn("cuenta_id", unidos)
+
+            app._procesar_respuesta(
+                {
+                    "intent": "consultar_metas",
+                    "datos": {
+                        "metas": [
+                            {"nombre": "Viaje", "estado": "activa",
+                             "ahorrado": 50000, "monto_meta": 100000,
+                             "estado_plan": "En curso",
+                             "fecha_limite": "2026-12-15",
+                             "aporte_periodico": 20000}
+                        ]
+                    },
+                }
+            )
+            textos = []
+
+            def recolectar2(widget):
+                try:
+                    texto = widget.cget("text")
+                except Exception:  # noqa: BLE001
+                    texto = ""
+                if texto:
+                    textos.append(texto)
+                for hijo in widget.winfo_children():
+                    recolectar2(hijo)
+
+            recolectar2(app.contenido)
+            self.assertIn("Viaje", " ".join(textos))
+
+            # La burbuja "Nancy dice" ya no se pinta; la voz la habla.
+            app._procesar_respuesta(
+                {
+                    "intent": "consultar_cuentas",
+                    "tipo_respuesta": "consulta",
+                    "mensaje_nancy": "Tus cuentas base son: Efectivo.",
+                    "datos": {"cuentas": []},
+                }
+            )
+            textos = []
+            recolectar2(app.contenido)
+            self.assertNotIn("Tus cuentas base son", " ".join(textos))
+        finally:
+            app.destroy()
+
     def test_la_ventana_se_construye_y_pinta_reposo(self):
         from simulator.gui.app import App
 
