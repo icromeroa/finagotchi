@@ -80,6 +80,36 @@ py -3 simulator/main.py
 
 Ejecutar como administrador para que `keyboard` capture la tecla ESPACIO. Más detalles en `GUIA_SIMULADOR.md`.
 
+### 6. Endpoints de consultas (Guia 4)
+
+Capa de compatibilidad sobre Flask (sin cambiar el contrato `/api/v1`). Requiere `Authorization: Bearer <token>` (registrar primero como en §2). Devuelve JSON plano de Guia 4 (no el sobre `{ok,data}`).
+
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/health` | Salud del backend |
+| `POST` | `/api/telemetry` | Persiste telemetría `device_id, timestamp, sequence, measurements, message_id` → 201 |
+| `GET` | `/api/measurements` | Lista lecturas. Filtros: `device_id, limit (1-100), offset, from, to` (ISO8601 UTC) → 200 |
+| `GET` | `/api/devices` | Lista dispositivos con lecturas (`measurement_count, last_timestamp`) |
+| `GET` | `/api/devices/<device_id>` | Un dispositivo → 200; inexistente → 404 |
+| `GET` | `/docs` | OpenAPI mínimo con los 5 paths |
+
+Ejemplo mínimo:
+
+```powershell
+# tras registrar un usuario en /api/v1/auth/register y obtener access_token
+$token = "TU_TOKEN"
+curl.exe -H "Authorization: Bearer $token" -H "Content-Type: application/json" `
+  -d '{"device_id":"FINA-001","sequence":1,"measurements":{"temp":25.5},"message_id":"msg-001"}' `
+  http://localhost:5000/api/telemetry
+curl.exe -H "Authorization: Bearer $token" -H "Content-Type: application/json" http://localhost:5000/api/measurements
+```
+
+Documentación y decisiones: `docs/decisiones/api-rest.md` y `docs/evidencias/guia-4/README.md`. Pruebas rápidas:
+
+```powershell
+py -3 -m unittest tests.test_api_queries
+```
+
 ### Comandos que sí funcionan
 
 Estos son los comandos del proyecto, verificados por `tests/test_comandos.py`, que levanta el backend y ejecuta el simulador tal como se documenta:

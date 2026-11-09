@@ -1,7 +1,9 @@
 import io
+import json
 import os
 import secrets
 import sys
+import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -1805,6 +1807,189 @@ def create_app(database=None):
     @device_required
     def legacy_telemetry():
         return device_telemetry()
+
+    # =============== Compatibilidad Guia 4 (API REST de consultas) ===============
+    # Capa fina sobre mensajes_dispositivo. Ver docs/decisiones/api-rest.md
+    # para el mapeo telemetria <-> dominio FinaGotchi. Responde JSON plano
+    # de Guia 4 (lista/dict), no el sobre {ok,data} de /api/v1.
+
+    def _compat_parse_iso(value, campo):
+        text = str(value or "").strip()
+        if not text:
+            return None, None
+        try:
+            moment = datetime.fromisoformat(text[:-1] + "+00:00" if text.endswith("Z") else text)
+        except ValueError:
+            return None, error("FECHA_INVALIDA", f"El parametro {campo} debe ser ISO8601", 422, {"campo": campo})
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=timezone.utc)
+        return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), None
+
+    def _compat_telemetry_row(row):
+        try:
+            measurements = json.loads(row["texto_transcrito"]) if row["texto_transcrito"] else {}
+        except (ValueError, TypeError):
+            measurements = {"texto": row["texto_transcrito"]}
+        if not isinstance(measurements, (dict, list)):
+            measurements = {"valor": measurements}
+        return {
+            "id": row["id"],
+            "message_id": row["message_id"],
+            "device_id": row["device_uid"],
+            "timestamp": row["recibido_en"],
+            "sequence": row["secuencia"],
+            "measurements": measurements,
+            "received_at": row["recibido_en"],
+        }
+
+    @app.get("/health")
+    def health_guia4():
+        conn = get_db()
+        version = conn.execute("SELECT MAX(version) FROM schema_migrations").fetchone()[0]
+        return ok({"estado": "ok", "schema_version": version})
+
+    @app.post("/api/telemetry")
+    @auth_required
+    def compat_post_telemetry():
+        data = request.get_json(silent=True) or {}
+        device_id = str(data.get("device_id") or "").strip()
+        if not device_id:
+            return error("CAMPOS_REQUERIDOS", "Falta device_id", 422, {"campos": ["device_id"]})
+        if "measurements" not in data or data["measurements"] is None:
+            return error("CAMPOS_REQUERIDOS", "Falta measurements", 422, {"campos": ["measurements"]})
+        measurements = data["measurements"]
+        timestamp = None
+        recibido_en = iso_utc()
+        if data.get("timestamp"):
+            timestamp, err = _compat_parse_iso(data["timestamp"], "timestamp")
+            if err:
+                return err
+            recibido_en = timestamp
+        sequence = data.get("sequence")
+        if sequence is not None:
+            try:
+                sequence = int(sequence)
+            except (TypeError, ValueError):
+                return error("SECUENCIA_INVALIDA", "sequence debe ser entero", 422)
+            if sequence < 1:
+                return error("SECUENCIA_INVALIDA", "sequence debe ser >= 1", 422)
+        message_id = str(data.get("message_id") or uuid.uuid4())
+        conn = get_db()
+        existing = conn.execute(
+            "SELECT * FROM mensajes_dispositivo WHERE usuario_id = ? AND message_id = ?",
+            (g.user_id, message_id),
+        ).fetchone()
+        if existing:
+            return _compat_telemetry_row(existing), 201
+        if sequence is None:
+            max_seq = conn.execute(
+                "SELECT MAX(secuencia) FROM mensajes_dispositivo WHERE usuario_id = ? AND device_uid = ?",
+                (g.user_id, device_id),
+            ).fetchone()[0]
+            sequence = (max_seq or 0) + 1
+        conn.execute(
+            """
+            INSERT INTO mensajes_dispositivo
+                (usuario_id, device_uid, message_id, secuencia, texto_transcrito, origen, recibido_en, estado)
+            VALUES (?, ?, ?, ?, ?, 'manual', ?, 'recibido')
+            """,
+            (g.user_id, device_id, message_id, sequence, json.dumps(measurements, ensure_ascii=False), recibido_en),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT * FROM mensajes_dispositivo WHERE usuario_id = ? AND message_id = ?",
+            (g.user_id, message_id),
+        ).fetchone()
+        return _compat_telemetry_row(row), 201
+
+    @app.get("/api/measurements")
+    @auth_required
+    def compat_get_measurements():
+        raw_limit = request.args.get("limit", "20")
+        raw_offset = request.args.get("offset", "0")
+        try:
+            limit = int(raw_limit)
+            offset = int(raw_offset)
+        except (TypeError, ValueError):
+            return error("PAGINACION_INVALIDA", "limit y offset deben ser enteros", 422)
+        if limit < 1 or limit > 100:
+            return error("PAGINACION_INVALIDA", "limit debe estar entre 1 y 100", 422, {"campo": "limit"})
+        if offset < 0:
+            return error("PAGINACION_INVALIDA", "offset debe ser >= 0", 422, {"campo": "offset"})
+        clauses = ["usuario_id = ?"]
+        params = [g.user_id]
+        if request.args.get("device_id"):
+            clauses.append("device_uid = ?")
+            params.append(request.args["device_id"])
+        desde, err = _compat_parse_iso(request.args.get("from"), "from")
+        if err:
+            return err
+        hasta, err = _compat_parse_iso(request.args.get("to"), "to")
+        if err:
+            return err
+        if desde:
+            clauses.append("recibido_en >= ?")
+            params.append(desde)
+        if hasta:
+            clauses.append("recibido_en <= ?")
+            params.append(hasta)
+        query = f"""
+            SELECT * FROM mensajes_dispositivo
+            WHERE {' AND '.join(clauses)}
+            ORDER BY id DESC LIMIT ? OFFSET ?
+        """
+        rows = get_db().execute(query, (*params, limit, offset)).fetchall()
+        return [_compat_telemetry_row(row) for row in rows]
+
+    @app.get("/api/devices")
+    @auth_required
+    def compat_get_devices():
+        rows = get_db().execute(
+            """
+            SELECT device_uid AS device_id,
+                   COUNT(*) AS measurement_count,
+                   MAX(recibido_en) AS last_timestamp,
+                   MAX(recibido_en) AS last_received_at
+            FROM mensajes_dispositivo
+            WHERE usuario_id = ?
+            GROUP BY device_uid ORDER BY device_uid
+            """,
+            (g.user_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    @app.get("/api/devices/<device_id>")
+    @auth_required
+    def compat_get_device(device_id):
+        row = get_db().execute(
+            """
+            SELECT device_uid AS device_id,
+                   COUNT(*) AS measurement_count,
+                   MAX(recibido_en) AS last_timestamp,
+                   MAX(recibido_en) AS last_received_at
+            FROM mensajes_dispositivo
+            WHERE usuario_id = ? AND device_uid = ?
+            GROUP BY device_uid
+            """,
+            (g.user_id, device_id),
+        ).fetchone()
+        if row is None:
+            return error("DISPOSITIVO_NO_ENCONTRADO", "Dispositivo no encontrado", 404)
+        return dict(row)
+
+    @app.get("/docs")
+    def compat_docs():
+        return {
+            "openapi": "3.0.0",
+            "info": {"title": "FinaGotchi API (Compat Guia 4)", "version": "1.0"},
+            "paths": {
+                "/api/telemetry": {"post": {"summary": "Recibir telemetria (requiere Authorization Bearer)"}},
+                "/api/measurements": {"get": {"summary": "Consultar lecturas: device_id, limit, offset, from, to"}},
+                "/api/devices": {"get": {"summary": "Listar dispositivos con lecturas"}},
+                "/api/devices/{device_id}": {"get": {"summary": "Resumen de un dispositivo (404 si no existe)"}},
+                "/health": {"get": {"summary": "Salud"}},
+            },
+        }
 
     return app
 
