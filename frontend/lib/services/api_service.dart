@@ -73,7 +73,8 @@ class ApiService {
     return _post(
       '/auth/logout',
       {
-        if (refreshToken != null) 'refresh_token': refreshToken,
+        if (refreshToken != null)
+          'refresh_token': refreshToken,
       },
       accessToken: accessToken,
     );
@@ -139,7 +140,9 @@ class ApiService {
     required String accessToken,
     required String fecha,
   }) async {
-    final uri = Uri.parse('$baseUrl/metrics/daily').replace(
+    final uri = Uri.parse(
+      '$baseUrl/metrics/daily',
+    ).replace(
       queryParameters: {
         'fecha': fecha,
       },
@@ -155,9 +158,10 @@ class ApiService {
 
     return _handleResponse(response);
   }
-// ==============================
-// REGISTRAR MOVIMIENTO
-// ==============================
+
+  // ==============================
+  // REGISTRAR MOVIMIENTO
+  // ==============================
 
   Future<Map<String, dynamic>> createTransaction({
     required String accessToken,
@@ -173,9 +177,12 @@ class ApiService {
       {
         'tipo': tipo,
         'monto': monto,
-        if (categoriaId != null) 'categoria_id': categoriaId,
-        if (cuentaId != null) 'cuenta_id': cuentaId,
-        if (metaId != null) 'meta_id': metaId,
+        if (categoriaId != null)
+          'categoria_id': categoriaId,
+        if (cuentaId != null)
+          'cuenta_id': cuentaId,
+        if (metaId != null)
+          'meta_id': metaId,
         if (concepto != null && concepto.isNotEmpty)
           'concepto': concepto,
         'origen': 'manual',
@@ -184,6 +191,62 @@ class ApiService {
       accessToken: accessToken,
     );
   }
+
+  // ==============================
+  // OBTENER HISTORIAL DE MOVIMIENTOS
+  // ==============================
+
+  Future<Map<String, dynamic>> getTransactions({
+    required String accessToken,
+    String? tipo,
+    String? desde,
+    String? hasta,
+    int? categoriaId,
+    int? cuentaId,
+    String? estado,
+    int? montoMin,
+    int? montoMax,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    final query = <String, String>{
+      'limit': limit.toString(),
+      'offset': offset.toString(),
+      if (tipo != null && tipo.isNotEmpty)
+        'tipo': tipo,
+      if (desde != null && desde.isNotEmpty)
+        'desde': desde,
+      if (hasta != null && hasta.isNotEmpty)
+        'hasta': hasta,
+      if (categoriaId != null)
+        'categoria_id': categoriaId.toString(),
+      if (cuentaId != null)
+        'cuenta_id': cuentaId.toString(),
+      if (estado != null && estado.isNotEmpty)
+        'estado': estado,
+      if (montoMin != null)
+        'monto_min': montoMin.toString(),
+      if (montoMax != null)
+        'monto_max': montoMax.toString(),
+    };
+
+    final uri = Uri.parse(
+      '$baseUrl/transactions',
+    ).replace(
+      queryParameters: query,
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Accept': 'application/json',
+      },
+    );
+
+    return _handleResponse(response);
+  }
+
   // ==============================
   // MÉTODO INTERNO GET
   // ==============================
@@ -212,7 +275,7 @@ class ApiService {
       Map<String, dynamic> data, {
         String? accessToken,
       }) async {
-    final headers = {
+    final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
@@ -234,11 +297,14 @@ class ApiService {
   // INTERPRETAR RESPUESTAS
   // ==============================
 
-  Map<String, dynamic> _handleResponse(http.Response response) {
+  Map<String, dynamic> _handleResponse(
+      http.Response response,
+      ) {
     Map<String, dynamic> result;
 
     try {
       final decoded = jsonDecode(response.body);
+
       result = Map<String, dynamic>.from(decoded);
     } catch (_) {
       throw Exception(
