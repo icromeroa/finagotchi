@@ -37,6 +37,49 @@ ESTADO_ANIMO = {
     "CRITICO": "critico",
 }
 
+_DIAS_LARGO = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+_MESES_LARGO = (
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+)
+_MESES_CORTO = (
+    "ene", "feb", "mar", "abr", "may", "jun",
+    "jul", "ago", "sep", "oct", "nov", "dic",
+)
+
+
+def encabezado_fecha(rango, resumen=None):
+    """Cabecera estilo mockup: «Ayer, sábado 8 nov» o «Del 3 al 5 de mayo»."""
+    from datetime import datetime
+
+    def _parse(valor):
+        try:
+            return datetime.fromisoformat(str(valor)).date()
+        except (TypeError, ValueError):
+            return None
+
+    desde = _parse((rango or {}).get("desde"))
+    hasta = _parse((rango or {}).get("hasta"))
+    etiqueta = str((rango or {}).get("etiqueta") or "").lower()
+    if desde and hasta and hasta > desde:
+        if desde.year == hasta.year and desde.month == hasta.month:
+            return f"Del {desde.day} al {hasta.day} de {_MESES_LARGO[desde.month - 1]}"
+        return f"Del {desde.day} de {_MESES_LARGO[desde.month - 1]} al {hasta.day} de {_MESES_LARGO[hasta.month - 1]}"
+    if desde:
+        dia = f"{_DIAS_LARGO[desde.weekday()]} {desde.day} {_MESES_CORTO[desde.month - 1]}"
+        if etiqueta == "hoy":
+            return f"Hoy, {dia}"
+        if etiqueta == "ayer":
+            return f"Ayer, {dia}"
+        if etiqueta == "anteayer":
+            return f"Anteayer, {dia}"
+        return dia.capitalize()
+    if resumen and resumen.get("desde"):
+        fecha = _parse(resumen["desde"])
+        if fecha:
+            return f"{_DIAS_LARGO[fecha.weekday()]} {fecha.day} {_MESES_CORTO[fecha.month - 1]}"
+    return "Resumen"
+
 # Iconos por nombre normalizado (sin tildes). Fallback genérico si no hay match.
 ICONOS_CATEGORIA = {
     "alimentacion": "🍲",
@@ -588,7 +631,39 @@ class App(ctk.CTk):
                 tema.NEUTRAL,
             )
 
-    def _vista_balance_v11(self, hoy, resumen=None, movimientos=None, salud=None, etiqueta_fecha="hoy"):
+    def _dona_ingresos_gastos(self, total_ingresos, total_gastos):
+        """Dona ingresos vs. gastos estilo «Distribución del Día»."""
+        import tkinter as tk
+
+        total = total_ingresos + total_gastos
+        lienzo = tk.Canvas(
+            self.contenido, width=320, height=170, bg=tema.NEUTRAL, highlightthickness=0
+        )
+        lienzo.pack(padx=4, pady=4)
+        cx, cy, radio = 80, 85, 62
+        if total <= 0:
+            lienzo.create_oval(cx - radio, cy - radio, cx + radio, cy + radio,
+                               fill=tema.SECONDARY, outline=tema.BORDE, width=2)
+            texto = "Sin datos"
+        else:
+            parte_ingresos = total_ingresos / total
+            lienzo.create_arc(cx - radio, cy - radio, cx + radio, cy + radio,
+                              start=90, extent=-360 * parte_ingresos,
+                              fill=tema.TERTIARY, outline=tema.BORDE, width=2)
+            lienzo.create_arc(cx - radio, cy - radio, cx + radio, cy + radio,
+                              start=90 - 360 * parte_ingresos,
+                              extent=-360 * (total_gastos / total),
+                              fill=tema.PRIMARY, outline=tema.BORDE, width=2)
+            texto = f"Ingresos {int(round(parte_ingresos * 100))}%"
+        lienzo.create_text(cx, cy, text=texto, font=("Outfit", 11, "bold"), fill=tema.PRIMARY)
+        leyenda = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL)
+        leyenda.pack(pady=(0, 2))
+        ctk.CTkLabel(leyenda, text=f"● Ingresos {pantallas._dinero(total_ingresos)}",
+                     font=tema.cuerpo(12), text_color=tema.TERTIARY).pack(side="left", padx=6)
+        ctk.CTkLabel(leyenda, text=f"● Gastos {pantallas._dinero(total_gastos)}",
+                     font=tema.cuerpo(12), text_color=tema.PRIMARY).pack(side="left", padx=6)
+
+    def _vista_balance_v11(self, hoy, resumen=None, movimientos=None, salud=None, etiqueta_fecha="hoy", rango=None):
         resumen = resumen or {}
         movimientos = movimientos or []
         total_ingresos = int(resumen.get("total_ingresos") or hoy.get("ingresos") or 0)
@@ -602,12 +677,17 @@ class App(ctk.CTk):
             pet = int(hoy.get("salud") or 0) if isinstance(hoy, dict) else 0
             salud = pet or (100 - int(round(total_gastos * 100 / presupuesto)) if presupuesto and total_gastos else 84)
         salud = max(0, min(100, int(salud)))
-        # Encabezado V11.1
-        self._tarjeta(
-            "Balance del día",
-            str(etiqueta_fecha or "hoy"),
-            tema.SECONDARY,
+        # Encabezado con fecha o rango real consultado (mockup "Hoy, jueves…")
+        cabecera = ctk.CTkFrame(
+            self.contenido, fg_color=tema.SECONDARY, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
         )
+        ctk.CTkLabel(
+            cabecera, text=encabezado_fecha(rango, resumen) if rango else str(etiqueta_fecha or "Hoy"),
+            font=tema.headline(17), text_color=tema.PRIMARY,
+        ).pack(pady=(8, 8))
+        cabecera.pack(fill="x", padx=4, pady=4)
+        self._dona_ingresos_gastos(total_ingresos, total_gastos)
         # Arco circular + saldo
         cont = ctk.CTkFrame(self.contenido, fg_color=tema.NEUTRAL)
         cont.pack(fill="x", padx=4, pady=2)
@@ -694,9 +774,18 @@ class App(ctk.CTk):
                 tarjeta.pack(fill="x", pady=3, padx=4)
         if movimientos:
             ctk.CTkLabel(
-                self.contenido, text=f"• {num_mov} movimientos registrados",
-                font=tema.cuerpo(11), text_color=tema.TEXTO,
-            ).pack(padx=8)
+                self.contenido, text="Desglose de movimientos",
+                font=tema.headline(14), text_color=tema.PRIMARY,
+            ).pack(anchor="w", padx=8, pady=(8, 2))
+            for movimiento in movimientos[:8]:
+                tipo = str(movimiento.get("tipo") or "").lower()
+                signo = "-" if tipo == "gasto" else ("+" if tipo == "ingreso" else "")
+                self._tarjeta(
+                    f"{str(movimiento.get('categoria') or movimiento.get('cuenta') or tipo).capitalize()}",
+                    f"{signo}{pantallas._dinero(movimiento.get('monto', 0))} · "
+                    f"{movimiento.get('fecha_local') or ''}",
+                    tema.TERTIARY if tipo == "ingreso" else tema.SECONDARY,
+                )
 
     def _vista_resumen(self, datos):
         resumen = datos.get("resumen") or {}
@@ -710,8 +799,21 @@ class App(ctk.CTk):
             elif datos.get("proyeccion_hoy"):
                 salud = datos["proyeccion_hoy"].get("salud_proyectada") or datos["proyeccion_hoy"].get("salud")
             etiqueta = str(resumen.get("desde") or datos.get("periodo") or "hoy")
-            self._vista_balance_v11({}, resumen, movimientos, salud=salud, etiqueta_fecha=f"Resumen — {etiqueta}")
+            self._vista_balance_v11(
+                {}, resumen, movimientos, salud=salud,
+                etiqueta_fecha=f"Resumen — {etiqueta}",
+                rango=datos.get("rango"),
+            )
             return
+        cabecera = ctk.CTkFrame(
+            self.contenido, fg_color=tema.SECONDARY, corner_radius=16,
+            border_width=2, border_color=tema.BORDE,
+        )
+        ctk.CTkLabel(
+            cabecera, text=encabezado_fecha(datos.get("rango")),
+            font=tema.headline(17), text_color=tema.PRIMARY,
+        ).pack(pady=(8, 8))
+        cabecera.pack(fill="x", padx=4, pady=4)
         for movimiento in (datos.get("movimientos") or [])[:5]:
             self._tarjeta(
                 str(movimiento.get("tipo") or "").capitalize(),

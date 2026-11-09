@@ -1195,7 +1195,11 @@ def detectar_intencion_conversacional(text):
     if rango["expresion"]:
         pide_balance = any(
             word_in_text(palabra, normalized)
-            for palabra in ("cuanto", "balance", "resumen", "total")
+            for palabra in (
+                "cuanto", "balance", "resumen", "total",
+                "como me fue", "como va", "como voy", "me fue",
+                "como va mi dia",
+            )
         )
         menciona_movimiento = any(
             word_in_text(palabra, normalized)
